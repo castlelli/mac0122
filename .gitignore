@@ -1,0 +1,5 @@
+# Build products: never commit binaries (see AGENTS.md)
+/ep1
+*.o
+/c_filter
+/test_*
