@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>teste_colorir.c</title>
+<style>
+/* caixa cinza com numeracao de linhas, estilo listings do LaTeX */
+pre.codigo { background:#f2f2f2; border:1px solid #c8c8c8;
+             border-radius:4px; padding:10px 12px; overflow:auto;
+             font-family:Menlo,Consolas,'DejaVu Sans Mono',monospace;
+             font-size:14px; line-height:1.45; tab-size:4;
+             counter-reset:linha; }
+.l::before { counter-increment:linha; content:counter(linha);
+              display:inline-block; width:2.5em; margin-right:1em;
+              padding-right:0.8em; text-align:right; color:#888;
+              border-right:1px solid #bbb; user-select:none; }
+.pragma  { color:#BC7A00; }
+.tipo    { color:#B00040; }
+.comando { color:#008000; font-weight:bold; }
+.coment  { color:#408080; font-style:italic; }
+.string  { color:#BA2121; }
+.numero  { color:#666666; }
+</style></head>
+<body>
+<pre class="codigo"><span class="l"><span class="pragma">#include &lt;stdio.h&gt;</span></span>
+<span class="l"><span class="pragma">#define MAX 100 </span><span class="coment">/* tamanho maximo */</span></span>
+<span class="l"></span>
+<span class="l"><span class="coment">// soma dos n primeiros inteiros</span></span>
+<span class="l"><span class="tipo">int</span> soma(<span class="tipo">int</span> n)</span>
+<span class="l">{</span>
+<span class="l">    <span class="tipo">int</span> i, s = <span class="numero">0</span>;</span>
+<span class="l">    <span class="comando">for</span> (i = <span class="numero">1</span>; i &lt;= n; i++)</span>
+<span class="l">        s += i;</span>
+<span class="l">    <span class="comando">return</span> s;</span>
+<span class="l">}</span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* comentario</span></span>
+<span class="l"><span class="coment">   de varias linhas */</span></span>
+<span class="l"><span class="tipo">int</span> main(<span class="tipo">void</span>)</span>
+<span class="l">{</span>
+<span class="l">    <span class="tipo">float</span> x = <span class="numero">3.14</span>, y = <span class="numero">1e-3</span>;</span>
+<span class="l">    <span class="tipo">char</span> c = <span class="string">'\n'</span>;</span>
+<span class="l">    <span class="comando">if</span> (x &lt; y &amp;&amp; MAX &gt; <span class="numero">0</span>)</span>
+<span class="l">        printf(<span class="string">"Soma = %d \"ok\"\n"</span>, soma(<span class="numero">10</span>));</span>
+<span class="l">    <span class="comando">return</span> <span class="numero">0</span>;</span>
+<span class="l">}</span>
+</pre>
+</body></html>
