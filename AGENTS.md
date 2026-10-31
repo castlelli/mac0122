@@ -6,7 +6,7 @@ and a request conflict, stop and ask instead of picking one silently.
 
 ## Project
 
-EP1 for MAC0122 (USP). A C99 program that reads course-content TXT files
+EP1 for MAC0122 (USP). A C89 program that reads course-content TXT files
 (written in Portuguese) and generates a static HTML site: `index.html`,
 six index pages (technique, algorithm, authors, date, concepts, problem),
 and one page per TXT, with C code blocks syntax-highlighted.
@@ -65,13 +65,13 @@ Paragraph text.
 Run from the repository root:
 
 ```
-gcc -std=c99 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
 ```
 
 Programs in `algorithms/` are built one at a time with the same flags:
 
 ```
-gcc -std=c99 -Wall -Wextra -pedantic -Werror algorithms/<file>.c -o <file>
+gcc -std=c89 -Wall -Wextra -pedantic -Werror algorithms/<file>.c -o <file>
 ```
 
 Definition of done: the command above exits with status 0 and prints
@@ -100,7 +100,19 @@ comprehension and defect finding; see References):
   Add to this list in a separate commit; do not invent others inline.
 - No Hungarian notation or type prefixes (`p_page`, `iCount`).
 
-C99 rules:
+C89 rules (why: the course compiles with `-std=c89`; each item below
+is an error under the build flags):
+- Comments use `/* */` only; no `//`.
+- Declare variables at the start of a block, before any statement;
+  no declarations inside `for (...)`.
+- No `<stdbool.h>`, `<stdint.h>`, `inline`, `restrict`, `snprintf`,
+  `%zu` or designated initializers. Booleans are `int` (0 or 1) with a
+  question-style name.
+- Aggregate initializers use constant expressions only.
+- No string literal longer than 509 characters; split long text into
+  several literals or several writes.
+
+General C rules:
 - Check every `malloc`, `realloc` and `fopen` result before use.
 - Every header documents ownership: who allocates, who frees. Free BST
   nodes in post-order.
