@@ -28,9 +28,12 @@ src/
   indexes.h / indexes.c   builds the six indexes from the pages
   html.h / html.c         writes content pages and index pages
   c_highlighter.h / .c    filter: C source in, highlighted HTML out
+  c_keywords.h / .c       sorted vector of C reserved words + binary search
 input/                    course TXT files (content in Portuguese)
 output/                   generated HTML; never edit by hand
 algorithms/               standalone C programs + their data files (separate deliverable)
+tests/                    one test program per module: test_<module>.c
+tools/                    standalone programs built on src/ modules (e.g. the C filter)
 ```
 
 Each module talks to the others only through its `.h` file. Do not change a
@@ -74,8 +77,20 @@ Programs in `algorithms/` are built one at a time with the same flags:
 gcc -std=c89 -Wall -Wextra -pedantic -Werror algorithms/<file>.c -o <file>
 ```
 
-Definition of done: the command above exits with status 0 and prints
-nothing. Code that compiles only with warnings is not done.
+Tests and tools link the `src/` modules they use, never `src/main.c`
+(it has its own `main`). Run tests under AddressSanitizer:
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror -fsanitize=address -g \
+    tests/test_<module>.c src/<module>.c [other src modules] -o test_<module>
+./test_<module>
+```
+
+A test program exits 0 when every case passes and prints the failing
+cases otherwise.
+
+Definition of done: every build command above exits with status 0 and
+prints nothing. Code that compiles only with warnings is not done.
 Never commit the `ep1` executable or any other binary.
 
 ## Code style
