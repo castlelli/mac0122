@@ -1,13 +1,13 @@
-Tecnica: Método guloso                                  	┐
-Algoritmo: Kruskal (árvore espalhada mínima)         	    │    
-Autores: Joseph Kruskal                                		| CABEÇALHO
-Data: 1956                                             		│
-Conceitos: grafo, árvore, árvore espalhada mínima       	│
-Problema: Dado um grafo não dirigido com pesos ...      	┘
----                                                     	← fim do cabeçalho
-# Ideia do algoritmo                                    	← seção
-Ordena as arestas por peso e vai adicionando...         	← parágrafo
-                                                        	← linha em branco separa parágrafosemp
+Tecnica: Método guloso
+Algoritmo: Kruskal (árvore espalhada mínima)
+Autores: Joseph Kruskal
+Data: 1956
+Conceitos: grafo, árvore, árvore espalhada mínima
+Problema: Dado um grafo não dirigido com pesos ...
+---
+# Ideia do algoritmo
+Ordena as arestas por peso e vai adicionando...
+
 [code]
 ... código C ...
 [/code]
