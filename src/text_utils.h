@@ -24,4 +24,10 @@ char** text_utils_split_comma(char* line, int* count);
    Aceita str_vector NULL com count 0. */
 void text_utils_free_str_vector(char **, int);
 
+/* Tira espaços, tabs, \r e \n só da ponta direita de line. O começo fica
+   intacto, então serve para linhas em que a indentação importa (código).
+   Altera line (escreve '\0' no fim), então não aceita string literal.
+   Devolve o próprio line, não uma cópia: não dê free nele. */
+char* text_utils_trim_end(char* line);
+
 #endif

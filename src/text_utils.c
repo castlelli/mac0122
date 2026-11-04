@@ -5,18 +5,21 @@
 
 char* text_utils_trim( char* line){
     char* pointer = &line[0];
-    int len;
     while (*pointer != '\0' && (*pointer == '\t' || *pointer == '\n' || *pointer == '\r' || *pointer == ' ')){
         pointer++;
     }
-    
-    len = strlen(pointer);
-    while (len > 0 && (pointer[len-1] == '\n' || pointer[len-1] =='\r' || pointer[len-1] == '\t' || pointer[len-1] == ' '))
-    { 
-        pointer[len-1] = '\0';
+    /* The right end is the same job as text_utils_trim_end. */
+    return text_utils_trim_end(pointer);
+}
+
+char* text_utils_trim_end(char* line){
+    int len = strlen(line);
+    while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r' || line[len-1] == '\t' || line[len-1] == ' '))
+    {
+        line[len-1] = '\0';
         len--;
     }
-    return pointer;
+    return line;
 }
 
 char* text_utils_copy_str(const char* str){
