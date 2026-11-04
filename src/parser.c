@@ -151,17 +151,24 @@ page* parser_read_header(const char * file_path){
     return page_header;
 }
 
+/* Appends line to the code recorded so far in *code_text, with a '\n'
+   between lines; *code_text is NULL before the first line of a [code]
+   block. *code_text may move, which is why its address is passed.
+   Returns 0 only when memory runs out; *code_text is then unchanged. */
 static int append_code_line(char** code_text, const char* line){
     int is_first_line = (*code_text == NULL);
     int new_len;
     char* code_text_temp;
+
     if (is_first_line) new_len = strlen(line) + 1;
     else new_len = strlen(*code_text) + 1 + strlen(line) + 1;
 
     code_text_temp = realloc(*code_text, new_len);
     if (code_text_temp == NULL) return 0;
 
-    if(is_first_line){
+    /* Memory fresh from realloc(NULL, ...) has no '\0' for strcat to find,
+       so the first line is copied, not appended. */
+    if (is_first_line){
         strcpy(code_text_temp, line);
     } else {
         strcat(code_text_temp, "\n");
@@ -200,7 +207,6 @@ page_body* parser_read_body(const page* page_header){
     {
         trimmed_line = text_utils_trim(line);
         if (!strcmp(trimmed_line, "---")) break;
-        
     }
 
     /* Body lines lose only their end ("\r\n"): inside [code] the leading
@@ -208,12 +214,12 @@ page_body* parser_read_body(const page* page_header){
     while (!has_failed && fgets(line, sizeof(line), file) != NULL)
     {
         text_utils_trim_end(line);
-        if (!strcmp(line,"[code]") && (is_inside_code == 0)){
+        if (!strcmp(line, "[code]") && !is_inside_code){
             is_inside_code = 1;
             continue;
         }
-        
-        if (!strcmp(line,"[/code]") && (is_inside_code == 1)){
+
+        if (!strcmp(line, "[/code]") && is_inside_code){
             is_inside_code = 0;
             /* An empty [code] block recorded nothing, so code_text is still
                NULL: no block is added for it. */
@@ -224,15 +230,15 @@ page_body* parser_read_body(const page* page_header){
         }
 
         if (is_inside_code){
-            if(!append_code_line(&code_text, line)) has_failed = 1;
+            if (!append_code_line(&code_text, line)) has_failed = 1;
             continue;
-            
         }
 
         if (!add_line_to_body(body, line)) has_failed = 1;
     }
-    free(code_text);
 
+    /* Non-NULL here only for a [code] never closed, or after a failure. */
+    free(code_text);
     fclose(file);
     if (has_failed){
         page_body_free(body);

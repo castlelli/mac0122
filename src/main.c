@@ -1,16 +1,10 @@
+#include <stddef.h>
 #include "parser.h"
-#include "text_utils.h"
-#include <stdio.h>
 
-int main(){
+int main(void){
     page* header;
     page_body* body;
-    /*char input[] = "grafo, árvore, union-find";
-    int count;
-    char** result;
-    result = text_utils_split_comma(input, &count);
-    for(int i = 0; i < count; i++) printf("[%s]\n", result[i]);
-    text_utils_free_str_vector(result, count);*/
+
     header = parser_read_header("input/template.txt");
     if (header == NULL) return 1;
 

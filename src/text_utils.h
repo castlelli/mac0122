@@ -1,33 +1,32 @@
 #ifndef TEXT_UTILS_H
 #define TEXT_UTILS_H
 
-/* Tira espaços, tabs, \r e \n das duas pontas de line.
-   Altera line (escreve '\0' no fim), então não aceita string literal.
-   Devolve um ponteiro para dentro de line, não uma cópia: não dê free nele. */
+/* Removes spaces, tabs, '\r' and '\n' from both ends of line.
+   Changes line (writes '\0' at the new end), so it does not accept a
+   string literal. Returns a pointer into line, not a copy: do not free it. */
 char *text_utils_trim(char* line);
 
-/* Retorna uma nova string alocada dinamicamente que copia a string original.
-Quem chama essa função recebe a cópia e deve liberá-la. Retorna NULL se a alocação
-de memória falhar. */
+/* Returns a new malloc'd copy of str. The caller owns the copy and frees
+   it. Returns NULL if memory runs out. */
 char *text_utils_copy_str(const char* str);
 
-/* Separa line nas vírgulas, tira os espaços das pontas de cada pedaço
-   e ignora os pedaços vazios. Cada pedaço é copiado com malloc.
-   Altera line (troca as vírgulas por '\0'), então não aceita string literal.
-   Escreve em *count quantas strings foram guardadas.
-   Devolve o vetor de strings, ou NULL (com *count = 0) se não sobrar
-   nenhum pedaço ou se faltar memória. Quem chama é dono do vetor e das
-   strings, e deve liberar tudo com text_utils_free_str_vector. */
+/* Splits line at the commas, trims each piece and skips the empty ones.
+   Each piece is copied with malloc. Changes line (commas become '\0'),
+   so it does not accept a string literal. Writes in *count how many
+   strings were kept.
+   Returns the string vector, or NULL (with *count = 0) when no piece is
+   left or memory runs out. The caller owns the vector and the strings
+   and frees them all with text_utils_free_str_vector. */
 char** text_utils_split_comma(char* line, int* count);
 
-/* Libera as count primeiras strings de str_vector e depois o próprio vetor.
-   Aceita str_vector NULL com count 0. */
+/* Frees the first count strings of str_vector and then the vector.
+   Accepts a NULL str_vector with count 0. */
 void text_utils_free_str_vector(char **, int);
 
-/* Tira espaços, tabs, \r e \n só da ponta direita de line. O começo fica
-   intacto, então serve para linhas em que a indentação importa (código).
-   Altera line (escreve '\0' no fim), então não aceita string literal.
-   Devolve o próprio line, não uma cópia: não dê free nele. */
+/* Removes spaces, tabs, '\r' and '\n' from the right end of line only.
+   The start is kept, so it fits lines whose indentation matters (code).
+   Changes line (writes '\0' at the new end), so it does not accept a
+   string literal. Returns line itself, not a copy: do not free it. */
 char* text_utils_trim_end(char* line);
 
 #endif
