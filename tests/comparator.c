@@ -10,11 +10,15 @@
  * O QUE FAZ:
  *   - Lê o conteúdo dentro de <pre class="codigo">...</pre> em ambos os arquivos.
  *   - Compara se cada caractere do código possui a mesma classe de destaque HTML.
- *   - Ignora espaços, tabulações e números de linha (span class="l").
+ *   - Ignora espaços, tabulações e números de linha (span class="l") na
+ *     comparação de cores.
+ *   - Confere a numeração da barra lateral: cada linha deve ter um
+ *     <span class="l"> (o número vem de um contador CSS), na mesma coluna
+ *     do esperado, e o CSS do contador deve existir no HTML obtido.
  *
  * CÓDIGOS DE SAÍDA:
  *   0 = Identicos (sucesso)
- *   1 = Há divergências de cores/classes
+ *   1 = Há divergências de cores/classes ou de numeração de linhas
  *   2 = Erro de uso ou divergência estrutural de texto
  */
 
@@ -36,6 +40,10 @@ typedef struct {
 typedef struct {
     Cel *v;
     size_t n, cap;
+    int *l_cnt, *l_col;             /* por linha: quantos <span class="l"> abrem
+                                       nela e em que coluna abre o primeiro */
+    size_t cap_l;                   /* tamanho dos vetores acima */
+    int linhas;                     /* total de linhas do codigo */
 } Lista;
 
 /* ---------- nomes de classe internados: comparar ponteiros basta ---------- */
@@ -90,6 +98,21 @@ static void empilha_cel(Lista *L, char ch, const char *cls, int linha, int col)
     L->n++;
 }
 
+/* Registra que um <span class="l"> abriu na linha/coluna dadas. */
+static void marca_l(Lista *L, int linha, int col)
+{
+    size_t i;
+    if ((size_t)linha >= L->cap_l) {
+        size_t novo = L->cap_l ? L->cap_l : 256;
+        while ((size_t)linha >= novo) novo *= 2;
+        L->l_cnt = realloc(L->l_cnt, novo * sizeof(int));
+        L->l_col = realloc(L->l_col, novo * sizeof(int));
+        for (i = L->cap_l; i < novo; i++) { L->l_cnt[i] = 0; L->l_col[i] = 0; }
+        L->cap_l = novo;
+    }
+    if (L->l_cnt[linha]++ == 0) L->l_col[linha] = col;
+}
+
 static const char *acha(const char *s, const char *agulha)
 {
     return strstr(s, agulha);
@@ -133,6 +156,7 @@ static void analisa(const char *html, const char *nome, Lista *L)
                     if (q) cls = internar(c, (size_t)(q - c));
                 }
                 if (topo < MAX_PILHA) pilha[topo++] = cls;
+                if (strcmp(cls, "l") == 0) marca_l(L, linha, col);
             } else if (strncmp(p, "</span", 6) == 0) {
                 if (topo > 0) topo--;
             }
@@ -157,6 +181,7 @@ static void analisa(const char *html, const char *nome, Lista *L)
         if (ch == '\n') { linha++; col = 1; } else col++;
         p += consumido;
     }
+    L->linhas = linha;
 }
 
 /* ---------- comparacao ---------- */
@@ -202,14 +227,67 @@ static void imprime_divergencia(const Lista *E, size_t a, size_t b,
            mostra_classe(E->v[a].cls), mostra_classe(obtida), texto);
 }
 
+/* ---------- numeracao das linhas (barra lateral) ---------- */
+
+/* O numero exibido vem de um contador CSS: o N-esimo <span class="l"> mostra N.
+   Entao o obtido precisa ter, em cada linha, o mesmo numero de spans "l" e na
+   mesma coluna do esperado. Devolve o numero de problemas. */
+static int confere_numeracao(const Lista *E, const Lista *O)
+{
+    int ln, n_prob = 0;
+    long soma_e = 0, soma_o = 0;
+
+    for (ln = 1; ln <= E->linhas; ln++) {
+        int ce = ((size_t)ln < E->cap_l) ? E->l_cnt[ln] : 0;
+        int co = ((size_t)ln < O->cap_l) ? O->l_cnt[ln] : 0;
+        char num_e[24], num_o[24];
+
+        if (ce) sprintf(num_e, "%ld", soma_e + 1); else strcpy(num_e, "nenhum");
+        if (co) sprintf(num_o, "%ld", soma_o + 1); else strcpy(num_o, "nenhum");
+
+        if (ce != co || (ce && E->l_col[ln] != O->l_col[ln])) {
+            printf("  linha %3d  esperado numero %-7s obtido numero %-7s"
+                   " (spans l: esperado %d, obtido %d)\n",
+                   ln, num_e, num_o, ce, co);
+            n_prob++;
+        }
+        soma_e += ce;
+        soma_o += co;
+    }
+    if (soma_e != soma_o) {
+        printf("  total de numeros: esperado %ld, obtido %ld"
+               " (as linhas seguintes ficam deslocadas)\n", soma_e, soma_o);
+        n_prob++;
+    }
+    return n_prob;
+}
+
+/* O contador precisa existir no CSS do obtido, senao nenhum numero aparece. */
+static int confere_css(const char *html_e, const char *html_o)
+{
+    static const char *chaves[] = {
+        "counter-reset", "counter-increment", "counter(", "before"
+    };
+    int k, n_prob = 0;
+
+    for (k = 0; k < 4; k++)
+        if (strstr(html_e, chaves[k]) && !strstr(html_o, chaves[k])) {
+            printf("  CSS: falta '%s' no HTML obtido (a numeracao depende dele)\n",
+                   chaves[k]);
+            n_prob++;
+        }
+    return n_prob;
+}
+
 int main(int argc, char *argv[])
 {
     size_t tam_e, tam_o;
     char *html_e, *html_o;
-    Lista E = {0, 0, 0}, O = {0, 0, 0};
+    Lista E = {0, 0, 0, 0, 0, 0, 0}, O = {0, 0, 0, 0, 0, 0, 0};
     size_t n, i;
     long total = 0, certos = 0;
     int n_div = 0;
+    int n_num = 0;
     int k;
 
     if (argc != 3) {
@@ -280,7 +358,12 @@ int main(int argc, char *argv[])
     }
     if (n_div == 0) printf("  (nenhuma)\n");
 
-    /* 3) resumo por classe esperada */
+    /* 3) numeracao das linhas (barra lateral esquerda) */
+    printf("\nNumeracao das linhas (barra lateral):\n");
+    n_num = confere_numeracao(&E, &O) + confere_css(html_e, html_o);
+    if (n_num == 0) printf("  (nenhuma)\n");
+
+    /* 4) resumo por classe esperada */
     printf("\nResumo por classe esperada (caracteres visiveis):\n");
     for (k = 0; k < n_resumo; k++)
         printf("  %-10s %5ld de %5ld corretos%s\n",
@@ -289,8 +372,12 @@ int main(int argc, char *argv[])
 
     printf("\nTotal: %ld de %ld caracteres corretos (%.1f%%), %d divergencia(s).\n",
            certos, total, total ? 100.0 * (double)certos / (double)total : 100.0, n_div);
-    printf("Resultado: %s\n", n_div == 0 ? "OK, identico ao esperado" : "DIFERENTE do esperado");
+    printf("Numeracao: %d problema(s).\n", n_num);
+    printf("Resultado: %s\n",
+           (n_div == 0 && n_num == 0) ? "OK, identico ao esperado"
+                                      : "DIFERENTE do esperado");
 
     free(E.v); free(O.v); free(html_e); free(html_o);
-    return n_div == 0 ? 0 : 1;
+    free(E.l_cnt); free(E.l_col); free(O.l_cnt); free(O.l_col);
+    return (n_div == 0 && n_num == 0) ? 0 : 1;
 }
