@@ -9,16 +9,17 @@
 
 int parser_read_file(const char * file_path){
     FILE* file = fopen(file_path, "r");
+    char line[MAX_LINE_SIZE];
+    char *key; /*oq chamamos de indice*/
+    char *value; /*oq o indice recebe*/
+    char* trimmed_line;
 
     if (file == NULL){
         perror(file_path);
         return -1;
     }
 
-    char line[MAX_LINE_SIZE];
-    char *key;
-    char *value;
-    char* trimmed_line;
+    
     while (fgets(line, sizeof(line), file) != NULL)
     {   
         trimmed_line = text_utils_trim(line);
