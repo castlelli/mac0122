@@ -12,7 +12,8 @@ char* text_utils_trim(char* line){
 }
 
 char* text_utils_trim_end(char* line){
-    int len = strlen(line);
+    /* size_t never goes below 0, so len > 0 must be tested before len-1. */
+    size_t len = strlen(line);
     while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r' || line[len-1] == '\t' || line[len-1] == ' ')){
         line[len-1] = '\0';
         len--;

@@ -157,7 +157,7 @@ page* parser_read_header(const char * file_path){
    Returns 0 only when memory runs out; *code_text is then unchanged. */
 static int append_code_line(char** code_text, const char* line){
     int is_first_line = (*code_text == NULL);
-    int new_len;
+    size_t new_len;
     char* code_text_temp;
 
     if (is_first_line) new_len = strlen(line) + 1;
