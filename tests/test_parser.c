@@ -84,24 +84,24 @@ static void test_read_body(void){
         check_true("body: six blocks", body->blocks_count == 6);
         if (body->blocks_count == 6){
             check_true("body: section without '# '",
-                       body->blocks[0]->block_type == SECTION
-                       && is_same_str(body->blocks[0]->block_str, "Ideia"));
+                       body->blocks[0]->type == SECTION
+                       && is_same_str(body->blocks[0]->text, "Ideia"));
             check_true("body: paragraph",
-                       body->blocks[1]->block_type == PARAGRAPH
-                       && is_same_str(body->blocks[1]->block_str, "Texto um."));
+                       body->blocks[1]->type == PARAGRAPH
+                       && is_same_str(body->blocks[1]->text, "Texto um."));
             check_true("body: code keeps indentation and blank line",
-                       body->blocks[2]->block_type == CODE
-                       && is_same_str(body->blocks[2]->block_str,
+                       body->blocks[2]->type == CODE
+                       && is_same_str(body->blocks[2]->text,
                                       "int main(void)\n{\n\n    return 0;\n}"));
             check_true("body: paragraph between code blocks",
-                       body->blocks[3]->block_type == PARAGRAPH
-                       && is_same_str(body->blocks[3]->block_str, "Texto entre."));
+                       body->blocks[3]->type == PARAGRAPH
+                       && is_same_str(body->blocks[3]->text, "Texto entre."));
             check_true("body: second code block is separate",
-                       body->blocks[4]->block_type == CODE
-                       && is_same_str(body->blocks[4]->block_str, "x = 1;"));
+                       body->blocks[4]->type == CODE
+                       && is_same_str(body->blocks[4]->text, "x = 1;"));
             check_true("body: reference without '[ref] '",
-                       body->blocks[5]->block_type == REFERENCE
-                       && is_same_str(body->blocks[5]->block_str, "Livro"));
+                       body->blocks[5]->type == REFERENCE
+                       && is_same_str(body->blocks[5]->text, "Livro"));
         }
     }
     page_body_free(body);

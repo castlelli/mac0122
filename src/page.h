@@ -3,12 +3,12 @@
 
 enum block_type {SECTION, PARAGRAPH, CODE, REFERENCE};
 
-typedef struct block {
-    int block_type;
-    char* block_str;
+typedef struct page_block {
+    enum block_type type;
+    char* text;
 } page_block;
 
-typedef struct body {
+typedef struct page_body {
     page_block** blocks;
     int blocks_count;
 } page_body;

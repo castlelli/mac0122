@@ -48,7 +48,7 @@ void page_body_free(page_body* body){
     int block_index;
     if (body == NULL) return;
     for (block_index = 0; block_index < body->blocks_count; block_index++){
-        free(body->blocks[block_index]->block_str);
+        free(body->blocks[block_index]->text);
         free(body->blocks[block_index]);
     }
     free(body->blocks);
@@ -62,9 +62,9 @@ int page_body_add_block(page_body* body, enum block_type type, const char* text)
     new_block = malloc(sizeof(page_block));
     if (new_block == NULL) return 0;
 
-    new_block->block_type = type;
-    new_block->block_str = text_utils_copy_str(text);
-    if (new_block->block_str == NULL){
+    new_block->type = type;
+    new_block->text = text_utils_copy_str(text);
+    if (new_block->text == NULL){
         free(new_block);
         return 0;
     }
@@ -74,7 +74,7 @@ int page_body_add_block(page_body* body, enum block_type type, const char* text)
        body->blocks would lose it (and every block in it). */
     grown_blocks = realloc(body->blocks, (body->blocks_count + 1) * sizeof(page_block*));
     if (grown_blocks == NULL){
-        free(new_block->block_str);
+        free(new_block->text);
         free(new_block);
         return 0;
     }

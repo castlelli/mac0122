@@ -31,8 +31,8 @@ char* text_utils_copy_str(const char* str){
 }
 
 void text_utils_free_str_vector(char** str_vector, int count){
-    int i;
-    for(i = 0; i < count; i++) free(str_vector[i]);
+    int str_index;
+    for (str_index = 0; str_index < count; str_index++) free(str_vector[str_index]);
     free(str_vector);
 }
 

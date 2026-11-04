@@ -52,14 +52,14 @@ static void test_body_add_block(void){
     check_true("four blocks", body->blocks_count == 4);
     if (body->blocks_count == 4){
         check_true("blocks keep their order and type",
-                   body->blocks[0]->block_type == SECTION
-                   && body->blocks[1]->block_type == PARAGRAPH
-                   && body->blocks[2]->block_type == CODE
-                   && body->blocks[3]->block_type == REFERENCE);
+                   body->blocks[0]->type == SECTION
+                   && body->blocks[1]->type == PARAGRAPH
+                   && body->blocks[2]->type == CODE
+                   && body->blocks[3]->type == REFERENCE);
         check_true("block text is a copy",
-                   strcmp(body->blocks[0]->block_str, "Ideia do algoritmo") == 0);
+                   strcmp(body->blocks[0]->text, "Ideia do algoritmo") == 0);
         check_true("code text keeps newlines and indentation",
-                   strcmp(body->blocks[2]->block_str, "int x;\n    x = 1;") == 0);
+                   strcmp(body->blocks[2]->text, "int x;\n    x = 1;") == 0);
     }
 
     page_body_free(body);

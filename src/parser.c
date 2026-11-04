@@ -46,23 +46,23 @@ static int fill_page_field(page *page_header, const char *key, char *value){
 }
 
 
-/* Adds one body line to page_txt_body as a block. The marker at the start
+/* Adds one body line to body as a block. The marker at the start
    of the line picks the type and is left out of the text: "# " is a
    section, "[ref]" a reference, anything else a paragraph. Blank lines
    add nothing. Returns 0 only when memory runs out. */
-static int add_line_to_body(page_body *page_txt_body, const char *line){
+static int add_line_to_body(page_body *body, const char *line){
     const char *reference_text;
 
     if (!strcmp(line, "")) return 1;
 
     if (!strncmp(line, "# ", 2)){
-        return page_body_add_block(page_txt_body, SECTION, line + 2);
+        return page_body_add_block(body, SECTION, line + 2);
     } else if (!strncmp(line, "[ref]", 5)){
         reference_text = line + 5;
         while (*reference_text == ' ') reference_text++;
-        return page_body_add_block(page_txt_body, REFERENCE, reference_text);
+        return page_body_add_block(body, REFERENCE, reference_text);
     }
-    return page_body_add_block(page_txt_body, PARAGRAPH, line);
+    return page_body_add_block(body, PARAGRAPH, line);
 }
 
 /* Builds the content page name from the TXT path: the part after the last
@@ -174,10 +174,10 @@ static int append_code_line(char** code_text, const char* line){
 
 page_body* parser_read_body(const page* page_header){
     FILE* file;
-    page_body* page_txt_body;
+    page_body* body;
     char line[MAX_LINE_SIZE];
     char* trimmed_line;
-    char* code_print = NULL;
+    char* code_text = NULL;
     int has_failed = 0;
     int is_inside_code = 0;
 
@@ -190,8 +190,8 @@ page_body* parser_read_body(const page* page_header){
         return NULL;
     }
 
-    page_txt_body = page_body_create();
-    if (page_txt_body == NULL){
+    body = page_body_create();
+    if (body == NULL){
         fclose(file);
         return NULL;
     }
@@ -215,29 +215,29 @@ page_body* parser_read_body(const page* page_header){
         
         if (!strcmp(line,"[/code]") && (is_inside_code == 1)){
             is_inside_code = 0;
-            /* An empty [code] block recorded nothing, so code_print is still
+            /* An empty [code] block recorded nothing, so code_text is still
                NULL: no block is added for it. */
-            if (code_print != NULL && !page_body_add_block(page_txt_body, CODE, code_print)) has_failed = 1;
-            free(code_print);
-            code_print = NULL;
+            if (code_text != NULL && !page_body_add_block(body, CODE, code_text)) has_failed = 1;
+            free(code_text);
+            code_text = NULL;
             continue;
         }
 
         if (is_inside_code){
-            if(!append_code_line(&code_print, line)) has_failed = 1;
+            if(!append_code_line(&code_text, line)) has_failed = 1;
             continue;
             
         }
 
-        if (!add_line_to_body(page_txt_body, line)) has_failed = 1;
+        if (!add_line_to_body(body, line)) has_failed = 1;
     }
-    free(code_print);
+    free(code_text);
 
     fclose(file);
     if (has_failed){
-        page_body_free(page_txt_body);
+        page_body_free(body);
         return NULL;
     }
-    return page_txt_body;
+    return body;
 }
 
