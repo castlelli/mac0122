@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "parser.h"
 #include "text_utils.h"
@@ -44,6 +45,41 @@ static int fill_page_field(page *page_header, const char *key, char *value){
     return 1;
 }
 
+/* Builds the content page name from the TXT path: the part after the last
+   '/' or '\' and before the last '.', plus ".html"
+   ("input/kruskal.txt" -> "kruskal.html"). Both separators are searched
+   because paths written by Windows use '\'. The dot is searched only in
+   the file name, so a dot in a folder name ("my.folder/kruskal") is not
+   taken as the extension. Returns a malloc'd string the caller frees,
+   or NULL if memory runs out. */
+static char* build_html_name(const char* file_path){
+    const char *name_start = file_path;
+    const char *last_slash = strrchr(file_path, '/');
+    const char *last_backslash = strrchr(file_path, '\\');
+    const char *last_dot;
+    size_t name_len;
+    char *html_name;
+
+    if (last_slash != NULL && (last_backslash == NULL || last_slash > last_backslash)){
+        name_start = last_slash + 1;
+    } else if (last_backslash != NULL){
+        name_start = last_backslash + 1;
+    }
+
+    last_dot = strrchr(name_start, '.');
+    if (last_dot != NULL) name_len = last_dot - name_start;
+    else name_len = strlen(name_start);
+
+    html_name = malloc(name_len + strlen(".html") + 1);
+    if (html_name == NULL) return NULL;
+
+    /* strncpy does not write '\0' when it stops at name_len. */
+    strncpy(html_name, name_start, name_len);
+    html_name[name_len] = '\0';
+    strcat(html_name, ".html");
+    return html_name;
+}
+
 page* parser_read_header(const char * file_path){
     FILE* file = fopen(file_path, "r");
     page* page_header = page_create();
@@ -65,6 +101,11 @@ page* parser_read_header(const char * file_path){
 
     page_header->txt_path = text_utils_copy_str(file_path);
     if (page_header->txt_path == NULL) has_failed = 1;
+
+    if (!has_failed){
+        page_header->html_name = build_html_name(file_path);
+        if (page_header->html_name == NULL) has_failed = 1;
+    }
 
     while (!has_failed && fgets(line, sizeof(line), file) != NULL)
     {
