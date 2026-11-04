@@ -14,7 +14,7 @@ typedef struct page
     int authors_count;
     char** concepts;
     int concepts_count;
-    char* txt_name;
+    char* txt_path;
     char* html_name;
 
 } page;

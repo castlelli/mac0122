@@ -63,8 +63,8 @@ page* parser_read_header(const char * file_path){
         return NULL;
     }
 
-    page_header->txt_name = text_utils_copy_str(file_path);
-    if (page_header->txt_name == NULL) has_failed = 1;
+    page_header->txt_path = text_utils_copy_str(file_path);
+    if (page_header->txt_path == NULL) has_failed = 1;
 
     while (!has_failed && fgets(line, sizeof(line), file) != NULL)
     {

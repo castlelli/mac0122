@@ -9,7 +9,7 @@ page* page_create(void){
 
     single_page->algorithm = NULL;
     single_page->technique = NULL;
-    single_page->txt_name = NULL;
+    single_page->txt_path = NULL;
     single_page->html_name = NULL;
     single_page->authors = NULL;
     single_page->date = NULL;
@@ -26,7 +26,7 @@ void page_free(page* single_page){
     text_utils_free_str_vector(single_page->authors, single_page->authors_count);
     text_utils_free_str_vector(single_page->concepts, single_page->concepts_count);
     free(single_page->html_name);
-    free(single_page->txt_name);
+    free(single_page->txt_path);
     free(single_page->technique);
     free(single_page->date);
     free(single_page->problem);
