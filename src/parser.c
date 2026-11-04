@@ -7,16 +7,29 @@
 
 
 
-int parser_read_file(const char * file_path){
+page* parser_read_header(const char * file_path){
     FILE* file = fopen(file_path, "r");
+    page* page_header = page_create();
     char line[MAX_LINE_SIZE];
     char *key; /*oq chamamos de indice*/
     char *value; /*oq o indice recebe*/
     char* trimmed_line;
+    
 
     if (file == NULL){
         perror(file_path);
-        return -1;
+        page_free(page_header);
+        return NULL;
+    } else if (page_header == NULL){
+        fclose(file);
+        return NULL;
+    }
+    
+    page_header->txt_name = text_utils_copy_str(file_path);
+    if (page_header->txt_name == NULL){
+        page_free(page_header);
+        fclose(file);
+        return NULL;
     }
 
     
@@ -36,6 +49,6 @@ int parser_read_file(const char * file_path){
         }
     }
     fclose(file);
-    return 1;
+    return page_header;
     
 }
