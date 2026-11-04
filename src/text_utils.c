@@ -51,7 +51,10 @@ char** text_utils_split_comma(char* line, int* count){
     
     /*somando 1 ao número de vírgulas, temos o número de strings daquela chave*/
     str_vector = malloc((comma_count + 1) * sizeof(char*)); /*cria o vetor no qual serão armazenadas as strings*/
-    if (str_vector == NULL) return NULL;
+    if (str_vector == NULL) {
+        *count = 0;
+        return NULL;
+    }
     pointer = &line[0];/*reseta o ponteiro pro inicio da linha*/
 
     while (*pointer != '\0')
