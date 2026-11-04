@@ -4,6 +4,7 @@
 
 int main(){
     page* header;
+    page_body* body;
     /*char input[] = "grafo, árvore, union-find";
     int count;
     char** result;
@@ -12,6 +13,14 @@ int main(){
     text_utils_free_str_vector(result, count);*/
     header = parser_read_header("input/template.txt");
     if (header == NULL) return 1;
+
+    body = parser_read_body(header);
+    if (body == NULL){
+        page_free(header);
+        return 1;
+    }
+
+    page_body_free(body);
     page_free(header);
     return 0;
 }

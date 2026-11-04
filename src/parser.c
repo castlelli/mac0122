@@ -45,6 +45,26 @@ static int fill_page_field(page *page_header, const char *key, char *value){
     return 1;
 }
 
+
+/* Adds one body line to page_txt_body as a block. The marker at the start
+   of the line picks the type and is left out of the text: "# " is a
+   section, "[ref]" a reference, anything else a paragraph. Blank lines
+   add nothing. Returns 0 only when memory runs out. */
+static int add_line_to_body(page_body *page_txt_body, const char *line){
+    const char *reference_text;
+
+    if (!strcmp(line, "")) return 1;
+
+    if (!strncmp(line, "# ", 2)){
+        return page_body_add_block(page_txt_body, SECTION, line + 2);
+    } else if (!strncmp(line, "[ref]", 5)){
+        reference_text = line + 5;
+        while (*reference_text == ' ') reference_text++;
+        return page_body_add_block(page_txt_body, REFERENCE, reference_text);
+    }
+    return page_body_add_block(page_txt_body, PARAGRAPH, line);
+}
+
 /* Builds the content page name from the TXT path: the part after the last
    '/' or '\' and before the last '.', plus ".html"
    ("input/kruskal.txt" -> "kruskal.html"). Both separators are searched
@@ -130,3 +150,94 @@ page* parser_read_header(const char * file_path){
     }
     return page_header;
 }
+
+static int append_code_line(char** code_text, const char* line){
+    int is_first_line = (*code_text == NULL);
+    int new_len;
+    char* code_text_temp;
+    if (is_first_line) new_len = strlen(line) + 1;
+    else new_len = strlen(*code_text) + 1 + strlen(line) + 1;
+
+    code_text_temp = realloc(*code_text, new_len);
+    if (code_text_temp == NULL) return 0;
+
+    if(is_first_line){
+        strcpy(code_text_temp, line);
+    } else {
+        strcat(code_text_temp, "\n");
+        strcat(code_text_temp, line);
+    }
+
+    *code_text = code_text_temp;
+    return 1;
+}
+
+page_body* parser_read_body(const page* page_header){
+    FILE* file;
+    page_body* page_txt_body;
+    char line[MAX_LINE_SIZE];
+    char* trimmed_line;
+    char* code_print = NULL;
+    int has_failed = 0;
+    int is_inside_code = 0;
+
+    /* Checked before fopen, which reads page_header->txt_path. */
+    if (page_header == NULL || page_header->txt_path == NULL) return NULL;
+
+    file = fopen(page_header->txt_path, "r");
+    if (file == NULL){
+        perror(page_header->txt_path);
+        return NULL;
+    }
+
+    page_txt_body = page_body_create();
+    if (page_txt_body == NULL){
+        fclose(file);
+        return NULL;
+    }
+
+    while (fgets(line, sizeof(line), file) != NULL)
+    {
+        trimmed_line = text_utils_trim(line);
+        if (!strcmp(trimmed_line, "---")) break;
+        
+    }
+
+    /* Body lines lose only their end ("\r\n"): inside [code] the leading
+       spaces are the indentation of the C code. */
+    while (!has_failed && fgets(line, sizeof(line), file) != NULL)
+    {
+        text_utils_trim_end(line);
+        if (!strcmp(line,"[code]") && (is_inside_code == 0)){
+            is_inside_code = 1;
+            continue;
+        }
+        
+        if (!strcmp(line,"[/code]") && (is_inside_code == 1)){
+            is_inside_code = 0;
+            /* An empty [code] block recorded nothing, so code_print is still
+               NULL: no block is added for it. */
+            if (code_print != NULL && !page_body_add_block(page_txt_body, CODE, code_print)) has_failed = 1;
+            free(code_print);
+            code_print = NULL;
+            continue;
+        }
+
+        if (is_inside_code){
+            if(!append_code_line(&code_print, line)) has_failed = 1;
+            continue;
+            
+        }
+
+        if (!add_line_to_body(page_txt_body, line)) has_failed = 1;
+    }
+    free(code_print);
+
+    fclose(file);
+    if (has_failed){
+        page_body_free(page_txt_body);
+        return NULL;
+    }
+    return page_txt_body;
+}
+
