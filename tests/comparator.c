@@ -45,7 +45,8 @@ static int n_nomes = 0;
 
 static const char *internar(const char *s, size_t len)
 {
-    for (int i = 0; i < n_nomes; i++)
+    int i;
+    for (i = 0; i < n_nomes; i++)
         if (strlen(nomes[i]) == len && strncmp(nomes[i], s, len) == 0)
             return nomes[i];
     if (n_nomes == MAX_CLASSES) { fprintf(stderr, "classes demais\n"); exit(2); }
@@ -60,9 +61,10 @@ static const char *internar(const char *s, size_t len)
 static char *le_arquivo(const char *nome, size_t *tam)
 {
     FILE *f = (strcmp(nome, "-") == 0) ? stdin : fopen(nome, "rb");
-    if (!f) { fprintf(stderr, "Erro: nao consegui abrir '%s'\n", nome); exit(2); }
     size_t cap = 8192, n = 0, lidos;
-    char *buf = malloc(cap + 1);
+    char *buf;
+    if (!f) { fprintf(stderr, "Erro: nao consegui abrir '%s'\n", nome); exit(2); }
+    buf = malloc(cap + 1);
     while ((lidos = fread(buf + n, 1, cap - n, f)) > 0) {
         n += lidos;
         if (n == cap) { cap *= 2; buf = realloc(buf, cap + 1); }
@@ -81,7 +83,11 @@ static void empilha_cel(Lista *L, char ch, const char *cls, int linha, int col)
         L->cap = L->cap ? L->cap * 2 : 4096;
         L->v = realloc(L->v, L->cap * sizeof(Cel));
     }
-    L->v[L->n++] = (Cel){ ch, cls, linha, col };
+    L->v[L->n].ch = ch;
+    L->v[L->n].cls = cls;
+    L->v[L->n].linha = linha;
+    L->v[L->n].col = col;
+    L->n++;
 }
 
 static const char *acha(const char *s, const char *agulha)
@@ -92,29 +98,38 @@ static const char *acha(const char *s, const char *agulha)
 static void analisa(const char *html, const char *nome, Lista *L)
 {
     const char *ini = acha(html, "<pre class=\"codigo\">");
+    const char *fim;
+    const char *pilha[MAX_PILHA];   /* classe de cada <span> aberto */
+    int topo = 0;
+    int linha = 1, col = 1;
+    const char *p;
+
     if (!ini) {
         fprintf(stderr, "Erro: '%s' nao tem <pre class=\"codigo\">\n", nome);
         exit(2);
     }
     ini += strlen("<pre class=\"codigo\">");
-    const char *fim = acha(ini, "</pre>");
+    fim = acha(ini, "</pre>");
     if (!fim) fim = ini + strlen(ini);
 
-    const char *pilha[MAX_PILHA];   /* classe de cada <span> aberto */
-    int topo = 0;
-    int linha = 1, col = 1;
-    const char *p = ini;
+    p = ini;
 
     while (p < fim) {
+        char ch;
+        size_t consumido;
+        const char *cls;
+        int k;
+
         if (*p == '<') {
             const char *gt = memchr(p, '>', (size_t)(fim - p));
             if (!gt) break;
             if (strncmp(p, "<span", 5) == 0) {
                 const char *c = strstr(p, "class=\"");
                 const char *cls = NORMAL;
+                const char *q;
                 if (c && c < gt) {
                     c += 7;
-                    const char *q = memchr(c, '"', (size_t)(gt - c));
+                    q = memchr(c, '"', (size_t)(gt - c));
                     if (q) cls = internar(c, (size_t)(q - c));
                 }
                 if (topo < MAX_PILHA) pilha[topo++] = cls;
@@ -125,8 +140,8 @@ static void analisa(const char *html, const char *nome, Lista *L)
             continue;
         }
 
-        char ch = *p;
-        size_t consumido = 1;
+        ch = *p;
+        consumido = 1;
         if (ch == '&') {
             if      (strncmp(p, "&lt;", 4) == 0)  { ch = '<'; consumido = 4; }
             else if (strncmp(p, "&gt;", 4) == 0)  { ch = '>'; consumido = 4; }
@@ -134,8 +149,8 @@ static void analisa(const char *html, const char *nome, Lista *L)
         }
 
         /* classe = span mais interno que nao seja o "l" de numero de linha */
-        const char *cls = NORMAL;
-        for (int k = topo - 1; k >= 0; k--)
+        cls = NORMAL;
+        for (k = topo - 1; k >= 0; k--)
             if (strcmp(pilha[k], "l") != 0) { cls = pilha[k]; break; }
 
         empilha_cel(L, ch, cls, linha, col);
@@ -163,7 +178,8 @@ static int n_resumo = 0;
 
 static Resumo *resumo_de(const char *cls)
 {
-    for (int i = 0; i < n_resumo; i++)
+    int i;
+    for (i = 0; i < n_resumo; i++)
         if (resumo[i].cls == cls) return &resumo[i];
     resumo[n_resumo].cls = cls;
     return &resumo[n_resumo++];
@@ -174,8 +190,8 @@ static void imprime_divergencia(const Lista *E, size_t a, size_t b,
                                 const char *obtida)
 {
     char texto[48];
-    size_t k = 0, usados = 0;
-    for (size_t i = a; i < b; i++) {
+    size_t k = 0, usados = 0, i;
+    for (i = a; i < b; i++) {
         usados++;
         if (k < sizeof texto - 4) texto[k++] = (E->v[i].ch == '\t') ? ' ' : E->v[i].ch;
     }
@@ -188,23 +204,29 @@ static void imprime_divergencia(const Lista *E, size_t a, size_t b,
 
 int main(int argc, char *argv[])
 {
+    size_t tam_e, tam_o;
+    char *html_e, *html_o;
+    Lista E = {0, 0, 0}, O = {0, 0, 0};
+    size_t n, i;
+    long total = 0, certos = 0;
+    int n_div = 0;
+    int k;
+
     if (argc != 3) {
         fprintf(stderr, "Uso: %s esperado.html obtido.html   (ou '-' para stdin)\n",
                 argv[0]);
         return 2;
     }
 
-    size_t tam_e, tam_o;
-    char *html_e = le_arquivo(argv[1], &tam_e);
-    char *html_o = le_arquivo(argv[2], &tam_o);
+    html_e = le_arquivo(argv[1], &tam_e);
+    html_o = le_arquivo(argv[2], &tam_o);
 
-    Lista E = {0}, O = {0};
     analisa(html_e, argv[1], &E);
     analisa(html_o, argv[2], &O);
 
     /* 1) o texto tem que ser o mesmo, senao nao ha o que comparar */
-    size_t n = (E.n < O.n) ? E.n : O.n;
-    for (size_t i = 0; i < n; i++) {
+    n = (E.n < O.n) ? E.n : O.n;
+    for (i = 0; i < n; i++) {
         if (E.v[i].ch != O.v[i].ch) {
             printf("Os textos diferem (os dois HTML nao vem do mesmo .c).\n"
                    "  primeira diferenca: linha %d, col %d: esperado '%c', obtido '%c'\n",
@@ -213,22 +235,26 @@ int main(int argc, char *argv[])
         }
     }
     if (E.n != O.n) {
-        printf("Os textos diferem no tamanho: esperado %zu caracteres, obtido %zu.\n"
-               "  (o %s termina antes)\n", E.n, O.n, (E.n < O.n) ? "esperado" : "obtido");
+        printf("Os textos diferem no tamanho: esperado %lu caracteres, obtido %lu.\n"
+               "  (o %s termina antes)\n",
+               (unsigned long)E.n, (unsigned long)O.n,
+               (E.n < O.n) ? "esperado" : "obtido");
         return 2;
     }
 
     /* 2) classe de cada caractere visivel */
-    long total = 0, certos = 0;
-    int n_div = 0;
     printf("Divergencias (esperado x obtido):\n");
 
-    size_t i = 0;
+    i = 0;
     while (i < E.n) {
         char ch = E.v[i].ch;
+        Resumo *r;
+        const char *ce, *co;
+        size_t fim, j;
+
         if (ch == '\n' || e_branco(ch)) { i++; continue; }
 
-        Resumo *r = resumo_de(E.v[i].cls);
+        r = resumo_de(E.v[i].cls);
         r->total++;
         total++;
 
@@ -236,9 +262,10 @@ int main(int argc, char *argv[])
 
         /* divergencia: estende o trecho enquanto o par (esperada, obtida) se
            mantem e na mesma linha; brancos no meio nao interrompem */
-        const char *ce = E.v[i].cls, *co = O.v[i].cls;
-        size_t fim = i + 1;      /* fim (exclusivo) do ultimo caractere visivel */
-        size_t j = i + 1;
+        ce = E.v[i].cls;
+        co = O.v[i].cls;
+        fim = i + 1;      /* fim (exclusivo) do ultimo caractere visivel */
+        j = i + 1;
         while (j < E.n && E.v[j].ch != '\n') {
             if (e_branco(E.v[j].ch)) { j++; continue; }
             if (E.v[j].cls == ce && O.v[j].cls == co) {
@@ -255,7 +282,7 @@ int main(int argc, char *argv[])
 
     /* 3) resumo por classe esperada */
     printf("\nResumo por classe esperada (caracteres visiveis):\n");
-    for (int k = 0; k < n_resumo; k++)
+    for (k = 0; k < n_resumo; k++)
         printf("  %-10s %5ld de %5ld corretos%s\n",
                mostra_classe(resumo[k].cls), resumo[k].certos, resumo[k].total,
                (resumo[k].certos == resumo[k].total) ? "" : "   <-- verificar");
