@@ -57,7 +57,6 @@ typedef enum {
     ESCAPE_DIGITS,
     PREPROCESSOR_NAME,
     PREPROCESSOR,
-    PREPROCESSOR_AFTER_SLASH,
     PREPROCESSOR_AFTER_BACKSLASH,
     INCLUDE_BLANKS,
     INCLUDE_FILE
@@ -402,9 +401,13 @@ static int handle_after_slash(highlighter *machine, int character)
     if (character == '*') {
         emit(machine, '/', STYLE_COMMENT);
         emit(machine, character, STYLE_COMMENT);
-        machine->state_after_comment = NORMAL;
         machine->state = BLOCK_COMMENT;
         return 1;
+    }
+    if (machine->state_after_comment == PREPROCESSOR) {
+        emit(machine, '/', STYLE_PREPROCESSOR);
+        machine->state = PREPROCESSOR;
+        return 0;
     }
     emit(machine, '/', STYLE_OPERATOR);     /* a lone slash is division */
     machine->previous_token = TOKEN_OTHER;
@@ -564,7 +567,8 @@ static int handle_preprocessor(highlighter *machine, int character)
         return 1;
     }
     if (character == '/') {
-        machine->state = PREPROCESSOR_AFTER_SLASH;
+        machine->state_after_comment = PREPROCESSOR;
+        machine->state = AFTER_SLASH;
         return 1;
     }
     emit(machine, character, STYLE_PREPROCESSOR);
@@ -580,28 +584,6 @@ static int handle_preprocessor_after_backslash(highlighter *machine,
         emit(machine, character, STYLE_PREPROCESSOR);
         return 1;
     }
-    return 0;
-}
-
-/* A comment ends the directive's style; a lone slash belongs to it. */
-static int handle_preprocessor_after_slash(highlighter *machine,
-                                           int character)
-{
-    if (character == '/') {
-        emit(machine, '/', STYLE_COMMENT);
-        emit(machine, character, STYLE_COMMENT);
-        machine->state = LINE_COMMENT;
-        return 1;
-    }
-    if (character == '*') {
-        emit(machine, '/', STYLE_COMMENT);
-        emit(machine, character, STYLE_COMMENT);
-        machine->state_after_comment = PREPROCESSOR;
-        machine->state = BLOCK_COMMENT;
-        return 1;
-    }
-    emit(machine, '/', STYLE_PREPROCESSOR);
-    machine->state = PREPROCESSOR;
     return 0;
 }
 
@@ -688,6 +670,7 @@ static int handle_normal(highlighter *machine, int character)
         return 1;
     }
     if (character == '/') {
+        machine->state_after_comment = NORMAL;
         machine->state = AFTER_SLASH;
         return 1;
     }
@@ -739,7 +722,6 @@ static int does_state_hold_pending_output(highlighter_state state)
     case AFTER_DOT:
     case AFTER_SLASH:
     case STRING_AFTER_BACKSLASH:
-    case PREPROCESSOR_AFTER_SLASH:
     case PREPROCESSOR_AFTER_BACKSLASH:
         return 1;
     default:
@@ -771,7 +753,6 @@ static int handle_state(highlighter *machine, int character)
     case ESCAPE_DIGITS:                return handle_escape_digits(machine, character);
     case PREPROCESSOR_NAME:            return handle_preprocessor_name(machine, character);
     case PREPROCESSOR:                 return handle_preprocessor(machine, character);
-    case PREPROCESSOR_AFTER_SLASH:     return handle_preprocessor_after_slash(machine, character);
     case PREPROCESSOR_AFTER_BACKSLASH: return handle_preprocessor_after_backslash(machine, character);
     case INCLUDE_BLANKS:               return handle_include_blanks(machine, character);
     case INCLUDE_FILE:                 return handle_include_file(machine, character);
