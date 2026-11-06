@@ -51,7 +51,7 @@ int main(int argument_count, char *arguments[])
     if (input_name != NULL) {
         source_file = fopen(input_name, "r");
         if (source_file == NULL) {
-            fprintf(stderr, "Erro: nao consegui abrir '%s'\n", input_name);
+            fprintf(stderr, "Error: could not open '%s'\n", input_name);
             return 1;
         }
     }
