@@ -58,6 +58,8 @@ typedef enum {
     PREPROCESSOR_NAME,
     PREPROCESSOR,
     PREPROCESSOR_AFTER_BACKSLASH,
+    PREPROCESSOR_STRING,
+    PREPROCESSOR_STRING_AFTER_BACKSLASH,
     INCLUDE_BLANKS,
     INCLUDE_FILE
 } highlighter_state;
@@ -573,6 +575,33 @@ static int handle_preprocessor(highlighter *machine, int character)
         return 1;
     }
     emit(machine, character, STYLE_PREPROCESSOR);
+    if (character == '"')
+        machine->state = PREPROCESSOR_STRING;
+    return 1;
+}
+
+/* A string in a directive keeps the directive's style, but its slashes must
+   not start a comment: #define URL "http://example.com". */
+static int handle_preprocessor_string(highlighter *machine, int character)
+{
+    if (character == '\n') {                /* unterminated string */
+        emit(machine, character, STYLE_NONE);
+        machine->state = LINE_START;
+        return 1;
+    }
+    emit(machine, character, STYLE_PREPROCESSOR);
+    if (character == '\\')
+        machine->state = PREPROCESSOR_STRING_AFTER_BACKSLASH;
+    else if (character == '"')
+        machine->state = PREPROCESSOR;
+    return 1;
+}
+
+static int handle_preprocessor_string_after_backslash(highlighter *machine,
+                                                      int character)
+{
+    emit(machine, character, STYLE_PREPROCESSOR);
+    machine->state = PREPROCESSOR_STRING;
     return 1;
 }
 
@@ -773,6 +802,10 @@ static int handle_state(highlighter *machine, int character)
         return handle_preprocessor(machine, character);
     case PREPROCESSOR_AFTER_BACKSLASH:
         return handle_preprocessor_after_backslash(machine, character);
+    case PREPROCESSOR_STRING:
+        return handle_preprocessor_string(machine, character);
+    case PREPROCESSOR_STRING_AFTER_BACKSLASH:
+        return handle_preprocessor_string_after_backslash(machine, character);
     case INCLUDE_BLANKS:
         return handle_include_blanks(machine, character);
     case INCLUDE_FILE:
