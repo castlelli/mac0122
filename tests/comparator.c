@@ -14,14 +14,16 @@
  *     Blanks and newlines are not compared: they show no color.
  *   - Checks the line numbering: every line must open one <span class="l">
  *     (a CSS counter draws the number) in the same column as the expected
- *     file, and the counter's CSS must exist in the obtained file.
+ *     file, and the counter's CSS must exist in the obtained file or in the
+ *     style sheet it links. A relative link is read from the obtained file's
+ *     folder, or from the current folder when the file is standard input.
  *
  * Exit status:
  *   0 = identical
  *   1 = the classes or the line numbering differ
  *   2 = usage error, or the two files do not hold the same text
  *
- * Ownership: read_whole_file and the cell lists allocate with malloc and
+ * Ownership: the file readers and the cell lists allocate with malloc and
  * realloc; main frees them. Interned class names live until the program ends.
  */
 
@@ -33,6 +35,7 @@
 #define MAX_OPEN_SPANS 64
 #define NO_CLASS ""             /* class of a character outside any <span> */
 #define PRE_OPENING_TAG "<pre class=\"codigo\">"
+#define STYLE_SHEET_LINK "<link rel=\"stylesheet\" href=\""
 
 typedef struct {
     char character;             /* already without its HTML entity */
@@ -56,6 +59,12 @@ typedef struct {
     long total_count;
     long correct_count;
 } class_summary;
+
+static const char *const REQUIRED_CSS[] = {
+    "counter-reset", "counter-increment", "counter(", "before"
+};
+
+#define REQUIRED_CSS_COUNT 4
 
 static char *interned_class_names[MAX_CLASSES];
 static int interned_class_count = 0;
@@ -113,7 +122,8 @@ static const char *intern_class_name(const char *name, size_t name_len)
 
 /* -------------------------------------------------------------- file input */
 
-static char *read_whole_file(const char *file_name)
+/* Returns NULL when the file cannot be opened. */
+static char *read_file_if_present(const char *file_name)
 {
     FILE *input_file = strcmp(file_name, "-") == 0 ? stdin
                                                    : fopen(file_name, "rb");
@@ -122,10 +132,8 @@ static char *read_whole_file(const char *file_name)
     size_t read_count;
     char *text;
 
-    if (input_file == NULL) {
-        fprintf(stderr, "Error: could not open '%s'\n", file_name);
-        exit(2);
-    }
+    if (input_file == NULL)
+        return NULL;
     text = allocate_or_exit(capacity + 1);
     while ((read_count = fread(text + text_len, 1, capacity - text_len,
                                input_file)) > 0) {
@@ -139,6 +147,53 @@ static char *read_whole_file(const char *file_name)
     if (input_file != stdin)
         fclose(input_file);
     return text;
+}
+
+static char *read_whole_file(const char *file_name)
+{
+    char *text = read_file_if_present(file_name);
+
+    if (text == NULL) {
+        fprintf(stderr, "Error: could not open '%s'\n", file_name);
+        exit(2);
+    }
+    return text;
+}
+
+/* Returns the text of the style sheet the page links, or NULL when it links
+   none. A linked sheet that cannot be read is reported and also gives NULL,
+   because a browser would not apply it either. */
+static char *read_linked_style_sheet(const char *html, const char *file_name)
+{
+    const char *href = strstr(html, STYLE_SHEET_LINK);
+    const char *href_end;
+    const char *last_slash = strrchr(file_name, '/');
+    size_t folder_len = last_slash != NULL
+                            ? (size_t)(last_slash - file_name) + 1
+                            : 0;
+    size_t href_len;
+    char *sheet_path;
+    char *sheet;
+
+    if (href == NULL)
+        return NULL;
+    href += strlen(STYLE_SHEET_LINK);
+    href_end = strchr(href, '"');
+    if (href_end == NULL)
+        return NULL;
+    href_len = (size_t)(href_end - href);
+    if (href[0] == '/')
+        folder_len = 0;
+    sheet_path = allocate_or_exit(folder_len + href_len + 1);
+    memcpy(sheet_path, file_name, folder_len);
+    memcpy(sheet_path + folder_len, href, href_len);
+    sheet_path[folder_len + href_len] = '\0';
+    sheet = read_file_if_present(sheet_path);
+    if (sheet == NULL)
+        printf("  CSS: could not read the linked style sheet '%s'\n",
+               sheet_path);
+    free(sheet_path);
+    return sheet;
 }
 
 /* ------------------------------------------------------ HTML to cell list */
@@ -391,19 +446,30 @@ static int check_line_numbering(const cell_list *expected,
     return problem_count;
 }
 
-/* Without the counter in the obtained CSS, no number is drawn at all. */
-static int check_counter_css(const char *expected_html,
-                             const char *obtained_html)
+static int has_counter_css(const char *text)
 {
-    static const char *const REQUIRED_CSS[] = {
-        "counter-reset", "counter-increment", "counter(", "before"
-    };
+    int css_index;
+
+    for (css_index = 0; css_index < REQUIRED_CSS_COUNT; css_index++)
+        if (strstr(text, REQUIRED_CSS[css_index]) == NULL)
+            return 0;
+    return 1;
+}
+
+/* Without the counter in the obtained CSS, no number is drawn at all. The CSS
+   may be in the page or in its linked style sheet (NULL when there is none). */
+static int check_counter_css(const char *expected_html,
+                             const char *obtained_html,
+                             const char *obtained_sheet)
+{
     int css_index;
     int problem_count = 0;
 
-    for (css_index = 0; css_index < 4; css_index++)
+    for (css_index = 0; css_index < REQUIRED_CSS_COUNT; css_index++)
         if (strstr(expected_html, REQUIRED_CSS[css_index]) != NULL &&
-            strstr(obtained_html, REQUIRED_CSS[css_index]) == NULL) {
+            strstr(obtained_html, REQUIRED_CSS[css_index]) == NULL &&
+            (obtained_sheet == NULL ||
+             strstr(obtained_sheet, REQUIRED_CSS[css_index]) == NULL)) {
             printf("  CSS: '%s' is missing from the obtained HTML"
                    " (the numbering depends on it)\n",
                    REQUIRED_CSS[css_index]);
@@ -529,12 +595,14 @@ static void print_summary(void)
 static int compare_and_report(const cell_list *expected,
                               const cell_list *obtained,
                               const char *expected_html,
-                              const char *obtained_html)
+                              const char *obtained_html,
+                              const char *obtained_file_name)
 {
     long total_count = 0;
     long correct_count = 0;
     int divergence_count;
     int numbering_problem_count;
+    char *obtained_sheet;
 
     if (!check_same_text(expected, obtained))
         return 2;
@@ -546,8 +614,15 @@ static int compare_and_report(const cell_list *expected,
         printf("  (none)\n");
 
     printf("\nLine numbering:\n");
+    /* a page with its own counter CSS does not need its linked sheet */
+    obtained_sheet = has_counter_css(obtained_html)
+                         ? NULL
+                         : read_linked_style_sheet(obtained_html,
+                                                   obtained_file_name);
     numbering_problem_count = check_line_numbering(expected, obtained) +
-                              check_counter_css(expected_html, obtained_html);
+                              check_counter_css(expected_html, obtained_html,
+                                                obtained_sheet);
+    free(obtained_sheet);
     if (numbering_problem_count == 0)
         printf("  (none)\n");
 
@@ -588,7 +663,7 @@ int main(int argument_count, char *arguments[])
     parse_html(obtained_html, arguments[2], &obtained);
 
     exit_status = compare_and_report(&expected, &obtained, expected_html,
-                                     obtained_html);
+                                     obtained_html, arguments[2]);
 
     free(expected.cells);
     free(obtained.cells);
