@@ -880,7 +880,10 @@ void c_highlighter_write_html(FILE *source_file, FILE *html_file)
    is not portable C89. Colors are the Pygments "default" theme, the one
    used by Wikipedia. */
 static const char *const CSS_LINES[] = {
-    "pre.codigo { background:#f2f2f2; border:1px solid #c8c8c8;\n",
+    /* A fixed background needs a fixed text color: plain words have no span,
+       so they would otherwise take whatever color the viewer's theme sets. */
+    "pre.codigo { background:#f2f2f2; color:#101418;\n",
+    "             border:1px solid #c8c8c8;\n",
     "             border-radius:4px; padding:10px 12px; overflow:auto;\n",
     "             font-family:Menlo,Consolas,'DejaVu Sans Mono',monospace;\n",
     "             font-size:14px; line-height:1.45; tab-size:4;\n",
