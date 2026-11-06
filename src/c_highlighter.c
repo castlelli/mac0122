@@ -52,9 +52,7 @@ typedef enum {
     LINE_COMMENT,
     BLOCK_COMMENT,
     BLOCK_COMMENT_AFTER_STAR,
-    STRING_START,
     STRING,
-    STRING_BLANKS,
     STRING_AFTER_BACKSLASH,
     ESCAPE_HEX_DIGITS,
     ESCAPE_OCTAL_DIGITS,
@@ -443,36 +441,6 @@ static int handle_block_comment_after_star(highlighter *machine, int character)
 
 /* --------------------------------------------------------------- strings */
 
-/* A run of blanks right after the opening quote or an escape is written
-   without style when nothing but blanks fills the run up to the next quote
-   or escape (the expected output shows ' ' and "\n \t" that way), so those
-   blanks wait in the buffer until the run is known. */
-static int handle_string_start(highlighter *machine, int character)
-{
-    if (character == '\n') {                /* unterminated string */
-        emit(machine, character, STYLE_NONE);
-        machine->state = LINE_START;
-        return 1;
-    }
-    if (character == machine->delimiter) {
-        emit(machine, character, STYLE_STRING);
-        machine->state = NORMAL;
-        return 1;
-    }
-    if (character == '\\') {
-        machine->state = STRING_AFTER_BACKSLASH;
-        return 1;
-    }
-    if (is_blank(character)) {
-        machine->buffer_length = 0;
-        append_to_buffer(machine, character);
-        machine->state = STRING_BLANKS;
-        return 1;
-    }
-    machine->state = STRING;
-    return 0;
-}
-
 static int handle_string(highlighter *machine, int character)
 {
     if (character == '\n') {
@@ -491,27 +459,6 @@ static int handle_string(highlighter *machine, int character)
     }
     emit(machine, character, STYLE_STRING);
     return 1;
-}
-
-static int handle_string_blanks(highlighter *machine, int character)
-{
-    if (is_blank(character)) {
-        if (append_to_buffer(machine, character))
-            return 1;
-        /* too many blanks to wait for: they are part of the string */
-        emit_buffer_range(machine, 0, machine->buffer_length, STYLE_STRING);
-        machine->state = STRING;
-        return 0;
-    }
-    if (character == '\n' || character == machine->delimiter ||
-        character == '\\') {
-        emit_buffer_range(machine, 0, machine->buffer_length, STYLE_NONE);
-        machine->state = STRING_START;
-        return 0;
-    }
-    emit_buffer_range(machine, 0, machine->buffer_length, STYLE_STRING);
-    machine->state = STRING;
-    return 0;
 }
 
 static void begin_escape(highlighter *machine, int character,
@@ -543,7 +490,7 @@ static int handle_string_after_backslash(highlighter *machine, int character)
         return 1;
     }
     if (is_simple_escape_character(character)) {
-        begin_escape(machine, character, STRING_START, 0);
+        begin_escape(machine, character, STRING, 0);
         return 1;
     }
     if (character == 'x') {
@@ -575,7 +522,7 @@ static int handle_escape_hex_digits(highlighter *machine, int character)
             machine->escape_digits_left--;
         return 1;
     }
-    machine->state = STRING_START;
+    machine->state = STRING;
     return 0;
 }
 
@@ -586,7 +533,7 @@ static int handle_escape_octal_digits(highlighter *machine, int character)
         machine->escape_digits_left--;
         return 1;
     }
-    machine->state = STRING_START;
+    machine->state = STRING;
     return 0;
 }
 
@@ -765,7 +712,7 @@ static int handle_normal(highlighter *machine, int character)
         machine->delimiter = character;
         emit(machine, character, STYLE_STRING);
         machine->previous_token = TOKEN_OTHER;
-        machine->state = STRING_START;
+        machine->state = STRING;
         return 1;
     }
     if (character == ':') {
@@ -808,7 +755,6 @@ static int does_state_hold_pending_output(highlighter_state state)
     case WORD_GAP:
     case AFTER_DOT:
     case AFTER_SLASH:
-    case STRING_BLANKS:
     case STRING_AFTER_BACKSLASH:
     case PREPROCESSOR_AFTER_SLASH:
     case PREPROCESSOR_AFTER_BACKSLASH:
@@ -837,9 +783,7 @@ static int handle_state(highlighter *machine, int character)
     case LINE_COMMENT:                 return handle_line_comment(machine, character);
     case BLOCK_COMMENT:                return handle_block_comment(machine, character);
     case BLOCK_COMMENT_AFTER_STAR:     return handle_block_comment_after_star(machine, character);
-    case STRING_START:                 return handle_string_start(machine, character);
     case STRING:                       return handle_string(machine, character);
-    case STRING_BLANKS:                return handle_string_blanks(machine, character);
     case STRING_AFTER_BACKSLASH:       return handle_string_after_backslash(machine, character);
     case ESCAPE_HEX_DIGITS:            return handle_escape_hex_digits(machine, character);
     case ESCAPE_OCTAL_DIGITS:          return handle_escape_octal_digits(machine, character);
