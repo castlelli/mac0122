@@ -3,3 +3,5 @@
 *.o
 /c_filter
 /test_*
+/comparator
+tests/comparator
