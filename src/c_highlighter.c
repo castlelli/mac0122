@@ -737,26 +737,46 @@ static int handle_state(highlighter *machine, int character)
     if (character == EOF && !does_state_hold_pending_output(machine->state))
         return 1;
     switch (machine->state) {
-    case LINE_START:                   return handle_line_start(machine, character);
-    case NORMAL:                       return handle_normal(machine, character);
-    case WORD:                         return handle_word(machine, character);
-    case WORD_GAP:                     return handle_word_gap(machine, character);
-    case LONG_WORD:                    return handle_long_word(machine, character);
-    case NUMBER:                       return handle_number(machine, character);
-    case NUMBER_EXPONENT:              return handle_number_exponent(machine, character);
-    case AFTER_DOT:                    return handle_after_dot(machine, character);
-    case AFTER_SLASH:                  return handle_after_slash(machine, character);
-    case LINE_COMMENT:                 return handle_line_comment(machine, character);
-    case BLOCK_COMMENT:                return handle_block_comment(machine, character);
-    case BLOCK_COMMENT_AFTER_STAR:     return handle_block_comment_after_star(machine, character);
-    case STRING:                       return handle_string(machine, character);
-    case STRING_AFTER_BACKSLASH:       return handle_string_after_backslash(machine, character);
-    case ESCAPE_DIGITS:                return handle_escape_digits(machine, character);
-    case PREPROCESSOR_NAME:            return handle_preprocessor_name(machine, character);
-    case PREPROCESSOR:                 return handle_preprocessor(machine, character);
-    case PREPROCESSOR_AFTER_BACKSLASH: return handle_preprocessor_after_backslash(machine, character);
-    case INCLUDE_BLANKS:               return handle_include_blanks(machine, character);
-    case INCLUDE_FILE:                 return handle_include_file(machine, character);
+    case LINE_START:
+        return handle_line_start(machine, character);
+    case NORMAL:
+        return handle_normal(machine, character);
+    case WORD:
+        return handle_word(machine, character);
+    case WORD_GAP:
+        return handle_word_gap(machine, character);
+    case LONG_WORD:
+        return handle_long_word(machine, character);
+    case NUMBER:
+        return handle_number(machine, character);
+    case NUMBER_EXPONENT:
+        return handle_number_exponent(machine, character);
+    case AFTER_DOT:
+        return handle_after_dot(machine, character);
+    case AFTER_SLASH:
+        return handle_after_slash(machine, character);
+    case LINE_COMMENT:
+        return handle_line_comment(machine, character);
+    case BLOCK_COMMENT:
+        return handle_block_comment(machine, character);
+    case BLOCK_COMMENT_AFTER_STAR:
+        return handle_block_comment_after_star(machine, character);
+    case STRING:
+        return handle_string(machine, character);
+    case STRING_AFTER_BACKSLASH:
+        return handle_string_after_backslash(machine, character);
+    case ESCAPE_DIGITS:
+        return handle_escape_digits(machine, character);
+    case PREPROCESSOR_NAME:
+        return handle_preprocessor_name(machine, character);
+    case PREPROCESSOR:
+        return handle_preprocessor(machine, character);
+    case PREPROCESSOR_AFTER_BACKSLASH:
+        return handle_preprocessor_after_backslash(machine, character);
+    case INCLUDE_BLANKS:
+        return handle_include_blanks(machine, character);
+    case INCLUDE_FILE:
+        return handle_include_file(machine, character);
     }
     return 1;
 }
