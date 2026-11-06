@@ -1,6 +1,8 @@
 #ifndef TEXT_UTILS_H
 #define TEXT_UTILS_H
 
+#include <stdio.h>
+
 /* Removes spaces, tabs, '\r' and '\n' from both ends of line.
    Changes line (writes '\0' at the new end), so it does not accept a
    string literal. Returns a pointer into line, not a copy: do not free it. */
@@ -28,5 +30,20 @@ void text_utils_free_str_vector(char **, int);
    Changes line (writes '\0' at the new end), so it does not accept a
    string literal. Returns line itself, not a copy: do not free it. */
 char* text_utils_trim_end(char* line);
+
+/*
+ * HTML escape shared by html.c and the C highlighter.
+ *
+ * Only '<', '>' and '&' are replaced: callers write element content,
+ * never attribute values, so quotes stay as they are.
+ *
+ * Ownership: nothing is allocated; the FILE stays owned by the caller.
+ */
+
+/* Writes one character (a value from fgetc) to html_file, escaped. */
+void text_utils_write_html_character(FILE *html_file, int character);
+
+/* Writes a NUL-terminated string to html_file, escaped. */
+void text_utils_write_html_string(FILE *html_file, const char *text);
 
 #endif

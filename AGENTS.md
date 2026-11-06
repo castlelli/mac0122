@@ -47,8 +47,27 @@ gcc -std=c89 -Wall -Wextra -pedantic -Werror -fsanitize=address -g \
 A test program exits 0 when every case passes and prints the failing
 cases otherwise.
 
-Definition of done: every command above exits with status 0 and prints
-nothing. Code that compiles only with warnings is not done.
+Compare the highlighter with the expected output of `tests/test.c`
+(this one prints a report and exits 0 when the output matches):
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror tools/c_filter.c \
+    src/c_highlighter.c src/c_keywords.c src/text_utils.c -o c_filter
+gcc -std=c89 -Wall -Wextra -pedantic -Werror tests/comparator.c -o comparator
+./c_filter tests/test.c | ./comparator tests/expected.html -
+```
+
+The comparator has its own test, which includes `comparator.c`:
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror -fsanitize=address -g \
+    tests/test_comparator.c -o test_comparator
+./test_comparator
+```
+
+Definition of done: every command above exits with status 0 and, except
+for the comparator's report, prints nothing. Code that compiles only with
+warnings is not done.
 
 ## Layout
 
@@ -59,18 +78,21 @@ src/
   main.c                    runs pass 1, builds the indexes, runs pass 2
   page.h / page.c           header struct (one per TXT) and body block structs
   parser.h / parser.c       reads a TXT header into a header struct; reads a body
-  text_utils.h / .c         trim, normalize (lowercase, strip accents), split on commas
+  text_utils.h / .c         trim, normalize (lowercase, strip accents), split on commas,
+                            HTML escape
   sorted_list.h / .c        sorted linked list of pointers to header structs
   bst.h / bst.c             binary search tree of index keys
   indexes.h / indexes.c     builds the six indexes from the header structs
-  html.h / html.c           writes index.html, index pages and content pages
+  html.h / html.c           writes index.html, index pages, content pages and style.css
   c_highlighter.h / .c      state machine: C source in, highlighted HTML out
-  c_keywords.h / .c         sorted array of C reserved words + binary search
+  c_keywords.h / .c         sorted array of (word, kind) pairs + binary search
 input/                      course TXT files; template.txt shows the format
 output/                     generated site; never edit by hand
 algorithms/                 standalone C programs + data files (separate deliverable)
-tests/                      one test program per module: test_<module>.c
-tools/                      standalone programs built on src/ modules (e.g. the C filter)
+tests/                      one test program per module: test_<module>.c; comparator.c,
+                            with test.c and expected.html as its input, and
+                            test_comparator.c
+tools/                      standalone programs built on src/ modules (c_filter.c)
 ```
 
 Each module talks to the others only through its `.h` file. Do not
@@ -137,15 +159,24 @@ Index pages:
   `<index>_by_<attribute>.html` (for example `concepts_by_date.html`).
 - Ties are broken by TXT file name, and only by it.
 - The generated site is static HTML and CSS. No JavaScript.
+- The site has one shared `style.css`. Every page links it with
+  `c_highlighter_write_head_styles`. A style present on a page overrides
+  the shared sheet, so any `<style>` block comes after that link.
 
 Highlighter:
 - It is a finite state machine with the states drawn in `README.md`.
   Two-character constructs (`/*`, `*/`, `//`, escapes) use in-between
   states; do not peek ahead with `ungetc` or a second buffer.
-- It streams: one character at a time, keeping only the current state
-  and the current word.
+- It streams: one character at a time, keeping only the current state,
+  the word buffer (the current word and the blanks after it) and the
+  small variables listed in `README.md`. Holding those blanks is the one
+  allowed delay: a word's style can depend on the next significant
+  character.
+- It writes 13 styles and wraps every line in `<span class="l">`, which
+  the CSS counter numbers.
 - Keywords are looked up when a word ends, by binary search in the
-  sorted array in `c_keywords`. Keep that array sorted.
+  sorted array of (word, kind) pairs in `c_keywords`. Keep that array
+  sorted.
 - Every character written goes through the HTML escape (`<`, `>`, `&`),
   inside strings and comments too.
 - At end of input, close any open span.
@@ -155,22 +186,29 @@ Highlighter:
 Out of scope for phase 1; do not add: search bar, graph view of the
 site, automatic links inside `Problema`, plurals and synonyms.
 
+## Decisions made
+
+- Highlighter interface:
+  `void c_highlighter_write_html(FILE *source_file, FILE *html_file);`
+  `void c_highlighter_write_css(FILE *css_file);`
+  `void c_highlighter_write_head_styles(FILE *html_file, int has_page_style);`
+- The parser keeps a code block as `char *`, so `html.c` passes it to the
+  highlighter through `tmpfile()`.
+- The HTML escape shared by `html.c` and the highlighter lives in
+  `text_utils`, so the standalone filter in `tools/` does not depend on
+  `html.c`.
+- One shared `style.css`, written by the program. A style present on a
+  page takes priority over it.
+
 ## Open decisions
 
 Ask before implementing any of these; do not pick one silently.
 
-- Highlighter signature. Proposed, not agreed:
-  `void c_highlighter_write_html(FILE *source_file, FILE *html_file);`
 - Whether consecutive text lines merge into one paragraph until a blank
   line.
 - TXT encoding (UTF-8 or Latin-1); it affects accent stripping and the
   HTML charset.
 - Where `[ref]` lines go: collected at the end of the page, or in place.
-- Which module holds the HTML escape shared by `html.c` and the
-  highlighter (proposed: `text_utils`, so the standalone filter in
-  `tools/` does not depend on `html.c`).
-- Shared `style.css` written by the program, or a `<style>` block per
-  page.
 
 ## Code style
 
@@ -193,7 +231,7 @@ comprehension and defect finding; see References):
 - No single-letter names and no ad-hoc abbreviations, including loop
   counters: `keyword_index`, `line_number`, not `i`, `ln`, `cnt`.
 - Allowed abbreviations (well known, so as readable as the full word):
-  `bst`, `html`, `txt`, `mst`, `str`, `len`, `max`, `min`, `src`, `dst`.
+  `bst`, `html`, `css`, `txt`, `mst`, `str`, `len`, `max`, `min`, `src`, `dst`.
   Add to this list in a separate commit; do not invent others inline.
 - No Hungarian notation or type prefixes (`p_page`, `iCount`).
 
