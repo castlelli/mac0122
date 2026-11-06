@@ -55,7 +55,6 @@ typedef enum {
     STRING,
     STRING_AFTER_BACKSLASH,
     ESCAPE_DIGITS,
-    PREPROCESSOR_HASH,
     PREPROCESSOR_NAME,
     PREPROCESSOR,
     PREPROCESSOR_AFTER_SLASH,
@@ -534,27 +533,15 @@ static int handle_escape_digits(highlighter *machine, int character)
 
 /* ---------------------------------------------------------- preprocessor */
 
-static int handle_preprocessor_hash(highlighter *machine, int character)
-{
-    if (is_blank(character)) {
-        emit(machine, character, STYLE_PREPROCESSOR);
-        return 1;
-    }
-    if (is_identifier_start(character)) {
-        machine->buffer_length = 0;
-        append_to_buffer(machine, character);
-        emit(machine, character, STYLE_PREPROCESSOR);
-        machine->state = PREPROCESSOR_NAME;
-        return 1;
-    }
-    machine->state = PREPROCESSOR;
-    return 0;
-}
-
-/* Collects the directive name; "include" is the only one whose argument
-   (the file name) gets its own style. */
+/* Collects the directive name, after any blanks that follow the hash;
+   "include" is the only one whose argument (the file name) gets its own
+   style. */
 static int handle_preprocessor_name(highlighter *machine, int character)
 {
+    if (machine->buffer_length == 0 && is_blank(character)) {
+        emit(machine, character, STYLE_PREPROCESSOR);
+        return 1;
+    }
     if (is_identifier_character(character)) {
         append_to_buffer(machine, character);
         emit(machine, character, STYLE_PREPROCESSOR);
@@ -663,7 +650,8 @@ static int handle_line_start(highlighter *machine, int character)
     if (character == '#') {
         emit(machine, character, STYLE_PREPROCESSOR);
         machine->previous_token = TOKEN_OTHER;
-        machine->state = PREPROCESSOR_HASH;
+        machine->buffer_length = 0;
+        machine->state = PREPROCESSOR_NAME;
         return 1;
     }
     if (is_identifier_start(character)) {
@@ -781,7 +769,6 @@ static int handle_state(highlighter *machine, int character)
     case STRING:                       return handle_string(machine, character);
     case STRING_AFTER_BACKSLASH:       return handle_string_after_backslash(machine, character);
     case ESCAPE_DIGITS:                return handle_escape_digits(machine, character);
-    case PREPROCESSOR_HASH:            return handle_preprocessor_hash(machine, character);
     case PREPROCESSOR_NAME:            return handle_preprocessor_name(machine, character);
     case PREPROCESSOR:                 return handle_preprocessor(machine, character);
     case PREPROCESSOR_AFTER_SLASH:     return handle_preprocessor_after_slash(machine, character);
