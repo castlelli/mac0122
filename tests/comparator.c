@@ -63,6 +63,32 @@ static int interned_class_count = 0;
 static class_summary class_summaries[MAX_CLASSES + 1];  /* by expected class */
 static int class_summary_count = 0;
 
+/* --------------------------------------------------------------- allocation */
+
+static void exit_out_of_memory(void)
+{
+    fprintf(stderr, "Error: out of memory\n");
+    exit(2);
+}
+
+static void *allocate_or_exit(size_t size)
+{
+    void *memory = malloc(size);
+
+    if (memory == NULL)
+        exit_out_of_memory();
+    return memory;
+}
+
+static void *reallocate_or_exit(void *memory, size_t size)
+{
+    void *new_memory = realloc(memory, size);
+
+    if (new_memory == NULL)
+        exit_out_of_memory();
+    return new_memory;
+}
+
 /* ------------------------------------------------------------- class names */
 
 /* Interned, so that comparing two class names is comparing two pointers. */
@@ -79,7 +105,7 @@ static const char *intern_class_name(const char *name, size_t name_len)
         exit(2);
     }
     interned_class_names[interned_class_count] =
-        malloc(name_len + 1);
+        allocate_or_exit(name_len + 1);
     memcpy(interned_class_names[interned_class_count], name, name_len);
     interned_class_names[interned_class_count][name_len] = '\0';
     return interned_class_names[interned_class_count++];
@@ -100,13 +126,13 @@ static char *read_whole_file(const char *file_name)
         fprintf(stderr, "Error: could not open '%s'\n", file_name);
         exit(2);
     }
-    text = malloc(capacity + 1);
+    text = allocate_or_exit(capacity + 1);
     while ((read_count = fread(text + text_len, 1, capacity - text_len,
                                input_file)) > 0) {
         text_len += read_count;
         if (text_len == capacity) {
             capacity *= 2;
-            text = realloc(text, capacity + 1);
+            text = reallocate_or_exit(text, capacity + 1);
         }
     }
     text[text_len] = '\0';
@@ -125,7 +151,7 @@ static void append_cell(cell_list *list, char character, const char *class_name,
     if (list->cell_count == list->cell_capacity) {
         list->cell_capacity =
             list->cell_capacity != 0 ? list->cell_capacity * 2 : 4096;
-        list->cells = realloc(list->cells,
+        list->cells = reallocate_or_exit(list->cells,
                                          list->cell_capacity * sizeof(cell));
     }
     new_cell = &list->cells[list->cell_count];
@@ -148,9 +174,9 @@ static void record_line_span(cell_list *list, int line_number,
 
         while ((size_t)line_number >= new_capacity)
             new_capacity *= 2;
-        list->line_span_counts = realloc(
+        list->line_span_counts = reallocate_or_exit(
             list->line_span_counts, new_capacity * sizeof(int));
-        list->line_span_columns = realloc(
+        list->line_span_columns = reallocate_or_exit(
             list->line_span_columns, new_capacity * sizeof(int));
         for (line_index = list->line_capacity; line_index < new_capacity;
              line_index++) {
