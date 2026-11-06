@@ -1,6 +1,7 @@
 # Build products: never commit binaries (see AGENTS.md)
 /ep1
 *.o
+*.exe
 /c_filter
 /test_*
 /comparator
