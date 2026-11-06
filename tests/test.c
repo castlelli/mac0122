@@ -2,9 +2,9 @@
 #include <stdio.h>
 
 /* ==========================================================================
- * test.c - Cobre os elementos lexicos de C que o colorir precisa
+ * test.c - Cobre os elementos lexicos de C que o colorizador precisa
  * distinguir. Compila (gcc -Wall -std=gnu11), mas nao faz nada util: serve
- * de entrada para o colorir e para o comparar.
+ * de entrada para o colorizador e para o comparar.
  *
  * Especiais de HTML em comentario: < > & "aspas" 'apostrofo'
  * Acentuacao em comentario: ação, coração, é
