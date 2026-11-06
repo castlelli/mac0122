@@ -2,6 +2,11 @@
 #define PARSER_H
 
 #include "page.h"
+
+/* Both passes read lines of up to 4095 characters. A longer line is cut to
+   its first 4095 characters, with a warning on stderr naming the file; the
+   rest of that line is dropped. */
+
 /* Reads the header of the TXT at file_path, up to the "---" line, into a
    new page (pass 1). Lines without ':' and empty values are skipped.
    Fills the header fields, txt_path (a copy of file_path) and html_name

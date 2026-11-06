@@ -110,10 +110,51 @@ static void test_read_body(void){
     check_true("body: NULL page returns NULL", parser_read_body(NULL) == NULL);
 }
 
+/* True when text is exactly count copies of letter. */
+static int is_repeated_letter(const char *text, char letter, size_t count){
+    size_t position;
+    if (text == NULL || strlen(text) != count) return 0;
+    for (position = 0; position < count; position++){
+        if (text[position] != letter) return 0;
+    }
+    return 1;
+}
+
+static void test_long_lines(void){
+    page *header = parser_read_header("tests/fixtures/long_lines.txt");
+    page_body *body;
+
+    check_true("long lines: page returned", header != NULL);
+    if (header == NULL) return;
+    check_true("long lines: 1000-character Problema kept whole",
+               is_repeated_letter(header->problem, 'a', 1000));
+
+    body = parser_read_body(header);
+    check_true("long lines: body returned", body != NULL);
+    if (body != NULL){
+        /* The 5000-character line is cut to 4095 and its rest is dropped,
+           so it is one block and "Depois." is still the next one. */
+        check_true("long lines: four blocks", body->blocks_count == 4);
+        if (body->blocks_count == 4){
+            check_true("long lines: 1000-character paragraph kept whole",
+                       is_repeated_letter(body->blocks[0]->text, 'b', 1000));
+            check_true("long lines: line filling the buffer exactly kept whole",
+                       is_repeated_letter(body->blocks[1]->text, 'c', 4095));
+            check_true("long lines: 5000-character line cut to 4095",
+                       is_repeated_letter(body->blocks[2]->text, 'd', 4095));
+            check_true("long lines: line after the cut one is intact",
+                       is_same_str(body->blocks[3]->text, "Depois."));
+        }
+    }
+    page_body_free(body);
+    page_free(header);
+}
+
 int main(void){
     test_read_header();
     test_read_header_empty_values();
     test_read_header_missing_file();
     test_read_body();
+    test_long_lines();
     return failure_count == 0 ? 0 : 1;
 }

@@ -4,8 +4,30 @@
 #include "parser.h"
 #include "text_utils.h"
 
-#define MAX_LINE_SIZE 256
+/* Longest line kept is MAX_LINE_SIZE - 1 characters (fgets needs room for
+   '\0'). A paragraph is one line, so this is far above a real paragraph. */
+#define MAX_LINE_SIZE 4096
 
+/* Reads one line into line, like fgets. A line that does not fit is cut:
+   the start is kept, a warning names the file, and the rest of the line is
+   read and dropped, so it does not come back as a new line.
+   Returns NULL at the end of the file. */
+static char* read_line(char *line, int line_size, FILE *file, const char *file_path){
+    int next_char;
+
+    if (fgets(line, line_size, file) == NULL) return NULL;
+    if (strchr(line, '\n') != NULL || feof(file)) return line;
+
+    /* No '\n' in a full buffer: either the line filled it exactly (only
+       "\n" or "\r\n" is left) or the line is longer. */
+    next_char = fgetc(file);
+    if (next_char == '\r') next_char = fgetc(file);
+    if (next_char == '\n' || next_char == EOF) return line;
+
+    fprintf(stderr, "%s: line longer than %d characters, cut\n", file_path, line_size - 1);
+    while (next_char != '\n' && next_char != EOF) next_char = fgetc(file);
+    return line;
+}
 
 /* text_utils_split_comma returns NULL both when every piece is empty and
    when memory runs out. Checking for content first lets the parser tell
@@ -127,7 +149,7 @@ page* parser_read_header(const char * file_path){
         if (page_header->html_name == NULL) has_failed = 1;
     }
 
-    while (!has_failed && fgets(line, sizeof(line), file) != NULL)
+    while (!has_failed && read_line(line, MAX_LINE_SIZE, file, file_path) != NULL)
     {
         trimmed_line = text_utils_trim(line);
         if (!strcmp(trimmed_line, "---")) break;
@@ -203,7 +225,7 @@ page_body* parser_read_body(const page* page_header){
         return NULL;
     }
 
-    while (fgets(line, sizeof(line), file) != NULL)
+    while (read_line(line, MAX_LINE_SIZE, file, page_header->txt_path) != NULL)
     {
         trimmed_line = text_utils_trim(line);
         if (!strcmp(trimmed_line, "---")) break;
@@ -211,7 +233,7 @@ page_body* parser_read_body(const page* page_header){
 
     /* Body lines lose only their end ("\r\n"): inside [code] the leading
        spaces are the indentation of the C code. */
-    while (!has_failed && fgets(line, sizeof(line), file) != NULL)
+    while (!has_failed && read_line(line, MAX_LINE_SIZE, file, page_header->txt_path) != NULL)
     {
         text_utils_trim_end(line);
         if (!strcmp(line, "[code]") && !is_inside_code){
