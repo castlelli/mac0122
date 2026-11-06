@@ -264,15 +264,18 @@ static void finish_keyword(highlighter *machine, c_keyword_kind kind)
 
 /* An ordinary identifier is painted only once the next significant
    character is known: a function name is followed by '(', a struct name by
-   '{', a label by ':'. next_character is EOF when unknown. Returns 1 when
-   it also consumed next_character (the label colon). */
+   '{', a label by ':'. A name at file level cannot be a call, so it is a
+   function name unless an operator or open bracket came before it.
+   next_character is EOF when unknown. Returns 1 when it also consumed
+   next_character (the label colon). */
 static int finish_identifier(highlighter *machine, int next_character)
 {
     highlight_style style = STYLE_NONE;
     int is_label = 0;
 
     if (machine->brace_depth == 0 && next_character == '(' &&
-        machine->previous_token == TOKEN_TYPE_LIKE) {
+        (machine->previous_token == TOKEN_TYPE_LIKE ||
+         machine->previous_token == TOKEN_STATEMENT_BOUNDARY)) {
         style = STYLE_FUNCTION;
     } else if (machine->previous_token == TOKEN_STRUCT_KEYWORD &&
                next_character == '{') {
