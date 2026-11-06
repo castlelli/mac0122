@@ -54,8 +54,7 @@ typedef enum {
     BLOCK_COMMENT_AFTER_STAR,
     STRING,
     STRING_AFTER_BACKSLASH,
-    ESCAPE_HEX_DIGITS,
-    ESCAPE_OCTAL_DIGITS,
+    ESCAPE_DIGITS,
     PREPROCESSOR_HASH,
     PREPROCESSOR_NAME,
     PREPROCESSOR,
@@ -88,6 +87,7 @@ typedef struct {
     int is_in_case_label;       /* between "case" and its colon */
     int delimiter;              /* closing '"' or '\'' (or '>' in #include) */
     int escape_digits_left;
+    int is_escape_octal;        /* else the escape takes hex digits */
     char buffer[WORD_BUFFER_SIZE];
     size_t buffer_length;       /* word plus any blanks after it */
     size_t word_length;         /* length of the word alone */
@@ -461,13 +461,16 @@ static int handle_string(highlighter *machine, int character)
     return 1;
 }
 
-static void begin_escape(highlighter *machine, int character,
-                         highlighter_state next_state, int digits_left)
+/* A simple escape takes no more digits, so its ESCAPE_DIGITS step only hands
+   the next character back to STRING. */
+static void begin_escape(highlighter *machine, int character, int digits_left,
+                         int is_octal)
 {
     emit(machine, '\\', STYLE_ESCAPE);
     emit(machine, character, STYLE_ESCAPE);
     machine->escape_digits_left = digits_left;
-    machine->state = next_state;
+    machine->is_escape_octal = is_octal;
+    machine->state = ESCAPE_DIGITS;
 }
 
 static int handle_string_after_backslash(highlighter *machine, int character)
@@ -490,23 +493,23 @@ static int handle_string_after_backslash(highlighter *machine, int character)
         return 1;
     }
     if (is_simple_escape_character(character)) {
-        begin_escape(machine, character, STRING, 0);
+        begin_escape(machine, character, 0, 0);
         return 1;
     }
     if (character == 'x') {
-        begin_escape(machine, character, ESCAPE_HEX_DIGITS, UNLIMITED_DIGITS);
+        begin_escape(machine, character, UNLIMITED_DIGITS, 0);
         return 1;
     }
     if (character == 'u') {
-        begin_escape(machine, character, ESCAPE_HEX_DIGITS, 4);
+        begin_escape(machine, character, 4, 0);
         return 1;
     }
     if (character == 'U') {
-        begin_escape(machine, character, ESCAPE_HEX_DIGITS, 8);
+        begin_escape(machine, character, 8, 0);
         return 1;
     }
     if (is_octal_digit(character)) {
-        begin_escape(machine, character, ESCAPE_OCTAL_DIGITS, 2);
+        begin_escape(machine, character, 2, 1);
         return 1;
     }
     emit(machine, '\\', STYLE_STRING);      /* unknown escape: plain text */
@@ -514,23 +517,15 @@ static int handle_string_after_backslash(highlighter *machine, int character)
     return 0;
 }
 
-static int handle_escape_hex_digits(highlighter *machine, int character)
+static int handle_escape_digits(highlighter *machine, int character)
 {
-    if (is_hex_digit(character) && machine->escape_digits_left != 0) {
+    int is_digit_allowed = machine->is_escape_octal ? is_octal_digit(character)
+                                                    : is_hex_digit(character);
+
+    if (is_digit_allowed && machine->escape_digits_left != 0) {
         emit(machine, character, STYLE_ESCAPE);
         if (machine->escape_digits_left > 0)
             machine->escape_digits_left--;
-        return 1;
-    }
-    machine->state = STRING;
-    return 0;
-}
-
-static int handle_escape_octal_digits(highlighter *machine, int character)
-{
-    if (is_octal_digit(character) && machine->escape_digits_left > 0) {
-        emit(machine, character, STYLE_ESCAPE);
-        machine->escape_digits_left--;
         return 1;
     }
     machine->state = STRING;
@@ -785,8 +780,7 @@ static int handle_state(highlighter *machine, int character)
     case BLOCK_COMMENT_AFTER_STAR:     return handle_block_comment_after_star(machine, character);
     case STRING:                       return handle_string(machine, character);
     case STRING_AFTER_BACKSLASH:       return handle_string_after_backslash(machine, character);
-    case ESCAPE_HEX_DIGITS:            return handle_escape_hex_digits(machine, character);
-    case ESCAPE_OCTAL_DIGITS:          return handle_escape_octal_digits(machine, character);
+    case ESCAPE_DIGITS:                return handle_escape_digits(machine, character);
     case PREPROCESSOR_HASH:            return handle_preprocessor_hash(machine, character);
     case PREPROCESSOR_NAME:            return handle_preprocessor_name(machine, character);
     case PREPROCESSOR:                 return handle_preprocessor(machine, character);
@@ -819,6 +813,7 @@ void c_highlighter_write_html(FILE *source_file, FILE *html_file)
     machine.is_in_case_label = 0;
     machine.delimiter = 0;
     machine.escape_digits_left = 0;
+    machine.is_escape_octal = 0;
     machine.buffer_length = 0;
     machine.word_length = 0;
     machine.word_starts_line = 0;
