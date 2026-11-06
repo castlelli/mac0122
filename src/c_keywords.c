@@ -15,10 +15,6 @@ static const c_keyword_entry KEYWORD_TABLE[] = {
     { "auto",      C_KEYWORD_COMMAND },
     { "bool",      C_KEYWORD_TYPE },
     { "break",     C_KEYWORD_COMMAND },
-    /* "byte" is not in the C standard, but it is the usual typedef of
-       unsigned char in the course programs, and the expected output
-       paints it as a type. */
-    { "byte",      C_KEYWORD_TYPE },
     { "case",      C_KEYWORD_COMMAND },
     { "char",      C_KEYWORD_TYPE },
     { "const",     C_KEYWORD_COMMAND },
