@@ -66,9 +66,11 @@ typedef enum {
 } highlighter_state;
 
 /* What the last significant token was; used to tell a function definition
-   from a call, and to find the name in "struct NAME {". */
+   from a call, a label from a ternary, and to find the name in
+   "struct NAME {". */
 typedef enum {
     TOKEN_OTHER,
+    TOKEN_STATEMENT_BOUNDARY,   /* input start, directive, ; { } ) : */
     TOKEN_TYPE_LIKE,        /* a type keyword or an ordinary identifier */
     TOKEN_STRUCT_KEYWORD    /* struct or union */
 } previous_token_kind;
@@ -276,7 +278,8 @@ static int finish_identifier(highlighter *machine, int next_character)
                next_character == '{') {
         style = STYLE_STRUCT_NAME;
     } else if (machine->does_word_start_line && machine->brace_depth > 0 &&
-               next_character == ':' && !machine->does_gap_have_newline) {
+               next_character == ':' && !machine->does_gap_have_newline &&
+               machine->previous_token == TOKEN_STATEMENT_BOUNDARY) {
         style = STYLE_LABEL;
         is_label = 1;
     }
@@ -289,6 +292,7 @@ static int finish_identifier(highlighter *machine, int next_character)
     machine->state = machine->does_gap_have_newline ? LINE_START : NORMAL;
     if (is_label) {
         emit(machine, ':', STYLE_NONE);
+        machine->previous_token = TOKEN_STATEMENT_BOUNDARY;
         return 1;
     }
     return 0;
@@ -674,7 +678,7 @@ static int handle_line_start(highlighter *machine, int character)
     }
     if (character == '#') {
         emit(machine, character, STYLE_PREPROCESSOR);
-        machine->previous_token = TOKEN_OTHER;
+        machine->previous_token = TOKEN_STATEMENT_BOUNDARY;
         machine->buffer_length = 0;
         machine->state = PREPROCESSOR_NAME;
         return 1;
@@ -730,7 +734,7 @@ static int handle_normal(highlighter *machine, int character)
         emit(machine, character,
              machine->is_in_case_label ? STYLE_NONE : STYLE_OPERATOR);
         machine->is_in_case_label = 0;
-        machine->previous_token = TOKEN_OTHER;
+        machine->previous_token = TOKEN_STATEMENT_BOUNDARY;
         return 1;
     }
     if (character == '*') {
@@ -749,7 +753,9 @@ static int handle_normal(highlighter *machine, int character)
     else if (character == '}' && machine->brace_depth > 0)
         machine->brace_depth--;
     emit(machine, character, STYLE_NONE);   /* punctuation stays plain */
-    machine->previous_token = TOKEN_OTHER;
+    machine->previous_token =
+        (character == ';' || character == '{' || character == '}' ||
+         character == ')') ? TOKEN_STATEMENT_BOUNDARY : TOKEN_OTHER;
     return 1;
 }
 
@@ -846,7 +852,7 @@ void c_highlighter_write_html(FILE *source_file, FILE *html_file)
     machine.open_style = STYLE_NONE;
     machine.is_line_open = 0;
     machine.brace_depth = 0;
-    machine.previous_token = TOKEN_OTHER;
+    machine.previous_token = TOKEN_STATEMENT_BOUNDARY;
     machine.is_in_case_label = 0;
     machine.delimiter = 0;
     machine.escape_digits_left = 0;
