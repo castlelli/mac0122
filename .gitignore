@@ -5,3 +5,5 @@
 /test_*
 /comparator
 tests/comparator
+# Local git worktrees
+/.worktrees/
