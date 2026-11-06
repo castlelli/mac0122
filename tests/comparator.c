@@ -524,41 +524,29 @@ static void print_summary(void)
     }
 }
 
-int main(int argument_count, char *arguments[])
+/* Compares the two parsed files, prints the report and returns the exit
+   status. */
+static int compare_and_report(const cell_list *expected,
+                              const cell_list *obtained,
+                              const char *expected_html,
+                              const char *obtained_html)
 {
-    char *expected_html;
-    char *obtained_html;
-    cell_list expected = {0, 0, 0, 0, 0, 0, 0};
-    cell_list obtained = {0, 0, 0, 0, 0, 0, 0};
     long total_count = 0;
     long correct_count = 0;
     int divergence_count;
     int numbering_problem_count;
 
-    if (argument_count != 3) {
-        fprintf(stderr,
-                "Usage: %s expected.html obtained.html   ('-' for stdin)\n",
-                arguments[0]);
-        return 2;
-    }
-
-    expected_html = read_whole_file(arguments[1]);
-    obtained_html = read_whole_file(arguments[2]);
-
-    parse_html(expected_html, arguments[1], &expected);
-    parse_html(obtained_html, arguments[2], &obtained);
-
-    if (!check_same_text(&expected, &obtained))
+    if (!check_same_text(expected, obtained))
         return 2;
 
     printf("Divergences (expected x obtained):\n");
     divergence_count =
-        compare_classes(&expected, &obtained, &total_count, &correct_count);
+        compare_classes(expected, obtained, &total_count, &correct_count);
     if (divergence_count == 0)
         printf("  (none)\n");
 
     printf("\nLine numbering:\n");
-    numbering_problem_count = check_line_numbering(&expected, &obtained) +
+    numbering_problem_count = check_line_numbering(expected, obtained) +
                               check_counter_css(expected_html, obtained_html);
     if (numbering_problem_count == 0)
         printf("  (none)\n");
@@ -575,6 +563,32 @@ int main(int argument_count, char *arguments[])
     printf("Result: %s\n", divergence_count == 0 && numbering_problem_count == 0
                                ? "OK, identical to the expected file"
                                : "DIFFERENT from the expected file");
+    return divergence_count == 0 && numbering_problem_count == 0 ? 0 : 1;
+}
+
+int main(int argument_count, char *arguments[])
+{
+    char *expected_html;
+    char *obtained_html;
+    cell_list expected = {0, 0, 0, 0, 0, 0, 0};
+    cell_list obtained = {0, 0, 0, 0, 0, 0, 0};
+    int exit_status;
+
+    if (argument_count != 3) {
+        fprintf(stderr,
+                "Usage: %s expected.html obtained.html   ('-' for stdin)\n",
+                arguments[0]);
+        return 2;
+    }
+
+    expected_html = read_whole_file(arguments[1]);
+    obtained_html = read_whole_file(arguments[2]);
+
+    parse_html(expected_html, arguments[1], &expected);
+    parse_html(obtained_html, arguments[2], &obtained);
+
+    exit_status = compare_and_report(&expected, &obtained, expected_html,
+                                     obtained_html);
 
     free(expected.cells);
     free(obtained.cells);
@@ -584,5 +598,5 @@ int main(int argument_count, char *arguments[])
     free(expected.line_span_columns);
     free(obtained.line_span_counts);
     free(obtained.line_span_columns);
-    return divergence_count == 0 && numbering_problem_count == 0 ? 0 : 1;
+    return exit_status;
 }
