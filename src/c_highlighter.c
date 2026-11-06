@@ -915,3 +915,13 @@ void c_highlighter_write_css(FILE *css_file)
     for (line_index = 0; CSS_LINES[line_index] != NULL; line_index++)
         fputs(CSS_LINES[line_index], css_file);
 }
+
+void c_highlighter_write_head_styles(FILE *html_file, int has_page_style)
+{
+    fputs("<link rel=\"stylesheet\" href=\"style.css\">\n", html_file);
+    if (has_page_style) {
+        fputs("<style>\n", html_file);
+        c_highlighter_write_css(html_file);
+        fputs("</style>\n", html_file);
+    }
+}

@@ -430,6 +430,46 @@ static void test_css(void)
         }
 }
 
+static void check_head_styles(int has_page_style)
+{
+    char head[MAX_HTML_LEN];
+    FILE *html_file = tmpfile();
+    size_t head_len;
+    const char *link;
+    const char *page_style;
+
+    if (html_file == NULL) {
+        printf("could not open a temporary file\n");
+        failure_count++;
+        return;
+    }
+    c_highlighter_write_head_styles(html_file, has_page_style);
+    rewind(html_file);
+    head_len = fread(head, 1, MAX_HTML_LEN - 1, html_file);
+    head[head_len] = '\0';
+    fclose(html_file);
+
+    link = strstr(head, "<link rel=\"stylesheet\" href=\"style.css\">");
+    page_style = strstr(head, "<style>");
+    if (link == NULL) {
+        printf("the head does not link style.css\n%s\n", head);
+        failure_count++;
+    }
+    if (!has_page_style && page_style != NULL) {
+        printf("a <style> block was not asked for\n%s\n", head);
+        failure_count++;
+    }
+    if (has_page_style) {
+        /* the page's styles win only if they come after the link */
+        if (page_style == NULL || link == NULL || page_style < link ||
+            strstr(page_style, ".tipo") == NULL ||
+            strstr(page_style, "</style>") == NULL) {
+            printf("the page's styles must follow the link\n%s\n", head);
+            failure_count++;
+        }
+    }
+}
+
 int main(void)
 {
     test_all_styles();
@@ -451,6 +491,8 @@ int main(void)
     test_buffer_limits();
     test_calls_are_independent();
     test_css();
+    check_head_styles(0);
+    check_head_styles(1);
 
     return failure_count == 0 ? 0 : 1;
 }
