@@ -1,383 +1,562 @@
 /*
- * comparator.c - Compara o HTML gerado pelo colorir com o HTML esperado.
+ * comparator - compares the HTML written by c_filter with the expected HTML.
  *
- * COMPILACÃO:
- *   gcc -Wall -o comparator comparator.c
+ * Build (from the repository root):
+ *   gcc -std=c89 -Wall -Wextra -pedantic -Werror tests/comparator.c \
+ *       -o comparator
  *
- * COMO USAR (na raiz do projeto):
- *   ./colorir tests/test.c | ./tests/comparator tests/expected.html -
+ * Use:
+ *   ./c_filter tests/test.c | ./comparator tests/expected.html -
  *
- * O QUE FAZ:
- *   - Lê o conteúdo dentro de <pre class="codigo">...</pre> em ambos os arquivos.
- *   - Compara se cada caractere do código possui a mesma classe de destaque HTML.
- *   - Ignora espaços, tabulações e números de linha (span class="l") na
- *     comparação de cores.
- *   - Confere a numeração da barra lateral: cada linha deve ter um
- *     <span class="l"> (o número vem de um contador CSS), na mesma coluna
- *     do esperado, e o CSS do contador deve existir no HTML obtido.
+ * What it does:
+ *   - Reads the content of <pre class="codigo">...</pre> in both files.
+ *   - Checks that every visible character has the same highlight class.
+ *     Blanks and newlines are not compared: they show no color.
+ *   - Checks the line numbering: every line must open one <span class="l">
+ *     (a CSS counter draws the number) in the same column as the expected
+ *     file, and the counter's CSS must exist in the obtained file.
  *
- * CÓDIGOS DE SAÍDA:
- *   0 = Identicos (sucesso)
- *   1 = Há divergências de cores/classes ou de numeração de linhas
- *   2 = Erro de uso ou divergência estrutural de texto
+ * Exit status:
+ *   0 = identical
+ *   1 = the classes or the line numbering differ
+ *   2 = usage error, or the two files do not hold the same text
+ *
+ * Ownership: read_whole_file and the cell lists allocate with malloc and
+ * realloc; main frees them. Interned class names live until the program ends.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #define MAX_CLASSES 64
-#define MAX_PILHA   64
-#define NORMAL      ""              /* classe de um caractere sem <span> */
+#define MAX_OPEN_SPANS 64
+#define NO_CLASS ""             /* class of a character outside any <span> */
+#define PRE_OPENING_TAG "<pre class=\"codigo\">"
 
 typedef struct {
-    char ch;                        /* caractere (ja sem entidade HTML) */
-    const char *cls;                /* classe interna (ponteiro internado) */
-    int linha, col;                 /* posicao no codigo-fonte, base 1 */
-} Cel;
+    char character;             /* already without its HTML entity */
+    const char *class_name;     /* interned */
+    int line_number;            /* position in the source, from 1 */
+    int column_number;
+} cell;
 
 typedef struct {
-    Cel *v;
-    size_t n, cap;
-    int *l_cnt, *l_col;             /* por linha: quantos <span class="l"> abrem
-                                       nela e em que coluna abre o primeiro */
-    size_t cap_l;                   /* tamanho dos vetores acima */
-    int linhas;                     /* total de linhas do codigo */
-} Lista;
+    cell *cells;
+    size_t cell_count;
+    size_t cell_capacity;
+    int *line_span_counts;      /* per line: how many <span class="l"> open */
+    int *line_span_columns;     /* per line: the column of the first one */
+    size_t line_capacity;       /* size of the two vectors above */
+    int line_count;
+} cell_list;
 
-/* ---------- nomes de classe internados: comparar ponteiros basta ---------- */
+typedef struct {
+    const char *class_name;
+    long total_count;
+    long correct_count;
+} class_summary;
 
-static char *nomes[MAX_CLASSES];
-static int n_nomes = 0;
+static char *interned_class_names[MAX_CLASSES];
+static int interned_class_count = 0;
 
-static const char *internar(const char *s, size_t len)
+static class_summary class_summaries[MAX_CLASSES + 1];  /* by expected class */
+static int class_summary_count = 0;
+
+/* ------------------------------------------------------------- class names */
+
+/* Interned, so that comparing two class names is comparing two pointers. */
+static const char *intern_class_name(const char *name, size_t name_len)
 {
-    int i;
-    for (i = 0; i < n_nomes; i++)
-        if (strlen(nomes[i]) == len && strncmp(nomes[i], s, len) == 0)
-            return nomes[i];
-    if (n_nomes == MAX_CLASSES) { fprintf(stderr, "classes demais\n"); exit(2); }
-    nomes[n_nomes] = malloc(len + 1);
-    memcpy(nomes[n_nomes], s, len);
-    nomes[n_nomes][len] = '\0';
-    return nomes[n_nomes++];
-}
+    int name_index;
 
-/* ---------- leitura de arquivo ---------- */
-
-static char *le_arquivo(const char *nome, size_t *tam)
-{
-    FILE *f = (strcmp(nome, "-") == 0) ? stdin : fopen(nome, "rb");
-    size_t cap = 8192, n = 0, lidos;
-    char *buf;
-    if (!f) { fprintf(stderr, "Erro: nao consegui abrir '%s'\n", nome); exit(2); }
-    buf = malloc(cap + 1);
-    while ((lidos = fread(buf + n, 1, cap - n, f)) > 0) {
-        n += lidos;
-        if (n == cap) { cap *= 2; buf = realloc(buf, cap + 1); }
-    }
-    buf[n] = '\0';
-    if (f != stdin) fclose(f);
-    *tam = n;
-    return buf;
-}
-
-/* ---------- HTML -> lista de (caractere, classe) ---------- */
-
-static void empilha_cel(Lista *L, char ch, const char *cls, int linha, int col)
-{
-    if (L->n == L->cap) {
-        L->cap = L->cap ? L->cap * 2 : 4096;
-        L->v = realloc(L->v, L->cap * sizeof(Cel));
-    }
-    L->v[L->n].ch = ch;
-    L->v[L->n].cls = cls;
-    L->v[L->n].linha = linha;
-    L->v[L->n].col = col;
-    L->n++;
-}
-
-/* Registra que um <span class="l"> abriu na linha/coluna dadas. */
-static void marca_l(Lista *L, int linha, int col)
-{
-    size_t i;
-    if ((size_t)linha >= L->cap_l) {
-        size_t novo = L->cap_l ? L->cap_l : 256;
-        while ((size_t)linha >= novo) novo *= 2;
-        L->l_cnt = realloc(L->l_cnt, novo * sizeof(int));
-        L->l_col = realloc(L->l_col, novo * sizeof(int));
-        for (i = L->cap_l; i < novo; i++) { L->l_cnt[i] = 0; L->l_col[i] = 0; }
-        L->cap_l = novo;
-    }
-    if (L->l_cnt[linha]++ == 0) L->l_col[linha] = col;
-}
-
-static const char *acha(const char *s, const char *agulha)
-{
-    return strstr(s, agulha);
-}
-
-static void analisa(const char *html, const char *nome, Lista *L)
-{
-    const char *ini = acha(html, "<pre class=\"codigo\">");
-    const char *fim;
-    const char *pilha[MAX_PILHA];   /* classe de cada <span> aberto */
-    int topo = 0;
-    int linha = 1, col = 1;
-    const char *p;
-
-    if (!ini) {
-        fprintf(stderr, "Erro: '%s' nao tem <pre class=\"codigo\">\n", nome);
+    for (name_index = 0; name_index < interned_class_count; name_index++)
+        if (strlen(interned_class_names[name_index]) == name_len &&
+            strncmp(interned_class_names[name_index], name, name_len) == 0)
+            return interned_class_names[name_index];
+    if (interned_class_count == MAX_CLASSES) {
+        fprintf(stderr, "Error: too many classes\n");
         exit(2);
     }
-    ini += strlen("<pre class=\"codigo\">");
-    fim = acha(ini, "</pre>");
-    if (!fim) fim = ini + strlen(ini);
+    interned_class_names[interned_class_count] =
+        malloc(name_len + 1);
+    memcpy(interned_class_names[interned_class_count], name, name_len);
+    interned_class_names[interned_class_count][name_len] = '\0';
+    return interned_class_names[interned_class_count++];
+}
 
-    p = ini;
+/* -------------------------------------------------------------- file input */
 
-    while (p < fim) {
-        char ch;
-        size_t consumido;
-        const char *cls;
-        int k;
+static char *read_whole_file(const char *file_name)
+{
+    FILE *input_file = strcmp(file_name, "-") == 0 ? stdin
+                                                   : fopen(file_name, "rb");
+    size_t capacity = 8192;
+    size_t text_len = 0;
+    size_t read_count;
+    char *text;
 
-        if (*p == '<') {
-            const char *gt = memchr(p, '>', (size_t)(fim - p));
-            if (!gt) break;
-            if (strncmp(p, "<span", 5) == 0) {
-                const char *c = strstr(p, "class=\"");
-                const char *cls = NORMAL;
-                const char *q;
-                if (c && c < gt) {
-                    c += 7;
-                    q = memchr(c, '"', (size_t)(gt - c));
-                    if (q) cls = internar(c, (size_t)(q - c));
-                }
-                if (topo < MAX_PILHA) pilha[topo++] = cls;
-                if (strcmp(cls, "l") == 0) marca_l(L, linha, col);
-            } else if (strncmp(p, "</span", 6) == 0) {
-                if (topo > 0) topo--;
+    if (input_file == NULL) {
+        fprintf(stderr, "Error: could not open '%s'\n", file_name);
+        exit(2);
+    }
+    text = malloc(capacity + 1);
+    while ((read_count = fread(text + text_len, 1, capacity - text_len,
+                               input_file)) > 0) {
+        text_len += read_count;
+        if (text_len == capacity) {
+            capacity *= 2;
+            text = realloc(text, capacity + 1);
+        }
+    }
+    text[text_len] = '\0';
+    if (input_file != stdin)
+        fclose(input_file);
+    return text;
+}
+
+/* ------------------------------------------------------ HTML to cell list */
+
+static void append_cell(cell_list *list, char character, const char *class_name,
+                        int line_number, int column_number)
+{
+    cell *new_cell;
+
+    if (list->cell_count == list->cell_capacity) {
+        list->cell_capacity =
+            list->cell_capacity != 0 ? list->cell_capacity * 2 : 4096;
+        list->cells = realloc(list->cells,
+                                         list->cell_capacity * sizeof(cell));
+    }
+    new_cell = &list->cells[list->cell_count];
+    new_cell->character = character;
+    new_cell->class_name = class_name;
+    new_cell->line_number = line_number;
+    new_cell->column_number = column_number;
+    list->cell_count++;
+}
+
+/* Records that a <span class="l"> opened at this line and column. */
+static void record_line_span(cell_list *list, int line_number,
+                             int column_number)
+{
+    size_t line_index;
+
+    if ((size_t)line_number >= list->line_capacity) {
+        size_t new_capacity =
+            list->line_capacity != 0 ? list->line_capacity : 256;
+
+        while ((size_t)line_number >= new_capacity)
+            new_capacity *= 2;
+        list->line_span_counts = realloc(
+            list->line_span_counts, new_capacity * sizeof(int));
+        list->line_span_columns = realloc(
+            list->line_span_columns, new_capacity * sizeof(int));
+        for (line_index = list->line_capacity; line_index < new_capacity;
+             line_index++) {
+            list->line_span_counts[line_index] = 0;
+            list->line_span_columns[line_index] = 0;
+        }
+        list->line_capacity = new_capacity;
+    }
+    if (list->line_span_counts[line_number]++ == 0)
+        list->line_span_columns[line_number] = column_number;
+}
+
+static const char *read_span_class_name(const char *tag, const char *tag_end)
+{
+    const char *attribute = strstr(tag, "class=\"");
+    const char *name_end;
+
+    if (attribute != NULL && attribute < tag_end) {
+        attribute += strlen("class=\"");
+        name_end = memchr(attribute, '"', (size_t)(tag_end - attribute));
+        if (name_end != NULL)
+            return intern_class_name(attribute,
+                                     (size_t)(name_end - attribute));
+    }
+    return NO_CLASS;
+}
+
+/* A character's class is its innermost span, not counting the line span. */
+static const char *find_visible_class(const char *const *open_classes,
+                                      int open_count)
+{
+    int span_index;
+
+    for (span_index = open_count - 1; span_index >= 0; span_index--)
+        if (strcmp(open_classes[span_index], "l") != 0)
+            return open_classes[span_index];
+    return NO_CLASS;
+}
+
+static void parse_html(const char *html, const char *file_name,
+                       cell_list *list)
+{
+    const char *content = strstr(html, PRE_OPENING_TAG);
+    const char *content_end;
+    const char *position;
+    const char *open_classes[MAX_OPEN_SPANS];
+    int open_count = 0;
+    int line_number = 1;
+    int column_number = 1;
+
+    if (content == NULL) {
+        fprintf(stderr, "Error: '%s' has no %s\n", file_name, PRE_OPENING_TAG);
+        exit(2);
+    }
+    content += strlen(PRE_OPENING_TAG);
+    content_end = strstr(content, "</pre>");
+    if (content_end == NULL)
+        content_end = content + strlen(content);
+
+    position = content;
+    while (position < content_end) {
+        char character;
+        size_t consumed_len = 1;
+
+        if (*position == '<') {
+            const char *tag_end =
+                memchr(position, '>', (size_t)(content_end - position));
+
+            if (tag_end == NULL)
+                break;
+            if (strncmp(position, "<span", 5) == 0) {
+                const char *class_name =
+                    read_span_class_name(position, tag_end);
+
+                if (open_count < MAX_OPEN_SPANS)
+                    open_classes[open_count++] = class_name;
+                if (strcmp(class_name, "l") == 0)
+                    record_line_span(list, line_number, column_number);
+            } else if (strncmp(position, "</span", 6) == 0) {
+                if (open_count > 0)
+                    open_count--;
             }
-            p = gt + 1;
+            position = tag_end + 1;
             continue;
         }
 
-        ch = *p;
-        consumido = 1;
-        if (ch == '&') {
-            if      (strncmp(p, "&lt;", 4) == 0)  { ch = '<'; consumido = 4; }
-            else if (strncmp(p, "&gt;", 4) == 0)  { ch = '>'; consumido = 4; }
-            else if (strncmp(p, "&amp;", 5) == 0) { ch = '&'; consumido = 5; }
+        character = *position;
+        if (strncmp(position, "&lt;", 4) == 0) {
+            character = '<';
+            consumed_len = 4;
+        } else if (strncmp(position, "&gt;", 4) == 0) {
+            character = '>';
+            consumed_len = 4;
+        } else if (strncmp(position, "&amp;", 5) == 0) {
+            character = '&';
+            consumed_len = 5;
         }
 
-        /* classe = span mais interno que nao seja o "l" de numero de linha */
-        cls = NORMAL;
-        for (k = topo - 1; k >= 0; k--)
-            if (strcmp(pilha[k], "l") != 0) { cls = pilha[k]; break; }
-
-        empilha_cel(L, ch, cls, linha, col);
-        if (ch == '\n') { linha++; col = 1; } else col++;
-        p += consumido;
-    }
-    L->linhas = linha;
-}
-
-/* ---------- comparacao ---------- */
-
-static int e_branco(char c) { return c == ' ' || c == '\t'; }
-
-static const char *mostra_classe(const char *c)
-{
-    return (c[0] == '\0') ? "(sem cor)" : c;
-}
-
-typedef struct {
-    const char *cls;
-    long total, certos;
-} Resumo;
-
-static Resumo resumo[MAX_CLASSES + 1];   /* por classe esperada */
-static int n_resumo = 0;
-
-static Resumo *resumo_de(const char *cls)
-{
-    int i;
-    for (i = 0; i < n_resumo; i++)
-        if (resumo[i].cls == cls) return &resumo[i];
-    resumo[n_resumo].cls = cls;
-    return &resumo[n_resumo++];
-}
-
-/* Imprime uma divergencia: o trecho [a, b) das listas, de uma so linha. */
-static void imprime_divergencia(const Lista *E, size_t a, size_t b,
-                                const char *obtida)
-{
-    char texto[48];
-    size_t k = 0, usados = 0, i;
-    for (i = a; i < b; i++) {
-        usados++;
-        if (k < sizeof texto - 4) texto[k++] = (E->v[i].ch == '\t') ? ' ' : E->v[i].ch;
-    }
-    texto[k] = '\0';
-    if (usados > k) strcat(texto, "...");
-    printf("  linha %3d, col %3d  esperado %-10s obtido %-10s  \"%s\"\n",
-           E->v[a].linha, E->v[a].col,
-           mostra_classe(E->v[a].cls), mostra_classe(obtida), texto);
-}
-
-/* ---------- numeracao das linhas (barra lateral) ---------- */
-
-/* O numero exibido vem de um contador CSS: o N-esimo <span class="l"> mostra N.
-   Entao o obtido precisa ter, em cada linha, o mesmo numero de spans "l" e na
-   mesma coluna do esperado. Devolve o numero de problemas. */
-static int confere_numeracao(const Lista *E, const Lista *O)
-{
-    int ln, n_prob = 0;
-    long soma_e = 0, soma_o = 0;
-
-    for (ln = 1; ln <= E->linhas; ln++) {
-        int ce = ((size_t)ln < E->cap_l) ? E->l_cnt[ln] : 0;
-        int co = ((size_t)ln < O->cap_l) ? O->l_cnt[ln] : 0;
-        char num_e[24], num_o[24];
-
-        if (ce) sprintf(num_e, "%ld", soma_e + 1); else strcpy(num_e, "nenhum");
-        if (co) sprintf(num_o, "%ld", soma_o + 1); else strcpy(num_o, "nenhum");
-
-        if (ce != co || (ce && E->l_col[ln] != O->l_col[ln])) {
-            printf("  linha %3d  esperado numero %-7s obtido numero %-7s"
-                   " (spans l: esperado %d, obtido %d)\n",
-                   ln, num_e, num_o, ce, co);
-            n_prob++;
+        append_cell(list, character,
+                    find_visible_class(open_classes, open_count),
+                    line_number, column_number);
+        if (character == '\n') {
+            line_number++;
+            column_number = 1;
+        } else {
+            column_number++;
         }
-        soma_e += ce;
-        soma_o += co;
+        position += consumed_len;
     }
-    if (soma_e != soma_o) {
-        printf("  total de numeros: esperado %ld, obtido %ld"
-               " (as linhas seguintes ficam deslocadas)\n", soma_e, soma_o);
-        n_prob++;
-    }
-    return n_prob;
+    list->line_count = line_number;
 }
 
-/* O contador precisa existir no CSS do obtido, senao nenhum numero aparece. */
-static int confere_css(const char *html_e, const char *html_o)
+/* --------------------------------------------------------------- comparison */
+
+static int is_blank_character(char character)
 {
-    static const char *chaves[] = {
+    return character == ' ' || character == '\t';
+}
+
+static const char *get_class_label(const char *class_name)
+{
+    return class_name[0] == '\0' ? "(no color)" : class_name;
+}
+
+static class_summary *find_class_summary(const char *class_name)
+{
+    int summary_index;
+
+    for (summary_index = 0; summary_index < class_summary_count;
+         summary_index++)
+        if (class_summaries[summary_index].class_name == class_name)
+            return &class_summaries[summary_index];
+    class_summaries[class_summary_count].class_name = class_name;
+    return &class_summaries[class_summary_count++];
+}
+
+/* Prints one divergence: the cells [first, last) of one line. */
+static void print_divergence(const cell_list *expected, size_t first,
+                             size_t last, const char *obtained_class)
+{
+    char excerpt[48];
+    size_t excerpt_len = 0;
+    size_t cell_index;
+
+    for (cell_index = first; cell_index < last; cell_index++)
+        if (excerpt_len < sizeof excerpt - 4)
+            excerpt[excerpt_len++] = expected->cells[cell_index].character == '\t'
+                                         ? ' '
+                                         : expected->cells[cell_index].character;
+    excerpt[excerpt_len] = '\0';
+    if (last - first > excerpt_len)
+        strcat(excerpt, "...");
+    printf("  line %3d, column %3d  expected %-10s obtained %-10s  \"%s\"\n",
+           expected->cells[first].line_number,
+           expected->cells[first].column_number,
+           get_class_label(expected->cells[first].class_name),
+           get_class_label(obtained_class), excerpt);
+}
+
+static int get_line_span_count(const cell_list *list, int line_number)
+{
+    return (size_t)line_number < list->line_capacity
+               ? list->line_span_counts[line_number]
+               : 0;
+}
+
+/* The number shown comes from a CSS counter: the Nth <span class="l"> shows N.
+   So each line needs as many line spans as expected, in the same column.
+   Returns the number of problems. */
+static int check_line_numbering(const cell_list *expected,
+                                const cell_list *obtained)
+{
+    int line_number;
+    int problem_count = 0;
+    long expected_total = 0;
+    long obtained_total = 0;
+
+    for (line_number = 1; line_number <= expected->line_count; line_number++) {
+        int expected_spans = get_line_span_count(expected, line_number);
+        int obtained_spans = get_line_span_count(obtained, line_number);
+        char expected_label[24];
+        char obtained_label[24];
+
+        if (expected_spans != 0)
+            sprintf(expected_label, "%ld", expected_total + 1);
+        else
+            strcpy(expected_label, "none");
+        if (obtained_spans != 0)
+            sprintf(obtained_label, "%ld", obtained_total + 1);
+        else
+            strcpy(obtained_label, "none");
+
+        if (expected_spans != obtained_spans ||
+            (expected_spans != 0 &&
+             expected->line_span_columns[line_number] !=
+                 obtained->line_span_columns[line_number])) {
+            printf("  line %3d  expected number %-7s obtained number %-7s"
+                   " (line spans: expected %d, obtained %d)\n",
+                   line_number, expected_label, obtained_label,
+                   expected_spans, obtained_spans);
+            problem_count++;
+        }
+        expected_total += expected_spans;
+        obtained_total += obtained_spans;
+    }
+    if (expected_total != obtained_total) {
+        printf("  total numbers: expected %ld, obtained %ld"
+               " (the following lines are shifted)\n",
+               expected_total, obtained_total);
+        problem_count++;
+    }
+    return problem_count;
+}
+
+/* Without the counter in the obtained CSS, no number is drawn at all. */
+static int check_counter_css(const char *expected_html,
+                             const char *obtained_html)
+{
+    static const char *const REQUIRED_CSS[] = {
         "counter-reset", "counter-increment", "counter(", "before"
     };
-    int k, n_prob = 0;
+    int css_index;
+    int problem_count = 0;
 
-    for (k = 0; k < 4; k++)
-        if (strstr(html_e, chaves[k]) && !strstr(html_o, chaves[k])) {
-            printf("  CSS: falta '%s' no HTML obtido (a numeracao depende dele)\n",
-                   chaves[k]);
-            n_prob++;
+    for (css_index = 0; css_index < 4; css_index++)
+        if (strstr(expected_html, REQUIRED_CSS[css_index]) != NULL &&
+            strstr(obtained_html, REQUIRED_CSS[css_index]) == NULL) {
+            printf("  CSS: '%s' is missing from the obtained HTML"
+                   " (the numbering depends on it)\n",
+                   REQUIRED_CSS[css_index]);
+            problem_count++;
         }
-    return n_prob;
+    return problem_count;
 }
 
-int main(int argc, char *argv[])
+/* Both files must hold the same text, or their classes cannot be compared.
+   Returns 1 when they do. */
+static int check_same_text(const cell_list *expected,
+                           const cell_list *obtained)
 {
-    size_t tam_e, tam_o;
-    char *html_e, *html_o;
-    Lista E = {0, 0, 0, 0, 0, 0, 0}, O = {0, 0, 0, 0, 0, 0, 0};
-    size_t n, i;
-    long total = 0, certos = 0;
-    int n_div = 0;
-    int n_num = 0;
-    int k;
+    size_t shared_count = expected->cell_count < obtained->cell_count
+                              ? expected->cell_count
+                              : obtained->cell_count;
+    size_t cell_index;
 
-    if (argc != 3) {
-        fprintf(stderr, "Uso: %s esperado.html obtido.html   (ou '-' para stdin)\n",
-                argv[0]);
-        return 2;
-    }
+    for (cell_index = 0; cell_index < shared_count; cell_index++) {
+        const cell *expected_cell = &expected->cells[cell_index];
 
-    html_e = le_arquivo(argv[1], &tam_e);
-    html_o = le_arquivo(argv[2], &tam_o);
-
-    analisa(html_e, argv[1], &E);
-    analisa(html_o, argv[2], &O);
-
-    /* 1) o texto tem que ser o mesmo, senao nao ha o que comparar */
-    n = (E.n < O.n) ? E.n : O.n;
-    for (i = 0; i < n; i++) {
-        if (E.v[i].ch != O.v[i].ch) {
-            printf("Os textos diferem (os dois HTML nao vem do mesmo .c).\n"
-                   "  primeira diferenca: linha %d, col %d: esperado '%c', obtido '%c'\n",
-                   E.v[i].linha, E.v[i].col, E.v[i].ch, O.v[i].ch);
-            return 2;
+        if (expected_cell->character != obtained->cells[cell_index].character) {
+            printf("The texts differ (the two HTML files do not come from the"
+                   " same .c file).\n"
+                   "  first difference: line %d, column %d:"
+                   " expected '%c', obtained '%c'\n",
+                   expected_cell->line_number, expected_cell->column_number,
+                   expected_cell->character,
+                   obtained->cells[cell_index].character);
+            return 0;
         }
     }
-    if (E.n != O.n) {
-        printf("Os textos diferem no tamanho: esperado %lu caracteres, obtido %lu.\n"
-               "  (o %s termina antes)\n",
-               (unsigned long)E.n, (unsigned long)O.n,
-               (E.n < O.n) ? "esperado" : "obtido");
-        return 2;
+    if (expected->cell_count != obtained->cell_count) {
+        printf("The texts differ in size: expected %lu characters,"
+               " obtained %lu.\n  (the %s file ends first)\n",
+               (unsigned long)expected->cell_count,
+               (unsigned long)obtained->cell_count,
+               expected->cell_count < obtained->cell_count ? "expected"
+                                                           : "obtained");
+        return 0;
     }
+    return 1;
+}
 
-    /* 2) classe de cada caractere visivel */
-    printf("Divergencias (esperado x obtido):\n");
+/* Prints a run of same-pair differences as one divergence, and adds every
+   visible character to the totals. Returns the number of divergences. */
+static int compare_classes(const cell_list *expected, const cell_list *obtained,
+                           long *total_count, long *correct_count)
+{
+    int divergence_count = 0;
+    size_t cell_index = 0;
 
-    i = 0;
-    while (i < E.n) {
-        char ch = E.v[i].ch;
-        Resumo *r;
-        const char *ce, *co;
-        size_t fim, j;
+    while (cell_index < expected->cell_count) {
+        const cell *expected_cell = &expected->cells[cell_index];
+        const char *expected_class = expected_cell->class_name;
+        const char *obtained_class = obtained->cells[cell_index].class_name;
+        class_summary *summary;
+        size_t run_end;
+        size_t run_index;
 
-        if (ch == '\n' || e_branco(ch)) { i++; continue; }
+        if (expected_cell->character == '\n' ||
+            is_blank_character(expected_cell->character)) {
+            cell_index++;
+            continue;
+        }
 
-        r = resumo_de(E.v[i].cls);
-        r->total++;
-        total++;
+        summary = find_class_summary(expected_class);
+        summary->total_count++;
+        (*total_count)++;
 
-        if (E.v[i].cls == O.v[i].cls) { r->certos++; certos++; i++; continue; }
+        if (expected_class == obtained_class) {
+            summary->correct_count++;
+            (*correct_count)++;
+            cell_index++;
+            continue;
+        }
 
-        /* divergencia: estende o trecho enquanto o par (esperada, obtida) se
-           mantem e na mesma linha; brancos no meio nao interrompem */
-        ce = E.v[i].cls;
-        co = O.v[i].cls;
-        fim = i + 1;      /* fim (exclusivo) do ultimo caractere visivel */
-        j = i + 1;
-        while (j < E.n && E.v[j].ch != '\n') {
-            if (e_branco(E.v[j].ch)) { j++; continue; }
-            if (E.v[j].cls == ce && O.v[j].cls == co) {
-                r->total++; total++;
-                j++; fim = j; continue;
+        /* extend the run while the pair of classes holds on this line; blanks
+           inside the run do not interrupt it */
+        run_end = cell_index + 1;
+        run_index = cell_index + 1;
+        while (run_index < expected->cell_count &&
+               expected->cells[run_index].character != '\n') {
+            if (is_blank_character(expected->cells[run_index].character)) {
+                run_index++;
+                continue;
             }
-            break;
+            if (expected->cells[run_index].class_name != expected_class ||
+                obtained->cells[run_index].class_name != obtained_class)
+                break;
+            summary->total_count++;
+            (*total_count)++;
+            run_index++;
+            run_end = run_index;
         }
-        imprime_divergencia(&E, i, fim, co);
-        n_div++;
-        i = fim;
+        print_divergence(expected, cell_index, run_end, obtained_class);
+        divergence_count++;
+        cell_index = run_end;
     }
-    if (n_div == 0) printf("  (nenhuma)\n");
+    return divergence_count;
+}
 
-    /* 3) numeracao das linhas (barra lateral esquerda) */
-    printf("\nNumeracao das linhas (barra lateral):\n");
-    n_num = confere_numeracao(&E, &O) + confere_css(html_e, html_o);
-    if (n_num == 0) printf("  (nenhuma)\n");
+static void print_summary(void)
+{
+    int summary_index;
 
-    /* 4) resumo por classe esperada */
-    printf("\nResumo por classe esperada (caracteres visiveis):\n");
-    for (k = 0; k < n_resumo; k++)
-        printf("  %-10s %5ld de %5ld corretos%s\n",
-               mostra_classe(resumo[k].cls), resumo[k].certos, resumo[k].total,
-               (resumo[k].certos == resumo[k].total) ? "" : "   <-- verificar");
+    printf("\nSummary by expected class (visible characters):\n");
+    for (summary_index = 0; summary_index < class_summary_count;
+         summary_index++) {
+        const class_summary *summary = &class_summaries[summary_index];
 
-    printf("\nTotal: %ld de %ld caracteres corretos (%.1f%%), %d divergencia(s).\n",
-           certos, total, total ? 100.0 * (double)certos / (double)total : 100.0, n_div);
-    printf("Numeracao: %d problema(s).\n", n_num);
-    printf("Resultado: %s\n",
-           (n_div == 0 && n_num == 0) ? "OK, identico ao esperado"
-                                      : "DIFERENTE do esperado");
+        printf("  %-10s %5ld of %5ld correct%s\n",
+               get_class_label(summary->class_name), summary->correct_count,
+               summary->total_count,
+               summary->correct_count == summary->total_count
+                   ? ""
+                   : "   <-- check");
+    }
+}
 
-    free(E.v); free(O.v); free(html_e); free(html_o);
-    free(E.l_cnt); free(E.l_col); free(O.l_cnt); free(O.l_col);
-    return (n_div == 0 && n_num == 0) ? 0 : 1;
+int main(int argument_count, char *arguments[])
+{
+    char *expected_html;
+    char *obtained_html;
+    cell_list expected = {0, 0, 0, 0, 0, 0, 0};
+    cell_list obtained = {0, 0, 0, 0, 0, 0, 0};
+    long total_count = 0;
+    long correct_count = 0;
+    int divergence_count;
+    int numbering_problem_count;
+
+    if (argument_count != 3) {
+        fprintf(stderr,
+                "Usage: %s expected.html obtained.html   ('-' for stdin)\n",
+                arguments[0]);
+        return 2;
+    }
+
+    expected_html = read_whole_file(arguments[1]);
+    obtained_html = read_whole_file(arguments[2]);
+
+    parse_html(expected_html, arguments[1], &expected);
+    parse_html(obtained_html, arguments[2], &obtained);
+
+    if (!check_same_text(&expected, &obtained))
+        return 2;
+
+    printf("Divergences (expected x obtained):\n");
+    divergence_count =
+        compare_classes(&expected, &obtained, &total_count, &correct_count);
+    if (divergence_count == 0)
+        printf("  (none)\n");
+
+    printf("\nLine numbering:\n");
+    numbering_problem_count = check_line_numbering(&expected, &obtained) +
+                              check_counter_css(expected_html, obtained_html);
+    if (numbering_problem_count == 0)
+        printf("  (none)\n");
+
+    print_summary();
+
+    printf("\nTotal: %ld of %ld characters correct (%.1f%%), %d divergence(s).\n",
+           correct_count, total_count,
+           total_count != 0
+               ? 100.0 * (double)correct_count / (double)total_count
+               : 100.0,
+           divergence_count);
+    printf("Numbering: %d problem(s).\n", numbering_problem_count);
+    printf("Result: %s\n", divergence_count == 0 && numbering_problem_count == 0
+                               ? "OK, identical to the expected file"
+                               : "DIFFERENT from the expected file");
+
+    free(expected.cells);
+    free(obtained.cells);
+    free(expected_html);
+    free(obtained_html);
+    free(expected.line_span_counts);
+    free(expected.line_span_columns);
+    free(obtained.line_span_counts);
+    free(obtained.line_span_columns);
+    return divergence_count == 0 && numbering_problem_count == 0 ? 0 : 1;
 }
