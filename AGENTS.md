@@ -178,18 +178,20 @@ site, automatic links inside `Problema`, plurals and synonyms.
 
 Ask before implementing any of these; do not pick one silently.
 
-- Highlighter signature. Proposed, not agreed:
+- Highlighter signature. In use, not agreed:
   `void c_highlighter_write_html(FILE *source_file, FILE *html_file);`
+  It reads a `FILE *`, while the parser keeps a code block as `char *`,
+  so `html.c` must either pass it through `tmpfile()` or this must change.
 - Whether consecutive text lines merge into one paragraph until a blank
   line.
 - TXT encoding (UTF-8 or Latin-1); it affects accent stripping and the
   HTML charset.
 - Where `[ref]` lines go: collected at the end of the page, or in place.
 - Which module holds the HTML escape shared by `html.c` and the
-  highlighter (proposed: `text_utils`, so the standalone filter in
-  `tools/` does not depend on `html.c`).
+  highlighter (in use, not agreed: `text_utils`, so the standalone filter
+  in `tools/` does not depend on `html.c`).
 - Shared `style.css` written by the program, or a `<style>` block per
-  page.
+  page. `c_highlighter_write_css` (in use, not agreed) serves either.
 
 ## Code style
 
