@@ -82,7 +82,8 @@ typedef enum {
 typedef struct {
     FILE *html_file;
     highlighter_state state;
-    highlighter_state state_after_comment;  /* NORMAL or PREPROCESSOR */
+    highlighter_state state_after_comment;  /* LINE_START, NORMAL or
+                                               PREPROCESSOR */
     highlight_style open_style;             /* style span now open in output */
     int is_line_open;
     int brace_depth;
@@ -688,6 +689,13 @@ static int handle_line_start(highlighter *machine, int character)
     }
     if (is_identifier_start(character)) {
         begin_word(machine, character, 1);
+        return 1;
+    }
+    if (character == '/') {
+        /* a comment does not end the line start: a directive or label may
+           still follow it */
+        machine->state_after_comment = LINE_START;
+        machine->state = AFTER_SLASH;
         return 1;
     }
     machine->state = NORMAL;
