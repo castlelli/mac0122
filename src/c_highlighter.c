@@ -50,6 +50,7 @@ typedef enum {
     AFTER_DOT,
     AFTER_SLASH,
     LINE_COMMENT,
+    LINE_COMMENT_AFTER_BACKSLASH,
     BLOCK_COMMENT,
     BLOCK_COMMENT_AFTER_STAR,
     STRING,
@@ -423,6 +424,18 @@ static int handle_line_comment(highlighter *machine, int character)
     emit(machine, character, STYLE_COMMENT);
     if (character == '\n')
         machine->state = LINE_START;
+    else if (character == '\\')
+        machine->state = LINE_COMMENT_AFTER_BACKSLASH;
+    return 1;
+}
+
+/* A backslash before a newline continues the comment on the next line. */
+static int handle_line_comment_after_backslash(highlighter *machine,
+                                               int character)
+{
+    emit(machine, character, STYLE_COMMENT);
+    if (character != '\\')
+        machine->state = LINE_COMMENT;
     return 1;
 }
 
@@ -786,6 +799,8 @@ static int handle_state(highlighter *machine, int character)
         return handle_after_slash(machine, character);
     case LINE_COMMENT:
         return handle_line_comment(machine, character);
+    case LINE_COMMENT_AFTER_BACKSLASH:
+        return handle_line_comment_after_backslash(machine, character);
     case BLOCK_COMMENT:
         return handle_block_comment(machine, character);
     case BLOCK_COMMENT_AFTER_STAR:
