@@ -89,8 +89,8 @@ typedef struct {
     char buffer[WORD_BUFFER_SIZE];
     size_t buffer_length;       /* word plus any blanks after it */
     size_t word_length;         /* length of the word alone */
-    int word_starts_line;
-    int gap_has_newline;
+    int does_word_start_line;
+    int does_gap_have_newline;
 } highlighter;
 
 /* ---------------------------------------------------------------- output */
@@ -223,11 +223,12 @@ static int is_string_prefix(const highlighter *machine)
            buffer_equals(machine, "U") || buffer_equals(machine, "u8");
 }
 
-static void begin_word(highlighter *machine, int character, int starts_line)
+static void begin_word(highlighter *machine, int character,
+                       int does_start_line)
 {
     machine->buffer_length = 0;
     append_to_buffer(machine, character);
-    machine->word_starts_line = starts_line;
+    machine->does_word_start_line = does_start_line;
     machine->state = WORD;
 }
 
@@ -271,8 +272,8 @@ static int finish_identifier(highlighter *machine, int next_character)
     } else if (machine->previous_token == TOKEN_STRUCT_KEYWORD &&
                next_character == '{') {
         style = STYLE_STRUCT_NAME;
-    } else if (machine->word_starts_line && machine->brace_depth > 0 &&
-               next_character == ':' && !machine->gap_has_newline) {
+    } else if (machine->does_word_start_line && machine->brace_depth > 0 &&
+               next_character == ':' && !machine->does_gap_have_newline) {
         style = STYLE_LABEL;
         is_label = 1;
     }
@@ -282,7 +283,7 @@ static int finish_identifier(highlighter *machine, int next_character)
     machine->previous_token =
         style == STYLE_NONE ? TOKEN_TYPE_LIKE : TOKEN_OTHER;
     /* if the blanks held a newline, the next character starts a line */
-    machine->state = machine->gap_has_newline ? LINE_START : NORMAL;
+    machine->state = machine->does_gap_have_newline ? LINE_START : NORMAL;
     if (is_label) {
         emit(machine, ':', STYLE_NONE);
         return 1;
@@ -316,7 +317,7 @@ static int handle_word(highlighter *machine, int character)
         machine->state = NORMAL;
         return 0;
     }
-    machine->gap_has_newline = 0;
+    machine->does_gap_have_newline = 0;
     machine->state = WORD_GAP;
     return 0;
 }
@@ -338,7 +339,7 @@ static int handle_word_gap(highlighter *machine, int character)
     if (character == '\n' || is_blank(character)) {
         if (append_to_buffer(machine, character)) {
             if (character == '\n')
-                machine->gap_has_newline = 1;
+                machine->does_gap_have_newline = 1;
             return 1;
         }
         /* absurd amount of blanks: give up looking ahead */
@@ -784,8 +785,8 @@ void c_highlighter_write_html(FILE *source_file, FILE *html_file)
     machine.is_escape_octal = 0;
     machine.buffer_length = 0;
     machine.word_length = 0;
-    machine.word_starts_line = 0;
-    machine.gap_has_newline = 0;
+    machine.does_word_start_line = 0;
+    machine.does_gap_have_newline = 0;
 
     while ((character = fgetc(source_file)) != EOF) {
         if (character == '\r')              /* Windows line endings */
