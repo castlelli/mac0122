@@ -193,7 +193,7 @@ comprehension and defect finding; see References):
 - No single-letter names and no ad-hoc abbreviations, including loop
   counters: `keyword_index`, `line_number`, not `i`, `ln`, `cnt`.
 - Allowed abbreviations (well known, so as readable as the full word):
-  `bst`, `html`, `txt`, `mst`, `str`, `len`, `max`, `min`, `src`, `dst`.
+  `bst`, `html`, `css`, `txt`, `mst`, `str`, `len`, `max`, `min`, `src`, `dst`.
   Add to this list in a separate commit; do not invent others inline.
 - No Hungarian notation or type prefixes (`p_page`, `iCount`).
 
