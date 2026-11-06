@@ -88,7 +88,6 @@ typedef struct {
     int is_line_open;
     int brace_depth;
     previous_token_kind previous_token;
-    int is_in_case_label;       /* between "case" and its colon */
     int delimiter;              /* closing '"' or '\'' (or '>' in #include) */
     int escape_digits_left;
     int is_escape_octal;        /* else the escape takes hex digits */
@@ -252,8 +251,6 @@ static void finish_keyword(highlighter *machine, c_keyword_kind kind)
         if (buffer_equals(machine, "struct") ||
             buffer_equals(machine, "union"))
             machine->previous_token = TOKEN_STRUCT_KEYWORD;
-        else if (buffer_equals(machine, "case"))
-            machine->is_in_case_label = 1;
         /* other commands (static, const, ...) keep previous_token, so
            "static inline int name(" still sees the type before name */
     } else {
@@ -740,11 +737,7 @@ static int handle_normal(highlighter *machine, int character)
         return 1;
     }
     if (character == ':') {
-        /* the colon that ends "case N" is plain; any other colon (ternary,
-           bit field, "default:") is an operator */
-        emit(machine, character,
-             machine->is_in_case_label ? STYLE_NONE : STYLE_OPERATOR);
-        machine->is_in_case_label = 0;
+        emit(machine, character, STYLE_OPERATOR);
         machine->previous_token = TOKEN_STATEMENT_BOUNDARY;
         return 1;
     }
@@ -864,7 +857,6 @@ void c_highlighter_write_html(FILE *source_file, FILE *html_file)
     machine.is_line_open = 0;
     machine.brace_depth = 0;
     machine.previous_token = TOKEN_STATEMENT_BOUNDARY;
-    machine.is_in_case_label = 0;
     machine.delimiter = 0;
     machine.escape_digits_left = 0;
     machine.is_escape_octal = 0;
