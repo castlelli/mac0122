@@ -16,8 +16,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "c_highlighter.h"
-#include "text_utils.h"
+#include "../src/c_highlighter.h"
+#include "../src/text_utils.h"
 
 static void write_page_start(FILE *html_file, const char *title)
 {
