@@ -61,8 +61,7 @@ static void test_read_header_empty_values(void){
 }
 
 static void test_read_header_missing_file(void){
-    /* parser_read_header reports the missing file on stderr; only the
-       NULL result is checked here. */
+    /* The warning it writes on stderr is checked in check_warnings. */
     check_true("missing file returns NULL",
                parser_read_header("tests/fixtures/does_not_exist.txt") == NULL);
 }
@@ -150,11 +149,48 @@ static void test_long_lines(void){
     page_free(header);
 }
 
+/* Some cases make the parser warn on stderr on purpose (missing file, line
+   cut). AGENTS.md asks a passing test to print nothing, so stderr goes to
+   this file while the tests run; the warnings are then checked as part of
+   the expected behavior, and the file is removed. */
+#define WARNINGS_PATH "test_parser_warnings.tmp"
+#define MAX_WARNINGS_SIZE 4096
+
+static void check_warnings(void){
+    char warnings[MAX_WARNINGS_SIZE];
+    size_t warnings_len;
+    FILE *warnings_file = fopen(WARNINGS_PATH, "r");
+
+    if (warnings_file == NULL){
+        check_true("warnings: file with the redirected stderr can be read", 0);
+        return;
+    }
+    warnings_len = fread(warnings, 1, sizeof(warnings) - 1, warnings_file);
+    warnings[warnings_len] = '\0';
+    fclose(warnings_file);
+
+    check_true("warnings: missing file is reported",
+               strstr(warnings, "tests/fixtures/does_not_exist.txt") != NULL);
+    check_true("warnings: cut line is reported with its file",
+               strstr(warnings, "tests/fixtures/long_lines.txt: line longer than 4095 characters, cut") != NULL);
+}
+
 int main(void){
+    if (freopen(WARNINGS_PATH, "w", stderr) == NULL){
+        printf("FAIL could not redirect stderr to %s\n", WARNINGS_PATH);
+        return 1;
+    }
+
     test_read_header();
     test_read_header_empty_values();
     test_read_header_missing_file();
     test_read_body();
     test_long_lines();
+
+    /* Closed before reading it back, so every warning is on disk. */
+    fclose(stderr);
+    check_warnings();
+    remove(WARNINGS_PATH);
+
     return failure_count == 0 ? 0 : 1;
 }
