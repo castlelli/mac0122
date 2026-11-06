@@ -75,7 +75,7 @@ src/
   sorted_list.h / .c        sorted linked list of pointers to header structs
   bst.h / bst.c             binary search tree of index keys
   indexes.h / indexes.c     builds the six indexes from the header structs
-  html.h / html.c           writes index.html, index pages and content pages
+  html.h / html.c           writes index.html, index pages, content pages and style.css
   c_highlighter.h / .c      state machine: C source in, highlighted HTML out
   c_keywords.h / .c         sorted array of (word, kind) pairs + binary search
 input/                      course TXT files; template.txt shows the format
@@ -150,6 +150,9 @@ Index pages:
   `<index>_by_<attribute>.html` (for example `concepts_by_date.html`).
 - Ties are broken by TXT file name, and only by it.
 - The generated site is static HTML and CSS. No JavaScript.
+- The site has one shared `style.css`. Every page links it with
+  `c_highlighter_write_head_styles`. A style present on a page overrides
+  the shared sheet, so any `<style>` block comes after that link.
 
 Highlighter:
 - It is a finite state machine with the states drawn in `README.md`.
@@ -179,11 +182,14 @@ site, automatic links inside `Problema`, plurals and synonyms.
 - Highlighter interface:
   `void c_highlighter_write_html(FILE *source_file, FILE *html_file);`
   `void c_highlighter_write_css(FILE *css_file);`
+  `void c_highlighter_write_head_styles(FILE *html_file, int has_page_style);`
 - The parser keeps a code block as `char *`, so `html.c` passes it to the
   highlighter through `tmpfile()`.
 - The HTML escape shared by `html.c` and the highlighter lives in
   `text_utils`, so the standalone filter in `tools/` does not depend on
   `html.c`.
+- One shared `style.css`, written by the program. A style present on a
+  page takes priority over it.
 
 ## Open decisions
 
@@ -194,8 +200,6 @@ Ask before implementing any of these; do not pick one silently.
 - TXT encoding (UTF-8 or Latin-1); it affects accent stripping and the
   HTML charset.
 - Where `[ref]` lines go: collected at the end of the page, or in place.
-- Shared `style.css` written by the program, or a `<style>` block per
-  page. `c_highlighter_write_css` serves either.
 
 ## Code style
 

@@ -15,13 +15,14 @@ flowchart LR
     txt[/"Arquivos TXT<br/>input/"/] --> processor["Processador"]
     processor -- "bloco de código C" --> highlighter["Colorizador"]
     highlighter -- "HTML colorido" --> processor
-    processor --> site[/"Páginas HTML<br/>output/"/]
+    processor --> site[/"Páginas HTML e style.css<br/>output/"/]
 ```
 
 1. O **processador** lê cada arquivo TXT de `input/`.
 2. Cada bloco de código C de um TXT é enviado ao **colorizador**.
 3. O colorizador devolve o código como HTML colorido.
-4. O processador grava as páginas HTML em `output/`.
+4. O processador grava as páginas HTML e um `style.css` compartilhado em
+   `output/`.
 
 ## Dentro do processador
 
@@ -148,7 +149,20 @@ A interface:
 ```c
 void c_highlighter_write_html(FILE *source_file, FILE *html_file);
 void c_highlighter_write_css(FILE *css_file);
+void c_highlighter_write_head_styles(FILE *html_file, int has_page_style);
 ```
+
+O site tem um único `style.css` compartilhado, escrito com
+`c_highlighter_write_css`. Toda página o referencia com
+`c_highlighter_write_head_styles`. Um estilo presente na página tem
+prioridade sobre a folha compartilhada: entre duas regras equivalentes, o
+navegador aplica a última, então qualquer bloco `<style>` vem depois do
+link. As regras que a página não repete continuam vindo da folha
+compartilhada.
+
+O `c_filter` escreve uma página com sua própria cópia dos estilos, então
+ela funciona sem `style.css`; `-s` escreve uma página estilizada só pelo
+`style.css`, e `-c` escreve esse arquivo.
 
 Ele trabalha em fluxo: lê um caractere por vez e guarda apenas o estado
 atual, algumas variáveis pequenas e um buffer de palavra, então um bloco

@@ -14,13 +14,14 @@ flowchart LR
     txt[/"TXT files<br/>input/"/] --> processor["Processor"]
     processor -- "C code block" --> highlighter["Highlighter"]
     highlighter -- "highlighted HTML" --> processor
-    processor --> site[/"HTML pages<br/>output/"/]
+    processor --> site[/"HTML pages and style.css<br/>output/"/]
 ```
 
 1. The **processor** reads each TXT file from `input/`.
 2. Each C code block in a TXT is sent to the **highlighter**.
 3. The highlighter returns the code as highlighted HTML.
-4. The processor writes the HTML pages to `output/`.
+4. The processor writes the HTML pages and one shared `style.css` to
+   `output/`.
 
 ## Inside the processor
 
@@ -141,7 +142,19 @@ The interface:
 ```c
 void c_highlighter_write_html(FILE *source_file, FILE *html_file);
 void c_highlighter_write_css(FILE *css_file);
+void c_highlighter_write_head_styles(FILE *html_file, int has_page_style);
 ```
+
+The site has one shared `style.css`, written with
+`c_highlighter_write_css`. Every page links it with
+`c_highlighter_write_head_styles`. A style present on a page takes
+priority over the shared sheet: the browser lets the later of two equal
+rules win, so any `<style>` block comes after the link. Rules the page
+does not repeat still come from the shared sheet.
+
+`c_filter` writes a page with its own copy of the styles, so it works
+without `style.css`; `-s` writes a page styled only by `style.css`, and
+`-c` writes that file.
 
 It streams: it reads one character at a time and keeps only the current
 state, a few small variables and one word buffer, so a code block never
