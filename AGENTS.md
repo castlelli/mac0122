@@ -57,6 +57,14 @@ gcc -std=c89 -Wall -Wextra -pedantic -Werror tests/comparator.c -o comparator
 ./c_filter tests/test.c | ./comparator tests/expected.html -
 ```
 
+The comparator has its own test, which includes `comparator.c`:
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror -fsanitize=address -g \
+    tests/test_comparator.c -o test_comparator
+./test_comparator
+```
+
 Definition of done: every command above exits with status 0 and, except
 for the comparator's report, prints nothing. Code that compiles only with
 warnings is not done.
@@ -82,7 +90,8 @@ input/                      course TXT files; template.txt shows the format
 output/                     generated site; never edit by hand
 algorithms/                 standalone C programs + data files (separate deliverable)
 tests/                      one test program per module: test_<module>.c; comparator.c,
-                            with test.c and expected.html as its input
+                            with test.c and expected.html as its input, and
+                            test_comparator.c
 tools/                      standalone programs built on src/ modules (c_filter.c)
 ```
 

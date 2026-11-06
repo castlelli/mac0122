@@ -11,7 +11,8 @@
  * What it does:
  *   - Reads the content of <pre class="codigo">...</pre> in both files.
  *   - Checks that every visible character has the same highlight class.
- *     Blanks and newlines are not compared: they show no color.
+ *     Blanks and newlines are not compared: they show no color, and
+ *     carriage returns are dropped when the files are read.
  *   - Checks the line numbering: every line must open one <span class="l">
  *     (a CSS counter draws the number) in the same column as the expected
  *     file, and the counter's CSS must exist in the obtained file or in the
@@ -122,6 +123,20 @@ static const char *intern_class_name(const char *name, size_t name_len)
 
 /* -------------------------------------------------------------- file input */
 
+/* A Windows checkout can give the expected file CRLF endings, and standard
+   input and a file opened with "rb" treat CRLF differently there. Endings
+   show no color, so they must not decide the comparison. */
+static void remove_carriage_returns(char *text, size_t text_len)
+{
+    size_t read_index;
+    size_t kept_len = 0;
+
+    for (read_index = 0; read_index < text_len; read_index++)
+        if (text[read_index] != '\r')
+            text[kept_len++] = text[read_index];
+    text[kept_len] = '\0';
+}
+
 /* Returns NULL when the file cannot be opened. */
 static char *read_file_if_present(const char *file_name)
 {
@@ -143,7 +158,7 @@ static char *read_file_if_present(const char *file_name)
             text = reallocate_or_exit(text, capacity + 1);
         }
     }
-    text[text_len] = '\0';
+    remove_carriage_returns(text, text_len);
     if (input_file != stdin)
         fclose(input_file);
     return text;
