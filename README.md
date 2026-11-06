@@ -136,7 +136,7 @@ used in two ways:
 - as a standalone program, `tools/c_filter.c`, reading a file or
   standard input and writing standard output.
 
-In use, pending agreement by the group:
+The interface:
 
 ```c
 void c_highlighter_write_html(FILE *source_file, FILE *html_file);

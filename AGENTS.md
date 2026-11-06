@@ -71,7 +71,7 @@ src/
   page.h / page.c           header struct (one per TXT) and body block structs
   parser.h / parser.c       reads a TXT header into a header struct; reads a body
   text_utils.h / .c         trim, normalize (lowercase, strip accents), split on commas,
-                            HTML escape (location pending agreement)
+                            HTML escape
   sorted_list.h / .c        sorted linked list of pointers to header structs
   bst.h / bst.c             binary search tree of index keys
   indexes.h / indexes.c     builds the six indexes from the header structs
@@ -174,24 +174,28 @@ Highlighter:
 Out of scope for phase 1; do not add: search bar, graph view of the
 site, automatic links inside `Problema`, plurals and synonyms.
 
+## Decisions made
+
+- Highlighter interface:
+  `void c_highlighter_write_html(FILE *source_file, FILE *html_file);`
+  `void c_highlighter_write_css(FILE *css_file);`
+- The parser keeps a code block as `char *`, so `html.c` passes it to the
+  highlighter through `tmpfile()`.
+- The HTML escape shared by `html.c` and the highlighter lives in
+  `text_utils`, so the standalone filter in `tools/` does not depend on
+  `html.c`.
+
 ## Open decisions
 
 Ask before implementing any of these; do not pick one silently.
 
-- Highlighter signature. In use, not agreed:
-  `void c_highlighter_write_html(FILE *source_file, FILE *html_file);`
-  It reads a `FILE *`, while the parser keeps a code block as `char *`,
-  so `html.c` must either pass it through `tmpfile()` or this must change.
 - Whether consecutive text lines merge into one paragraph until a blank
   line.
 - TXT encoding (UTF-8 or Latin-1); it affects accent stripping and the
   HTML charset.
 - Where `[ref]` lines go: collected at the end of the page, or in place.
-- Which module holds the HTML escape shared by `html.c` and the
-  highlighter (in use, not agreed: `text_utils`, so the standalone filter
-  in `tools/` does not depend on `html.c`).
 - Shared `style.css` written by the program, or a `<style>` block per
-  page. `c_highlighter_write_css` (in use, not agreed) serves either.
+  page. `c_highlighter_write_css` serves either.
 
 ## Code style
 

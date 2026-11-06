@@ -143,7 +143,7 @@ usado de duas formas:
 - como programa independente, `tools/c_filter.c`, que lê um arquivo ou
   a entrada padrão e escreve na saída padrão.
 
-Em uso, ainda pendente de acordo do grupo:
+A interface:
 
 ```c
 void c_highlighter_write_html(FILE *source_file, FILE *html_file);
