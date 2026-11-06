@@ -47,8 +47,19 @@ gcc -std=c89 -Wall -Wextra -pedantic -Werror -fsanitize=address -g \
 A test program exits 0 when every case passes and prints the failing
 cases otherwise.
 
-Definition of done: every command above exits with status 0 and prints
-nothing. Code that compiles only with warnings is not done.
+Compare the highlighter with the expected output of `tests/test.c`
+(this one prints a report and exits 0 when the output matches):
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror tools/c_filter.c \
+    src/c_highlighter.c src/c_keywords.c src/text_utils.c -o c_filter
+gcc -std=c89 -Wall -Wextra -pedantic -Werror tests/comparator.c -o comparator
+./c_filter tests/test.c | ./comparator tests/expected.html -
+```
+
+Definition of done: every command above exits with status 0 and, except
+for the comparator's report, prints nothing. Code that compiles only with
+warnings is not done.
 
 ## Layout
 
@@ -59,18 +70,20 @@ src/
   main.c                    runs pass 1, builds the indexes, runs pass 2
   page.h / page.c           header struct (one per TXT) and body block structs
   parser.h / parser.c       reads a TXT header into a header struct; reads a body
-  text_utils.h / .c         trim, normalize (lowercase, strip accents), split on commas
+  text_utils.h / .c         trim, normalize (lowercase, strip accents), split on commas,
+                            HTML escape (location pending agreement)
   sorted_list.h / .c        sorted linked list of pointers to header structs
   bst.h / bst.c             binary search tree of index keys
   indexes.h / indexes.c     builds the six indexes from the header structs
   html.h / html.c           writes index.html, index pages and content pages
   c_highlighter.h / .c      state machine: C source in, highlighted HTML out
-  c_keywords.h / .c         sorted array of C reserved words + binary search
+  c_keywords.h / .c         sorted array of (word, kind) pairs + binary search
 input/                      course TXT files; template.txt shows the format
 output/                     generated site; never edit by hand
 algorithms/                 standalone C programs + data files (separate deliverable)
-tests/                      one test program per module: test_<module>.c
-tools/                      standalone programs built on src/ modules (e.g. the C filter)
+tests/                      one test program per module: test_<module>.c; comparator.c,
+                            with test.c and expected.html as its input
+tools/                      standalone programs built on src/ modules (c_filter.c)
 ```
 
 Each module talks to the others only through its `.h` file. Do not
@@ -142,10 +155,16 @@ Highlighter:
 - It is a finite state machine with the states drawn in `README.md`.
   Two-character constructs (`/*`, `*/`, `//`, escapes) use in-between
   states; do not peek ahead with `ungetc` or a second buffer.
-- It streams: one character at a time, keeping only the current state
-  and the current word.
+- It streams: one character at a time, keeping only the current state,
+  the word buffer (the current word and the blanks after it) and the
+  small variables listed in `README.md`. Holding those blanks is the one
+  allowed delay: a word's style can depend on the next significant
+  character.
+- It writes 13 styles and wraps every line in `<span class="l">`, which
+  the CSS counter numbers.
 - Keywords are looked up when a word ends, by binary search in the
-  sorted array in `c_keywords`. Keep that array sorted.
+  sorted array of (word, kind) pairs in `c_keywords`. Keep that array
+  sorted.
 - Every character written goes through the HTML escape (`<`, `>`, `&`),
   inside strings and comments too.
 - At end of input, close any open span.
