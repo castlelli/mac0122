@@ -1,16 +1,16 @@
 /*
- * colorir - standalone filter: C source in, highlighted HTML out.
+ * c_filter - standalone filter: C source in, highlighted HTML out.
  *
  * Build (from the repository root):
  *   gcc -std=c89 -Wall -Wextra -pedantic -Werror \
- *       tools/colorir.c src/c_highlighter.c src/c_keywords.c \
- *       src/text_utils.c -o colorir
+ *       tools/c_filter.c src/c_highlighter.c src/c_keywords.c \
+ *       src/text_utils.c -o c_filter
  *
  * Use:
- *   ./colorir program.c > program.html    whole page
- *   ./colorir -f program.c > piece.html   only the <pre> block
- *   ./colorir -c > style.css              only the CSS
- *   ./colorir < program.c                 read standard input
+ *   ./c_filter program.c > program.html    whole page
+ *   ./c_filter -f program.c > piece.html   only the <pre> block
+ *   ./c_filter -c > style.css              only the CSS
+ *   ./c_filter < program.c                 read standard input
  */
 
 #include <stdio.h>
