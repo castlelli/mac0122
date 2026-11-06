@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>test.c - resultado esperado</title>
+<style>
+/* Resultado ESPERADO: cores do Pygments (tema "default"), o mesmo da Wikipedia.
+   Caixa cinza com numeracao de linhas, igual a do colorir.c. */
+pre.codigo { background:#f2f2f2; border:1px solid #c8c8c8;
+             border-radius:4px; padding:10px 12px; overflow:auto;
+             font-family:Menlo,Consolas,'DejaVu Sans Mono',monospace;
+             font-size:14px; line-height:1.45; tab-size:4;
+             counter-reset:linha; }
+.l::before { counter-increment:linha; content:counter(linha);
+              display:inline-block; width:2.5em; margin-right:1em;
+              padding-right:0.8em; text-align:right; color:#888;
+              border-right:1px solid #bbb; user-select:none; }
+.pragma    { color:#9C6500; }                          /* Comment.Preproc     */
+.arquivo   { color:#3D7B7B; font-style:italic; }       /* Comment.PreprocFile */
+.coment    { color:#3D7B7B; font-style:italic; }       /* Comment             */
+.tipo      { color:#B00040; }                          /* Keyword.Type        */
+.comando   { color:#008000; font-weight:bold; }        /* Keyword             */
+.builtin   { color:#008000; }                          /* Name.Builtin        */
+.funcao    { color:#0000FF; }                          /* Name.Function       */
+.estrutura { color:#0000FF; font-weight:bold; }        /* Name.Class          */
+.rotulo    { color:#767600; }                          /* Name.Label          */
+.string    { color:#BA2121; }                          /* String              */
+.escape    { color:#AA5D1F; font-weight:bold; }        /* String.Escape       */
+.numero    { color:#666666; }                          /* Number              */
+.operador  { color:#666666; }                          /* Operator            */
+table.legenda { border-collapse:collapse; margin-top:1.2em; font:13px sans-serif; }
+table.legenda td, table.legenda th { border:1px solid #c8c8c8; padding:3px 10px; text-align:left; }
+table.legenda td:nth-child(3) { font-family:Menlo,Consolas,monospace; }
+</style></head>
+<body>
+<pre class="codigo"><span class="l"><span class="coment">// Hello World</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">&lt;stdio.h&gt;</span></span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* ==========================================================================</span></span>
+<span class="l"><span class="coment"> * test.c - Cobre os elementos lexicos de C que o colorir precisa</span></span>
+<span class="l"><span class="coment"> * distinguir. Compila (gcc -Wall -std=gnu11), mas nao faz nada util: serve</span></span>
+<span class="l"><span class="coment"> * de entrada para o colorir e para o comparar.</span></span>
+<span class="l"><span class="coment"> *</span></span>
+<span class="l"><span class="coment"> * Especiais de HTML em comentario: &lt; &gt; &amp; "aspas" 'apostrofo'</span></span>
+<span class="l"><span class="coment"> * Acentuacao em comentario: ação, coração, é</span></span>
+<span class="l"><span class="coment"> * ========================================================================== */</span></span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* ---- 1. Diretivas de pre-processador ---------------------------------- */</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">&lt;stdlib.h&gt;</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">&lt;string.h&gt;</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">&lt;stdbool.h&gt;</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">&lt;stdint.h&gt;</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">&lt;stddef.h&gt;</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">&lt;stdarg.h&gt;</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">&lt;wchar.h&gt;</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">&lt;sys/types.h&gt;</span>      <span class="coment">/* comentario depois do include */</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">&lt;math.h&gt;</span>           <span class="coment">// comentario de linha depois do include</span></span>
+<span class="l"><span class="pragma">#ifdef USAR_ARQUIVO_LOCAL</span></span>
+<span class="l"><span class="pragma">#include</span> <span class="arquivo">"arquivo_local.h"</span></span>
+<span class="l"><span class="pragma">#endif</span></span>
+<span class="l"></span>
+<span class="l"><span class="pragma">#define MAX 100             </span><span class="coment">/* tamanho maximo */</span></span>
+<span class="l"><span class="pragma">#define PI 3.14159          </span><span class="coment">// comentario depois do define</span></span>
+<span class="l"><span class="pragma">#define NOME "texto em macro"</span></span>
+<span class="l"><span class="pragma">#define QUADRADO(x) ((x) * (x))</span></span>
+<span class="l"><span class="pragma">#define MAXIMO(a, b) ((a) &gt; (b) ? (a) : (b))</span></span>
+<span class="l"><span class="pragma">#define BLOCO(x)    \</span></span>
+<span class="l"><span class="pragma">    do {            \</span></span>
+<span class="l"><span class="pragma">        (void)(x);  \</span></span>
+<span class="l"><span class="pragma">    } while (0)</span></span>
+<span class="l"><span class="pragma">#define STR(x) #x</span></span>
+<span class="l"><span class="pragma">#define COLA(a, b) a ## b</span></span>
+<span class="l">  <span class="pragma">#  define COM_ESPACOS 1</span></span>
+<span class="l"><span class="pragma">#undef COM_ESPACOS</span></span>
+<span class="l"><span class="pragma">#if defined(MAX) &amp;&amp; MAX &gt; 10</span></span>
+<span class="l"><span class="pragma">#  define GRANDE 1</span></span>
+<span class="l"><span class="pragma">#elif MAX &gt; 5</span></span>
+<span class="l"><span class="pragma">#  define GRANDE 2</span></span>
+<span class="l"><span class="pragma">#else</span></span>
+<span class="l"><span class="pragma">#  define GRANDE 0</span></span>
+<span class="l"><span class="pragma">#endif</span></span>
+<span class="l"><span class="pragma">#ifndef NAO_DEFINIDO</span></span>
+<span class="l"><span class="pragma">#endif</span></span>
+<span class="l"><span class="pragma">#ifdef NUNCA_DEFINIDO</span></span>
+<span class="l"><span class="pragma">#error "isto nunca deve compilar"</span></span>
+<span class="l"><span class="pragma">#endif</span></span>
+<span class="l"><span class="pragma">#pragma GCC diagnostic ignored "-Wunused-variable"</span></span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* ---- 2. Comentarios --------------------------------------------------- */</span></span>
+<span class="l"><span class="coment">// comentario de linha</span></span>
+<span class="l"><span class="coment">//comentario colado</span></span>
+<span class="l"><span class="coment">/* comentario de bloco */</span></span>
+<span class="l"><span class="coment">/**/</span></span>
+<span class="l"><span class="coment">/* varias</span></span>
+<span class="l"><span class="coment">   linhas</span></span>
+<span class="l"><span class="coment">   de comentario */</span></span>
+<span class="l"><span class="coment">/* // linha dentro de bloco */</span></span>
+<span class="l"><span class="coment">// /* bloco dentro de linha */</span></span>
+<span class="l"><span class="coment">/* &lt; &gt; &amp; dentro de comentario */</span></span>
+<span class="l"><span class="coment">// if (x) return 0; "string" 'c' 123 dentro de comentario</span></span>
+<span class="l"><span class="tipo">int</span> com_comentario <span class="operador">=</span> <span class="numero">1</span>; <span class="coment">// fim de linha</span></span>
+<span class="l"><span class="tipo">int</span> comentario_no_meio <span class="operador">=</span> <span class="coment">/* no meio */</span> <span class="numero">2</span>;</span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* ---- 3. Tipos, modificadores e declaracoes ---------------------------- */</span></span>
+<span class="l"><span class="comando">typedef</span> <span class="tipo">unsigned</span> <span class="tipo">char</span> <span class="tipo">byte</span>;</span>
+<span class="l"><span class="comando">typedef</span> <span class="comando">struct</span> <span class="estrutura">ponto</span> { <span class="tipo">int</span> x; <span class="tipo">int</span> y; } Ponto;</span>
+<span class="l"><span class="comando">union</span> <span class="estrutura">valor</span> { <span class="tipo">int</span> i; <span class="tipo">float</span> f; <span class="tipo">char</span> c[<span class="numero">4</span>]; };</span>
+<span class="l"><span class="comando">typedef</span> <span class="comando">enum</span> { VERMELHO, VERDE <span class="operador">=</span> <span class="numero">5</span>, AZUL } Cor;</span>
+<span class="l"><span class="comando">struct</span> <span class="estrutura">campos</span> { <span class="tipo">unsigned</span> <span class="tipo">int</span> a <span class="operador">:</span> <span class="numero">3</span>; <span class="tipo">unsigned</span> <span class="tipo">int</span> b <span class="operador">:</span> <span class="numero">5</span>; };</span>
+<span class="l"><span class="comando">typedef</span> <span class="tipo">int</span> (<span class="operador">*</span>Operacao)(<span class="tipo">int</span>, <span class="tipo">int</span>);</span>
+<span class="l"></span>
+<span class="l"><span class="comando">extern</span> <span class="tipo">int</span> variavel_externa;</span>
+<span class="l"><span class="comando">const</span> <span class="comando">volatile</span> <span class="tipo">int</span> constante_volatil <span class="operador">=</span> <span class="numero">7</span>;</span>
+<span class="l"><span class="tipo">signed</span> <span class="tipo">short</span> curto <span class="operador">=</span> <span class="operador">-</span><span class="numero">1</span>;</span>
+<span class="l"><span class="tipo">unsigned</span> <span class="tipo">long</span> <span class="tipo">long</span> enorme <span class="operador">=</span> <span class="numero">1</span>;</span>
+<span class="l"><span class="tipo">long</span> <span class="tipo">double</span> precisao <span class="operador">=</span> <span class="numero">1</span>;</span>
+<span class="l"><span class="tipo">float</span> real <span class="operador">=</span> <span class="numero">1</span>;</span>
+<span class="l"><span class="tipo">double</span> dupla <span class="operador">=</span> <span class="numero">1</span>;</span>
+<span class="l"><span class="tipo">char</span> caractere <span class="operador">=</span> <span class="string">'x'</span>;</span>
+<span class="l"><span class="tipo">bool</span> booleano <span class="operador">=</span> <span class="builtin">true</span>;</span>
+<span class="l"><span class="tipo">bool</span> outro_booleano <span class="operador">=</span> <span class="builtin">false</span>;</span>
+<span class="l"><span class="tipo">void</span> <span class="operador">*</span>ponteiro_nulo <span class="operador">=</span> <span class="builtin">NULL</span>;</span>
+<span class="l"><span class="tipo">size_t</span> tamanho <span class="operador">=</span> <span class="numero">0</span>;</span>
+<span class="l"><span class="tipo">ptrdiff_t</span> diferenca <span class="operador">=</span> <span class="numero">0</span>;</span>
+<span class="l"><span class="tipo">wchar_t</span> largo_c <span class="operador">=</span> <span class="string">L'x'</span>;</span>
+<span class="l"><span class="tipo">FILE</span> <span class="operador">*</span>arquivo <span class="operador">=</span> <span class="builtin">NULL</span>;</span>
+<span class="l"><span class="tipo">uint8_t</span> octeto <span class="operador">=</span> <span class="numero">0</span>;</span>
+<span class="l"><span class="tipo">int32_t</span> i32 <span class="operador">=</span> <span class="numero">0</span>;</span>
+<span class="l"><span class="tipo">uint64_t</span> u64 <span class="operador">=</span> <span class="numero">0</span>;</span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* identificadores que contem palavras reservadas (nao devem ser coloridos) */</span></span>
+<span class="l"><span class="tipo">int</span> integer <span class="operador">=</span> <span class="numero">1</span>, formato <span class="operador">=</span> <span class="numero">2</span>, if_ok <span class="operador">=</span> <span class="numero">3</span>, returned <span class="operador">=</span> <span class="numero">4</span>, intensidade <span class="operador">=</span> <span class="numero">5</span>;</span>
+<span class="l"><span class="tipo">int</span> _privado <span class="operador">=</span> <span class="numero">6</span>, x1 <span class="operador">=</span> <span class="numero">7</span>, valor_2 <span class="operador">=</span> <span class="numero">8</span>, forca <span class="operador">=</span> <span class="numero">9</span>, doce <span class="operador">=</span> <span class="numero">10</span>, estatico <span class="operador">=</span> <span class="numero">11</span>;</span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* ---- 4. Numeros ------------------------------------------------------- */</span></span>
+<span class="l"><span class="tipo">double</span> numeros[] <span class="operador">=</span> {</span>
+<span class="l">    <span class="numero">0</span>, <span class="numero">7</span>, <span class="numero">42</span>, <span class="numero">123456789</span>,</span>
+<span class="l">    <span class="numero">42u</span>, <span class="numero">42U</span>, <span class="numero">42l</span>, <span class="numero">42L</span>, <span class="numero">42ul</span>, <span class="numero">42UL</span>, <span class="numero">42ull</span>,</span>
+<span class="l">    <span class="numero">0x1F</span>, <span class="numero">0XFF</span>, <span class="numero">0xdeadBEEFu</span>, <span class="numero">0x7fffffffL</span>,</span>
+<span class="l">    <span class="numero">017</span>, <span class="numero">0777</span>,</span>
+<span class="l">    <span class="numero">3.14</span>, <span class="numero">.5</span>, <span class="numero">5.</span>, <span class="numero">0.0</span>,</span>
+<span class="l">    <span class="numero">1e10</span>, <span class="numero">1E10</span>, <span class="numero">1e-3</span>, <span class="numero">1E+3</span>, <span class="numero">2.5e-2</span>, <span class="numero">6.02e23</span>,</span>
+<span class="l">    <span class="numero">3.14f</span>, <span class="numero">3.14F</span>, <span class="numero">2.5L</span>, <span class="numero">10.f</span>,</span>
+<span class="l">    <span class="numero">0x1p3</span>, <span class="numero">0x1.8p1</span>, <span class="numero">0x1p-3</span></span>
+<span class="l">};</span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* ---- 5. Strings e caracteres ------------------------------------------ */</span></span>
+<span class="l"><span class="comando">const</span> <span class="tipo">char</span> <span class="operador">*</span>strings[] <span class="operador">=</span> {</span>
+<span class="l">    <span class="string">""</span>,</span>
+<span class="l">    <span class="string">"texto simples"</span>,</span>
+<span class="l">    <span class="string">"escapes: </span><span class="escape">\n</span> <span class="escape">\t</span> <span class="escape">\r</span> <span class="escape">\\</span> <span class="escape">\"</span> <span class="escape">\'</span> <span class="escape">\0</span> <span class="escape">\a</span> <span class="escape">\b</span> <span class="escape">\f</span> <span class="escape">\v</span><span class="string">"</span>,</span>
+<span class="l">    <span class="string">"hex </span><span class="escape">\x41</span><span class="string"> octal </span><span class="escape">\101</span> <span class="escape">\7</span><span class="string"> unicode </span><span class="escape">\u00e9</span><span class="string">"</span>,</span>
+<span class="l">    <span class="string">"http://nao-e-comentario.com"</span>,</span>
+<span class="l">    <span class="string">"/* nao e comentario */"</span>,</span>
+<span class="l">    <span class="string">"int if for return 123 #include"</span>,</span>
+<span class="l">    <span class="string">"&lt; &gt; &amp; dentro de string"</span>,</span>
+<span class="l">    <span class="string">"formatos %d %s %5.2f %%"</span>,</span>
+<span class="l">    <span class="string">"acentuação: olá, coração"</span>,</span>
+<span class="l">    <span class="string">"concatenacao "</span> <span class="string">"de "</span> <span class="string">"strings"</span>,</span>
+<span class="l">    <span class="string">u8"utf8"</span>,</span>
+<span class="l">    <span class="string">"continuacao \</span></span>
+<span class="l"><span class="string">na proxima linha"</span>,</span>
+<span class="l">    <span class="string">"aspas simples ' dentro"</span>,</span>
+<span class="l">};</span>
+<span class="l"><span class="comando">const</span> <span class="tipo">wchar_t</span> <span class="operador">*</span>largo <span class="operador">=</span> <span class="string">L"largo"</span>;</span>
+<span class="l"><span class="comando">const</span> <span class="tipo">void</span> <span class="operador">*</span>utf16 <span class="operador">=</span> <span class="string">u"utf16"</span>;</span>
+<span class="l"><span class="comando">const</span> <span class="tipo">void</span> <span class="operador">*</span>utf32 <span class="operador">=</span> <span class="string">U"utf32"</span>;</span>
+<span class="l"></span>
+<span class="l"><span class="tipo">char</span> caracteres[] <span class="operador">=</span> {</span>
+<span class="l">    <span class="string">'a'</span>, <span class="string">'Z'</span>, <span class="string">'0'</span>, <span class="string">'</span> <span class="string">'</span>, <span class="string">'/'</span>, <span class="string">'#'</span>, <span class="string">'&lt;'</span>, <span class="string">'&amp;'</span>,</span>
+<span class="l">    <span class="string">'\n'</span>, <span class="string">'\t'</span>, <span class="string">'\\'</span>, <span class="string">'\''</span>, <span class="string">'"'</span>, <span class="string">'\0'</span>, <span class="string">'\x41'</span>, <span class="string">'\101'</span></span>
+<span class="l">};</span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* ---- 6. Funcoes: prototipos e definicoes ------------------------------ */</span></span>
+<span class="l"><span class="tipo">int</span> <span class="funcao">soma</span>(<span class="tipo">int</span> n);</span>
+<span class="l"><span class="tipo">void</span> <span class="operador">*</span><span class="funcao">aloca</span>(<span class="tipo">size_t</span> n);</span>
+<span class="l"><span class="tipo">int</span> (<span class="operador">*</span>ptr_func)(<span class="tipo">int</span>, <span class="tipo">int</span>);</span>
+<span class="l"></span>
+<span class="l"><span class="tipo">int</span> <span class="funcao">soma</span>(<span class="tipo">int</span> n)</span>
+<span class="l">{</span>
+<span class="l">    <span class="tipo">int</span> i, s <span class="operador">=</span> <span class="numero">0</span>;</span>
+<span class="l">    <span class="comando">for</span> (i <span class="operador">=</span> <span class="numero">1</span>; i <span class="operador">&lt;=</span> n; i<span class="operador">++</span>)</span>
+<span class="l">        s <span class="operador">+=</span> i;</span>
+<span class="l">    <span class="comando">return</span> s;</span>
+<span class="l">}</span>
+<span class="l"></span>
+<span class="l"><span class="tipo">void</span> <span class="operador">*</span><span class="funcao">aloca</span>(<span class="tipo">size_t</span> n) { <span class="comando">return</span> malloc(n); }</span>
+<span class="l"></span>
+<span class="l"><span class="comando">static</span> <span class="comando">inline</span> <span class="tipo">int</span> <span class="funcao">triplo</span>(<span class="tipo">int</span> x) { <span class="comando">return</span> x <span class="operador">*</span> <span class="numero">3</span>; }</span>
+<span class="l"></span>
+<span class="l"><span class="tipo">int</span></span>
+<span class="l"><span class="funcao">duas_linhas</span>(<span class="tipo">void</span>)</span>
+<span class="l">{</span>
+<span class="l">    <span class="comando">return</span> <span class="numero">0</span>;</span>
+<span class="l">}</span>
+<span class="l"></span>
+<span class="l"><span class="tipo">int</span> <span class="funcao">variadica</span>(<span class="tipo">int</span> n, ...)</span>
+<span class="l">{</span>
+<span class="l">    <span class="tipo">va_list</span> ap;</span>
+<span class="l">    <span class="tipo">int</span> s <span class="operador">=</span> <span class="numero">0</span>;</span>
+<span class="l">    va_start(ap, n);</span>
+<span class="l">    <span class="comando">while</span> (n<span class="operador">--</span> <span class="operador">&gt;</span> <span class="numero">0</span>)</span>
+<span class="l">        s <span class="operador">+=</span> va_arg(ap, <span class="tipo">int</span>);</span>
+<span class="l">    va_end(ap);</span>
+<span class="l">    <span class="comando">return</span> s;</span>
+<span class="l">}</span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* ---- 7. Operadores e pontuacao ---------------------------------------- */</span></span>
+<span class="l"><span class="tipo">int</span> <span class="funcao">operadores</span>(<span class="tipo">int</span> a, <span class="tipo">int</span> b)</span>
+<span class="l">{</span>
+<span class="l">    <span class="tipo">int</span> r <span class="operador">=</span> <span class="numero">0</span>;</span>
+<span class="l">    <span class="tipo">int</span> v[<span class="numero">3</span>] <span class="operador">=</span> { <span class="numero">1</span>, <span class="numero">2</span>, <span class="numero">3</span> };</span>
+<span class="l">    Ponto p <span class="operador">=</span> { .x <span class="operador">=</span> <span class="numero">1</span>, .y <span class="operador">=</span> <span class="numero">2</span> }, <span class="operador">*</span>q <span class="operador">=</span> <span class="operador">&amp;</span>p;</span>
+<span class="l"></span>
+<span class="l">    r <span class="operador">=</span> a <span class="operador">+</span> b <span class="operador">-</span> a <span class="operador">*</span> b <span class="operador">/</span> (b <span class="operador">?</span> b <span class="operador">:</span> <span class="numero">1</span>) <span class="operador">%</span> <span class="numero">7</span>;</span>
+<span class="l">    r <span class="operador">+=</span> a; r <span class="operador">-=</span> b; r <span class="operador">*=</span> <span class="numero">2</span>; r <span class="operador">/=</span> <span class="numero">2</span>; r <span class="operador">%=</span> <span class="numero">5</span>;</span>
+<span class="l">    r <span class="operador">&amp;=</span> <span class="numero">0xF</span>; r <span class="operador">|=</span> <span class="numero">1</span>; r <span class="operador">^=</span> <span class="numero">2</span>; r <span class="operador">&lt;&lt;=</span> <span class="numero">1</span>; r <span class="operador">&gt;&gt;=</span> <span class="numero">1</span>;</span>
+<span class="l">    r <span class="operador">=</span> (a <span class="operador">&lt;&lt;</span> <span class="numero">1</span>) <span class="operador">|</span> (b <span class="operador">&gt;&gt;</span> <span class="numero">1</span>);</span>
+<span class="l">    r <span class="operador">=</span> (a <span class="operador">&amp;</span> <span class="numero">3</span>) <span class="operador">^</span> <span class="numero">1</span>;</span>
+<span class="l">    r <span class="operador">=</span> <span class="operador">~</span>a;</span>
+<span class="l">    r <span class="operador">=</span> <span class="operador">!</span>a <span class="operador">||</span> (a <span class="operador">&amp;&amp;</span> b);</span>
+<span class="l">    r <span class="operador">=</span> (a <span class="operador">==</span> b) <span class="operador">+</span> (a <span class="operador">!=</span> b) <span class="operador">+</span> (a <span class="operador">&lt;</span> b) <span class="operador">+</span> (a <span class="operador">&gt;</span> b) <span class="operador">+</span> (a <span class="operador">&lt;=</span> b) <span class="operador">+</span> (a <span class="operador">&gt;=</span> b);</span>
+<span class="l">    r<span class="operador">++</span>; <span class="operador">++</span>r; r<span class="operador">--</span>; <span class="operador">--</span>r;</span>
+<span class="l">    r <span class="operador">=</span> <span class="operador">-</span>a <span class="operador">+</span> <span class="operador">+</span>b;</span>
+<span class="l">    r <span class="operador">=</span> v[<span class="numero">0</span>] <span class="operador">+</span> q<span class="operador">-&gt;</span>x <span class="operador">+</span> p.y <span class="operador">+</span> (<span class="operador">*</span>q).x;</span>
+<span class="l">    r <span class="operador">=</span> (<span class="tipo">int</span>)<span class="numero">3.7</span> <span class="operador">+</span> (<span class="tipo">int</span>)<span class="comando">sizeof</span>(<span class="tipo">int</span>) <span class="operador">+</span> (<span class="tipo">int</span>)<span class="comando">sizeof</span> r;</span>
+<span class="l">    p <span class="operador">=</span> (Ponto){ .x <span class="operador">=</span> <span class="numero">3</span>, .y <span class="operador">=</span> <span class="numero">4</span> };</span>
+<span class="l">    <span class="comando">return</span> r <span class="operador">+</span> p.x;</span>
+<span class="l">}</span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* ---- 8. Estruturas de controle ---------------------------------------- */</span></span>
+<span class="l"><span class="tipo">int</span> <span class="funcao">controle</span>(<span class="tipo">int</span> n)</span>
+<span class="l">{</span>
+<span class="l">	<span class="tipo">int</span> i, total <span class="operador">=</span> <span class="numero">0</span>;	<span class="coment">/* indentado com TAB */</span></span>
+<span class="l"></span>
+<span class="l">    <span class="comando">if</span> (n <span class="operador">&lt;</span> <span class="numero">0</span>) {</span>
+<span class="l">        <span class="comando">return</span> <span class="operador">-</span><span class="numero">1</span>;</span>
+<span class="l">    } <span class="comando">else</span> <span class="comando">if</span> (n <span class="operador">==</span> <span class="numero">0</span>) {</span>
+<span class="l">        <span class="comando">return</span> <span class="numero">0</span>;</span>
+<span class="l">    } <span class="comando">else</span> {</span>
+<span class="l">        total <span class="operador">=</span> <span class="numero">1</span>;</span>
+<span class="l">    }</span>
+<span class="l"></span>
+<span class="l">    <span class="comando">for</span> (i <span class="operador">=</span> <span class="numero">0</span>; i <span class="operador">&lt;</span> n; i<span class="operador">++</span>) {</span>
+<span class="l">        <span class="comando">if</span> (i <span class="operador">%</span> <span class="numero">2</span> <span class="operador">==</span> <span class="numero">0</span>) <span class="comando">continue</span>;</span>
+<span class="l">        <span class="comando">if</span> (i <span class="operador">&gt;</span> <span class="numero">50</span>) <span class="comando">break</span>;</span>
+<span class="l">        total <span class="operador">+=</span> i;</span>
+<span class="l">    }</span>
+<span class="l">    <span class="comando">while</span> (total <span class="operador">&gt;</span> <span class="numero">1000</span>) total <span class="operador">/=</span> <span class="numero">2</span>;</span>
+<span class="l">    <span class="comando">do</span> { total<span class="operador">++</span>; } <span class="comando">while</span> (total <span class="operador">&lt;</span> <span class="numero">10</span>);</span>
+<span class="l"></span>
+<span class="l">    <span class="comando">switch</span> (n) {</span>
+<span class="l">        <span class="comando">case</span> <span class="numero">1</span>:</span>
+<span class="l">            total <span class="operador">+=</span> <span class="numero">1</span>;</span>
+<span class="l">            <span class="comando">break</span>;</span>
+<span class="l">        <span class="comando">case</span> <span class="numero">2</span>: <span class="comando">case</span> <span class="numero">3</span>:</span>
+<span class="l">            total <span class="operador">+=</span> <span class="numero">2</span>;</span>
+<span class="l">            <span class="coment">/* continua */</span></span>
+<span class="l">        <span class="comando">default</span><span class="operador">:</span></span>
+<span class="l">            total <span class="operador">+=</span> <span class="numero">3</span>;</span>
+<span class="l">    }</span>
+<span class="l"></span>
+<span class="l">    {</span>
+<span class="l">        <span class="comando">auto</span> <span class="tipo">int</span> a <span class="operador">=</span> <span class="numero">1</span>;</span>
+<span class="l">        <span class="comando">register</span> <span class="tipo">int</span> r <span class="operador">=</span> <span class="numero">2</span>;</span>
+<span class="l">        <span class="comando">static</span> <span class="tipo">int</span> s <span class="operador">=</span> <span class="numero">3</span>;</span>
+<span class="l">        total <span class="operador">+=</span> a <span class="operador">+</span> r <span class="operador">+</span> s;</span>
+<span class="l">    }</span>
+<span class="l"></span>
+<span class="l">    <span class="pragma">#ifdef MAX</span></span>
+<span class="l">    total <span class="operador">+=</span> MAX;</span>
+<span class="l">    <span class="pragma">#endif</span></span>
+<span class="l"></span>
+<span class="l">    <span class="comando">goto</span> fim;</span>
+<span class="l"><span class="rotulo">fim</span>:</span>
+<span class="l">    <span class="comando">return</span> total;</span>
+<span class="l">}</span>
+<span class="l"></span>
+<span class="l"><span class="coment">/* ---- 9. Programa principal -------------------------------------------- */</span></span>
+<span class="l"><span class="tipo">int</span> <span class="funcao">main</span>(<span class="tipo">int</span> argc, <span class="tipo">char</span> <span class="operador">*</span>argv[])</span>
+<span class="l">{</span>
+<span class="l">    (<span class="tipo">void</span>)argc; (<span class="tipo">void</span>)argv;</span>
+<span class="l">    printf(<span class="string">"Hello World</span><span class="escape">\n</span><span class="string">"</span>);</span>
+<span class="l">    printf(<span class="string">"Soma = %d </span><span class="escape">\"</span><span class="string">ok</span><span class="escape">\"\n</span><span class="string">"</span>, soma(<span class="numero">10</span>));</span>
+<span class="l">    <span class="comando">return</span> <span class="numero">0</span>;</span>
+<span class="l">}</span></pre>
+</pre>
+<table class="legenda">
+<tr><th>classe</th><th>cor</th><th>exemplo</th><th>token Pygments</th><th>descricao</th></tr>
+<tr><td><span class="pragma">pragma</span></td><td>#9C6500</td><td><span class="pragma">#define MAX 100</span></td><td>Comment.Preproc</td><td>#include, #define, #if ... (so a diretiva e o corpo da linha)</td></tr>
+<tr><td><span class="arquivo">arquivo</span></td><td>#3D7B7B</td><td><span class="arquivo">&lt;stdio.h&gt;</span></td><td>Comment.PreprocFile</td><td>nome do arquivo em #include (&lt;...&gt; ou "...")</td></tr>
+<tr><td><span class="coment">coment</span></td><td>#3D7B7B</td><td><span class="coment">// texto</span></td><td>Comment.Single / Multiline</td><td>comentarios // e /* */</td></tr>
+<tr><td><span class="tipo">tipo</span></td><td>#B00040</td><td><span class="tipo">int, char, size_t, FILE, uint8_t, bool</span></td><td>Keyword.Type</td><td>tipos basicos e da biblioteca padrao (so os que nomeiam um tipo)</td></tr>
+<tr><td><span class="comando">comando</span></td><td>#008000</td><td><span class="comando">if, return, struct, static, const, typedef</span></td><td>Keyword</td><td>demais palavras reservadas</td></tr>
+<tr><td><span class="builtin">builtin</span></td><td>#008000</td><td><span class="builtin">true, false, NULL</span></td><td>Name.Builtin</td><td>constantes da linguagem</td></tr>
+<tr><td><span class="funcao">funcao</span></td><td>#0000FF</td><td><span class="funcao">main</span></td><td>Name.Function</td><td>nome de funcao em definicao ou prototipo (nao em chamada)</td></tr>
+<tr><td><span class="estrutura">estrutura</span></td><td>#0000FF</td><td><span class="estrutura">ponto</span></td><td>Name.Class</td><td>nome em struct/union NOME {</td></tr>
+<tr><td><span class="rotulo">rotulo</span></td><td>#767600</td><td><span class="rotulo">fim:</span></td><td>Name.Label</td><td>rotulo de goto na definicao</td></tr>
+<tr><td><span class="string">string</span></td><td>#BA2121</td><td><span class="string">"texto", 'c', L"x"</span></td><td>String</td><td>strings, caracteres e prefixos L u u8 U</td></tr>
+<tr><td><span class="escape">escape</span></td><td>#AA5D1F</td><td><span class="escape">\n \t \x41 \101</span></td><td>String.Escape</td><td>sequencias de escape dentro de string</td></tr>
+<tr><td><span class="numero">numero</span></td><td>#666666</td><td><span class="numero">42, 0x1F, 3.14f, 1e-3</span></td><td>Number</td><td>literais numericos</td></tr>
+<tr><td><span class="operador">operador</span></td><td>#666666</td><td><span class="operador">+ - * = == &amp;&amp; -&gt;</span></td><td>Operator</td><td>operadores (parenteses, chaves, ; , . ficam sem cor)</td></tr>
+</table>
+</body></html>
