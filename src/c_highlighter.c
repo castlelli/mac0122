@@ -845,33 +845,56 @@ static void process_character(highlighter *machine, int character)
         ;
 }
 
+static void start_machine(highlighter *machine, FILE *html_file)
+{
+    machine->html_file = html_file;
+    machine->state = LINE_START;
+    machine->state_after_comment = NORMAL;
+    machine->open_style = STYLE_NONE;
+    machine->is_line_open = 0;
+    machine->brace_depth = 0;
+    machine->previous_token = TOKEN_STATEMENT_BOUNDARY;
+    machine->delimiter = 0;
+    machine->escape_digits_left = 0;
+    machine->is_escape_octal = 0;
+    machine->buffer_length = 0;
+    machine->word_length = 0;
+    machine->does_word_start_line = 0;
+    machine->does_gap_have_newline = 0;
+}
+
+static void finish_machine(highlighter *machine)
+{
+    process_character(machine, EOF);
+    finish_output(machine);
+}
+
 void c_highlighter_write_html(FILE *source_file, FILE *html_file)
 {
     highlighter machine;
     int character;
 
-    machine.html_file = html_file;
-    machine.state = LINE_START;
-    machine.state_after_comment = NORMAL;
-    machine.open_style = STYLE_NONE;
-    machine.is_line_open = 0;
-    machine.brace_depth = 0;
-    machine.previous_token = TOKEN_STATEMENT_BOUNDARY;
-    machine.delimiter = 0;
-    machine.escape_digits_left = 0;
-    machine.is_escape_octal = 0;
-    machine.buffer_length = 0;
-    machine.word_length = 0;
-    machine.does_word_start_line = 0;
-    machine.does_gap_have_newline = 0;
-
+    start_machine(&machine, html_file);
     while ((character = fgetc(source_file)) != EOF) {
         if (character == '\r')              /* Windows line endings */
             continue;
         process_character(&machine, character);
     }
-    process_character(&machine, EOF);
-    finish_output(&machine);
+    finish_machine(&machine);
+}
+
+void c_highlighter_write_html_from_text(const char *source_text, FILE *html_file)
+{
+    highlighter machine;
+    const unsigned char *cursor;
+
+    start_machine(&machine, html_file);
+    for (cursor = (const unsigned char *)source_text; *cursor != '\0'; cursor++) {
+        if (*cursor == '\r')                /* Windows line endings */
+            continue;
+        process_character(&machine, *cursor);
+    }
+    finish_machine(&machine);
 }
 
 /* ------------------------------------------------------------------- CSS */

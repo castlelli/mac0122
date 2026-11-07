@@ -25,6 +25,10 @@
    Carriage returns are dropped, so CRLF and LF sources give the same HTML. */
 void c_highlighter_write_html(FILE *source_file, FILE *html_file);
 
+/* Same output as c_highlighter_write_html, for source already in memory such
+   as a code block of a page body. source_text stays owned by the caller. */
+void c_highlighter_write_html_from_text(const char *source_text, FILE *html_file);
+
 /* Writes the CSS that styles the classes above: the content of the site's
    shared style.css, or of a page's own <style> block. */
 void c_highlighter_write_css(FILE *css_file);

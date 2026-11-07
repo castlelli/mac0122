@@ -36,8 +36,7 @@ static size_t count_occurrences(const char *text, const char *pattern)
     return occurrence_count;
 }
 
-/* Runs the highlighter over a temporary file, as html.c will for a code block
-   held in memory. Returns 1 on success. */
+/* Runs the highlighter over a temporary file. Returns 1 on success. */
 static int render_html(const char *source, char *html, size_t html_capacity)
 {
     FILE *source_file = tmpfile();
@@ -470,6 +469,43 @@ static void check_head_styles(int has_page_style)
     }
 }
 
+/* The entry point for text in memory must give what the file one gives. */
+static void check_same_html_from_text(const char *source)
+{
+    char file_html[MAX_HTML_LEN];
+    char text_html[MAX_HTML_LEN];
+    FILE *html_file;
+    size_t html_len;
+
+    if (!render_html(source, file_html, sizeof(file_html)))
+        return;
+    html_file = tmpfile();
+    if (html_file == NULL) {
+        printf("could not open temporary files\n");
+        failure_count++;
+        return;
+    }
+    c_highlighter_write_html_from_text(source, html_file);
+    rewind(html_file);
+    html_len = fread(text_html, 1, sizeof(text_html) - 1, html_file);
+    text_html[html_len] = '\0';
+    fclose(html_file);
+    if (strcmp(file_html, text_html) != 0) {
+        printf("FAIL from text differs from file for: %s\n", source);
+        failure_count++;
+    }
+}
+
+static void test_html_from_text(void)
+{
+    check_same_html_from_text("");
+    check_same_html_from_text("int soma(int a) { return a + 1; }\n");
+    check_same_html_from_text("#include <stdio.h>\r\nint x; /* a < b */\r\n");
+    check_same_html_from_text("char *s = \"unterminated");
+    check_same_html_from_text("/* unterminated & comment");
+    check_same_html_from_text("a\xC3\xA7\xC3\xA3o = 1;");
+}
+
 int main(void)
 {
     test_all_styles();
@@ -490,6 +526,7 @@ int main(void)
     test_line_endings();
     test_buffer_limits();
     test_calls_are_independent();
+    test_html_from_text();
     test_css();
     check_head_styles(0);
     check_head_styles(1);
