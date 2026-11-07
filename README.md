@@ -22,6 +22,13 @@ program reports a TXT that does not fit the format (it cannot be opened,
 has no `---` line, or has an invalid `Data`) or whose page name is taken,
 and then stops with status 1 before writing any page.
 
+## Visual design
+
+The site's look (palette, type, page anatomy) is recorded in
+[DESIGN.md](DESIGN.md), and the product facts it serves (audience,
+constraints, what the site may and may not show) in
+[PRODUCT.md](PRODUCT.md). The CSS itself is written by `html.c`.
+
 ## Basic flow
 
 ```mermaid

@@ -79,6 +79,8 @@ warnings is not done.
 
 ```
 README.md, README.pt-BR.md  architecture, in English and Portuguese
+PRODUCT.md                  product facts: audience, purpose, constraints
+DESIGN.md                   visual design of the generated site
 AGENTS.md                   this file
 src/
   main.c                    runs pass 1, builds the indexes, runs pass 2
@@ -174,6 +176,9 @@ Index pages:
 - A node's list is sorted by TXT file name; each sort order is a temporary
   list that lasts while its table is written.
 - The generated site is static HTML and CSS. No JavaScript.
+- The visual design follows `DESIGN.md`: system fonts, one navy accent,
+  white pages, no images. Update `DESIGN.md` in the same commit as a change
+  to `SITE_CSS_LINES` or to the page anatomy in `html.c`.
 - The site has one shared `style.css`. Every page links it with
   `c_highlighter_write_head_styles`. A style present on a page overrides
   the shared sheet, so any `<style>` block comes after that link.

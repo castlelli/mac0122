@@ -23,6 +23,14 @@ onde estiver. O programa informa um TXT que não segue o formato (não abre,
 não tem a linha `---` ou tem um `Data` inválido) ou cujo nome de página já
 está em uso, e então termina com status 1 antes de escrever qualquer página.
 
+## Design visual
+
+A aparência do site (paleta, tipografia, anatomia das páginas) está
+registrada em [DESIGN.md](DESIGN.md), e os fatos do produto que ela atende
+(público, restrições, o que o site pode e não pode mostrar) em
+[PRODUCT.md](PRODUCT.md), ambos em inglês. O CSS em si é escrito pelo
+`html.c`.
+
 ## Fluxo básico
 
 ```mermaid
