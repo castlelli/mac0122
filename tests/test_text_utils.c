@@ -144,11 +144,75 @@ static void test_html_escape(void)
     check_string_escape("a\xC3\xA7\xC3\xA3o", "a\xC3\xA7\xC3\xA3o");
 }
 
+static void check_normalize(const char *text, const char *expected)
+{
+    char *normalized_text = text_utils_normalize(text);
+
+    check_str("normalize", normalized_text, expected);
+    free(normalized_text);
+}
+
+static void test_normalize(void)
+{
+    check_normalize("", "");
+    check_normalize("Grafos", "grafos");
+    check_normalize("\xC3\x81rvores", "arvores");
+    check_normalize("\xC3\xA1rvores", "arvores");
+    check_normalize("A\xC3\x87\xC3\x83O", "acao");
+    check_normalize("union-find (MST)", "union-find (mst)");
+    /* Latin Extended-A: the o with double acute of a name like Erdos. */
+    check_normalize("Erd\xC5\x91s", "erdos");
+    /* The ae ligature has no one-letter base: lowercased, not removed. */
+    check_normalize("\xC3\x86on", "\xC3\xA6on");
+    /* The division and multiplication signs have no case. */
+    check_normalize("a\xC3\x97" "b\xC3\xB7", "a\xC3\x97" "b\xC3\xB7");
+    /* Not a letter of these tables, and a lead byte left alone at the end. */
+    check_normalize("\xE2\x82\xAC", "\xE2\x82\xAC");
+    check_normalize("a\xC3", "a\xC3");
+}
+
+static int get_sign(int value)
+{
+    return value < 0 ? -1 : (value > 0 ? 1 : 0);
+}
+
+/* The comparison must agree with strcmp on the normalized strings: a key found
+   through one must not be ordered differently by the other. */
+static void check_compare_normalized(const char *first, const char *second)
+{
+    char *first_normalized = text_utils_normalize(first);
+    char *second_normalized = text_utils_normalize(second);
+
+    check_int("compare_normalized agrees with strcmp",
+              get_sign(text_utils_compare_normalized(first, second)),
+              get_sign(strcmp(first_normalized, second_normalized)));
+    free(first_normalized);
+    free(second_normalized);
+}
+
+static void test_compare_normalized(void)
+{
+    check_int("compare: case and accent ignored",
+              text_utils_compare_normalized("\xC3\x81rvore", "arvore"), 0);
+    check_int("compare: accented letter sorts as its base",
+              get_sign(text_utils_compare_normalized("\xC3\xA1gua", "bola")), -1);
+    check_int("compare: prefix first",
+              get_sign(text_utils_compare_normalized("arvore", "arvores")), -1);
+
+    check_compare_normalized("\xC3\xA6", "\xC4\xB2");
+    check_compare_normalized("\xC3\xA6", "\xE2\x82\xAC");
+    check_compare_normalized("Zebra", "\xC3\xA1gua");
+    check_compare_normalized("", "a");
+    check_compare_normalized("a\xC3", "a\xC3\xA6");
+}
+
 int main(void){
     test_trim();
     test_trim_end();
     test_copy_str();
     test_split_comma();
     test_html_escape();
+    test_normalize();
+    test_compare_normalized();
     return failure_count == 0 ? 0 : 1;
 }

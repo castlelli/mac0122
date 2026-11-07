@@ -31,6 +31,18 @@ void text_utils_free_str_vector(char **, int);
    string literal. Returns line itself, not a copy: do not free it. */
 char* text_utils_trim_end(char* line);
 
+/* Returns a new malloc'd copy of text in the form used for index keys: ASCII
+   letters in lowercase and two-byte UTF-8 Latin letters without their accent
+   ("\xC3\x81rvore" gives "arvore"). A letter with no one-letter base (such as
+   the ae ligature) and every other byte are kept. Assumes UTF-8; it does not
+   validate. The caller frees the copy. Returns NULL if memory runs out. */
+char *text_utils_normalize(const char *text);
+
+/* Compares first and second as strcmp would compare their normalized forms,
+   without allocating, so a sort comparator built on it cannot fail.
+   Returns a negative value, 0 or a positive value. */
+int text_utils_compare_normalized(const char *first, const char *second);
+
 /*
  * HTML escape shared by html.c and the C highlighter.
  *

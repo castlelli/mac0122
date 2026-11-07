@@ -107,3 +107,111 @@ void text_utils_write_html_string(FILE *html_file, const char *text)
         text_utils_write_html_character(html_file,
                                         (unsigned char)text[position]);
 }
+
+/* One base letter per code point of each UTF-8 lead byte, in the order of the
+   second byte (0x80 to 0xBF). UNMAPPED_LETTER marks a character kept as it is.
+   Latin-1 Supplement and Latin Extended-A cover Portuguese and the names of
+   authors from other languages. */
+#define UNMAPPED_LETTER '.'
+#define FIRST_LEAD_BYTE 0xC3
+#define LAST_LEAD_BYTE 0xC5
+#define FIRST_CONTINUATION_BYTE 0x80
+#define LAST_CONTINUATION_BYTE 0xBF
+
+static const char BASE_LETTERS[][65] = {
+    "aaaaaa.ceeeeiiii.nooooo.ouuuuy..aaaaaa.ceeeeiiii.nooooo.ouuuuy.y",
+    "aaaaaaccccccccddddeeeeeeeeeegggggggghhhhiiiiiiiiii..jjkk.lllllll",
+    "lllnnnnnnnnnoooooo..rrrrrrssssssssttttttuuuuuuuuuuuuwwyyyzzzzzzs"
+};
+
+/* Reads a string as the bytes of its normalized form. Comparing needs one byte
+   at a time and a kept two-byte letter yields two, so the second one waits in
+   pending_byte. */
+typedef struct normalized_reader {
+    const unsigned char *cursor;
+    int pending_byte;
+} normalized_reader;
+
+static void start_normalized_reader(normalized_reader *reader, const char *text)
+{
+    reader->cursor = (const unsigned char *)text;
+    reader->pending_byte = 0;
+}
+
+/* Returns the next normalized byte, or 0 at the end of the string. */
+static int read_normalized_byte(normalized_reader *reader)
+{
+    int lead_byte;
+    int continuation_byte;
+    char base_letter;
+
+    if (reader->pending_byte != 0) {
+        lead_byte = reader->pending_byte;
+        reader->pending_byte = 0;
+        return lead_byte;
+    }
+
+    lead_byte = *reader->cursor;
+    if (lead_byte == 0)
+        return 0;
+    reader->cursor++;
+
+    /* Explicit ranges, not tolower: the locale must not change index keys. */
+    if (lead_byte >= 'A' && lead_byte <= 'Z')
+        return lead_byte - 'A' + 'a';
+
+    continuation_byte = *reader->cursor;
+    if (lead_byte < FIRST_LEAD_BYTE || lead_byte > LAST_LEAD_BYTE
+        || continuation_byte < FIRST_CONTINUATION_BYTE
+        || continuation_byte > LAST_CONTINUATION_BYTE)
+        return lead_byte;
+    reader->cursor++;
+
+    base_letter = BASE_LETTERS[lead_byte - FIRST_LEAD_BYTE]
+                              [continuation_byte - FIRST_CONTINUATION_BYTE];
+    if (base_letter != UNMAPPED_LETTER)
+        return base_letter;
+
+    /* In Latin-1 Supplement a kept capital (U+00C0 to U+00DE, except the
+       multiplication sign) is 0x20 below its lowercase form. */
+    if (lead_byte == FIRST_LEAD_BYTE && continuation_byte <= 0x9E
+        && continuation_byte != 0x97)
+        continuation_byte += 0x20;
+    reader->pending_byte = continuation_byte;
+    return lead_byte;
+}
+
+char *text_utils_normalize(const char *text)
+{
+    /* Normalizing never makes a string longer. */
+    char *normalized_text = malloc(strlen(text) + 1);
+    normalized_reader reader;
+    size_t position = 0;
+    int next_byte;
+
+    if (normalized_text == NULL)
+        return NULL;
+
+    start_normalized_reader(&reader, text);
+    while ((next_byte = read_normalized_byte(&reader)) != 0)
+        normalized_text[position++] = (char)next_byte;
+    normalized_text[position] = '\0';
+    return normalized_text;
+}
+
+int text_utils_compare_normalized(const char *first, const char *second)
+{
+    normalized_reader first_reader;
+    normalized_reader second_reader;
+    int first_byte;
+    int second_byte;
+
+    start_normalized_reader(&first_reader, first);
+    start_normalized_reader(&second_reader, second);
+    do {
+        first_byte = read_normalized_byte(&first_reader);
+        second_byte = read_normalized_byte(&second_reader);
+    } while (first_byte == second_byte && first_byte != 0);
+    return first_byte - second_byte;
+}
+
