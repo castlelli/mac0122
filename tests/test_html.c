@@ -1,6 +1,6 @@
 /* Tests for html. Prints only the failing cases; exits 0 when every case passes.
    Build and run from the repository root, so the fixture paths resolve:
-   gcc -std=c89 -Wall -Wextra -pedantic -Werror tests/test_html.c src/html.c src/indexes.c src/bst.c src/sorted_list.c src/parser.c src/page.c src/text_utils.c src/c_highlighter.c src/c_keywords.c -o test_html */
+   gcc -std=c89 -Wall -Wextra -pedantic -Werror tests/test_html.c src/html.c src/graph.c src/indexes.c src/bst.c src/sorted_list.c src/parser.c src/page.c src/text_utils.c src/c_highlighter.c src/c_keywords.c -o test_html */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +14,7 @@
 static int failure_count = 0;
 static page *site_pages[PAGE_COUNT];
 static site_indexes *indexes;
+static graph *site_graph;
 
 static void check_true(const char *case_name, int condition)
 {
@@ -242,6 +243,10 @@ static void test_content_page(void)
     /* In the TXT the reference comes before the code. */
     check_order("content: references at the end", output, "</pre>", "<h2>Refer\xC3\xAAncias</h2>");
     check_contains("content: reference", output, "<li>Cormen et al.");
+    check_contains("content: link to its local graph", output,
+                   "<p class=\"ver-grafo\"><a href=\"local_page_kruskal.html\">Ver no grafo</a></p>");
+    check_contains("content: nav has the graph tab, not current", output,
+                   "<li><a href=\"graph.html\">Grafo</a></li>");
 }
 
 static void test_content_page_escapes_every_field(void)
@@ -368,6 +373,91 @@ static void test_generated_names(void)
     check_true("content name is not", !html_is_generated_file_name("kruskal.html"));
     check_true("an order not offered is not generated",
                !html_is_generated_file_name("dates_by_date.html"));
+    check_true("graph.html is generated", html_is_generated_file_name("graph.html"));
+    check_true("graph_local.html is generated", html_is_generated_file_name("graph_local.html"));
+    check_true("local_ names are reserved", html_is_generated_file_name("local_anything.html"));
+    check_true("graph_x is free", !html_is_generated_file_name("graph_theory.html"));
+}
+
+static void test_graph_page(void)
+{
+    static char output[MAX_OUTPUT_LEN];
+    FILE *output_file = open_output();
+
+    html_write_graph_page(output_file, site_graph);
+    read_output(output_file, output);
+    check_contains("graph: tab is current", output,
+                   "<li><a href=\"graph.html\" aria-current=\"page\">Grafo</a></li>");
+    check_contains("graph: global view current", output,
+                   "Vista: <strong aria-current=\"page\">Global</strong> "
+                   "<a href=\"graph_local.html\">Local</a>");
+    check_contains("graph: pages filter on", output,
+                   "<input type=\"checkbox\" id=\"f-pagina\" checked><label for=\"f-pagina\">");
+    check_contains("graph: dates filter off", output,
+                   "<input type=\"checkbox\" id=\"f-data\"><label for=\"f-data\">");
+    check_order("graph: filters before the drawing", output, "id=\"f-problema\"",
+                "<div class=\"tela\">");
+    check_contains("graph: global drawing", output, "<svg class=\"grafo global\" viewBox=\"0 0 ");
+    check_contains("graph: page node links its page", output,
+                   "<a id=\"n1\" class=\"no t-pagina\" href=\"kruskal.html\"><title>Kruskal (P\xC3\xA1gina)</title><circle");
+    check_contains("graph: key node links its index section", output,
+                   "class=\"no t-conceitos no-chave\" href=\"concepts_by_algorithm.html#arvore\">"
+                   "<title>\xC3\x81rvore (Conceito)</title><polygon");
+    check_contains("graph: key label escaped", output,
+                   ">caminho &lt;m\xC3\xADnimo&gt; &amp; custo</text>");
+    check_contains("graph: long label cut", output, "Dado um grafo conexo com pesos, \xE2\x80\xA6</text>");
+    check_contains("graph: whole label in the tooltip", output,
+                   "<title>Dado um grafo conexo com pesos, encontrar uma \xC3\xA1rvore espalhada de peso m\xC3\xADnimo. (Problema)</title>");
+    check_contains("graph: edges carry the key type", output, "<line class=\"aresta t-tecnica a");
+    check_contains("graph: hover rule for kruskal's edges", output,
+                   ".tela:has(#n1:hover, #n1:focus) .a1 { stroke:#1d3557;");
+    check_absent("graph: no algorithm keys", output, "(Algoritmo)");
+    check_absent("graph: no script", output, "<script");
+}
+
+static void test_graph_chooser_page(void)
+{
+    static char output[MAX_OUTPUT_LEN];
+    FILE *output_file = open_output();
+
+    html_write_graph_chooser_page(output_file, site_graph);
+    read_output(output_file, output);
+    check_contains("chooser: local view current", output,
+                   "<a href=\"graph.html\">Global</a> <strong aria-current=\"page\">Local</strong>");
+    check_contains("chooser: tab marked as section", output,
+                   "<a href=\"graph.html\" aria-current=\"true\">Grafo</a>");
+    check_contains("chooser: page link", output,
+                   "<li><a href=\"local_page_kruskal.html\">Kruskal</a></li>");
+    check_contains("chooser: key link", output,
+                   "<li><a href=\"local_concepts_2.html\" class=\"chave-nome\">grafo</a></li>");
+    check_order("chooser: types in order", output, "<h2>P\xC3\xA1ginas</h2>", "<h2>Problemas</h2>");
+    check_contains("chooser: long list for problems", output, "<ul class=\"escolha longa\">");
+}
+
+static void test_local_graph_page(void)
+{
+    static char output[MAX_OUTPUT_LEN];
+    FILE *output_file = open_output();
+    graph *local_graph = graph_build_local(site_graph, 1);
+
+    if (local_graph == NULL) {
+        check_true("local graph built", 0);
+        fclose(output_file);
+        return;
+    }
+    html_write_local_graph_page(output_file, local_graph);
+    graph_free(local_graph);
+    read_output(output_file, output);
+    check_contains("local: title names the centre", output, "<title>Kruskal \xC2\xB7 Grafo");
+    check_contains("local: centre heading", output, "<h2 class=\"foco\">Kruskal</h2>");
+    check_contains("local: link to the real page", output,
+                   "P\xC3\xA1gina \xC2\xB7 <a href=\"kruskal.html\">Abrir a p\xC3\xA1gina</a>");
+    check_contains("local: local view marked", output,
+                   "<a href=\"graph_local.html\" aria-current=\"true\">Local</a>");
+    check_contains("local: legend", output, "<ul class=\"legenda\">");
+    check_contains("local: local drawing", output, "<svg class=\"grafo local\"");
+    check_contains("local: centre is node 0", output, "<a id=\"n0\" class=\"no t-pagina\" href=\"kruskal.html\">");
+    check_contains("local: dates shown", output, "(Data)</title>");
 }
 
 int main(void)
@@ -388,8 +478,9 @@ int main(void)
         }
     }
     indexes = indexes_build(site_pages, PAGE_COUNT);
-    if (indexes == NULL) {
-        printf("FAIL could not build the indexes\n");
+    site_graph = indexes == NULL ? NULL : graph_build(site_pages, PAGE_COUNT, indexes);
+    if (site_graph == NULL || !graph_layout_global(site_graph)) {
+        printf("FAIL could not build the indexes and the graph\n");
         return 1;
     }
 
@@ -402,7 +493,11 @@ int main(void)
     test_page_without_fields();
     test_style_sheet();
     test_generated_names();
+    test_graph_page();
+    test_graph_chooser_page();
+    test_local_graph_page();
 
+    graph_free(site_graph);
     indexes_free(indexes);
     for (page_index = 0; page_index < PAGE_COUNT; page_index++)
         page_free(site_pages[page_index]);

@@ -2,6 +2,7 @@
 #include <string.h>
 #include "html.h"
 #include "c_highlighter.h"
+#include "graph.h"
 #include "text_utils.h"
 
 #define HOME_FILE_NAME "index.html"
@@ -17,6 +18,16 @@
 #define OBJECTIVES_SOURCE "Fonte: JupiterWeb, catálogo de disciplinas da USP."
 /* Content pages and the home page belong to no index. */
 #define NO_CURRENT_INDEX (-1)
+/* The graph tab in the bar: its own page, and its other pages. */
+#define CURRENT_GRAPH_PAGE (-2)
+#define CURRENT_GRAPH_SECTION (-3)
+#define GRAPH_FILE_NAME "graph.html"
+#define GRAPH_CHOOSER_FILE_NAME "graph_local.html"
+#define LOCAL_FILE_PREFIX "local_"
+#define LOCAL_PAGE_FILE_PREFIX "local_page_"
+/* Labels longer than this many characters are cut on the drawing; the node's
+   tooltip keeps the whole text. */
+#define MAX_LABEL_CHARACTERS 32
 /* Longer than the longest index page name, "techniques_by_algorithm.html". */
 #define MAX_FILE_NAME_LEN 64
 
@@ -144,6 +155,57 @@ static const char *const SITE_CSS_LINES[] = {
     "         align-items:flex-start; gap:0.5rem 2rem; padding-top:1.25rem; padding-bottom:2rem; }\n",
     ".rodape p { margin:0 0 0.25rem; }\n",
     ".repositorio a { color:var(--marinho); }\n",
+    ".ver-grafo { margin:-1.25rem 0 2rem; font-size:0.9375rem; }\n",
+    ".ordenacao a[aria-current] { color:var(--tinta); font-weight:600; }\n",
+    ".dica { flex-basis:100%; max-width:none; margin:0 0 0.25rem; color:var(--secundaria);\n",
+    "        font-size:0.9375rem; }\n",
+    ".grafo-vista { display:flex; flex-wrap:wrap; align-items:center;\n",
+    "        gap:0.4rem 1.25rem; font-size:0.9375rem; }\n",
+    ".grafo-vista > input { position:absolute; width:1px; height:1px; opacity:0; }\n",
+    ".grafo-vista > label, .legenda li { display:inline-flex; align-items:center; gap:0.35rem; }\n",
+    ".grafo-vista > label { cursor:pointer; }\n",
+    ".grafo-vista > label::before { content:\"\"; box-sizing:border-box; width:14px; height:14px;\n",
+    "        border:1.5px solid var(--secundaria); border-radius:2px; }\n",
+    ".grafo-vista > input:checked + label::before { background:var(--marinho);\n",
+    "        border-color:var(--marinho); box-shadow:inset 0 0 0 2px #fff; }\n",
+    ".grafo-vista > input:not(:checked) + label { color:var(--secundaria); }\n",
+    ".grafo-vista > input:focus-visible + label { outline:2px solid var(--marinho);\n",
+    "        outline-offset:2px; }\n",
+    ".legenda { display:flex; flex-wrap:wrap; gap:0.4rem 1.25rem; list-style:none;\n",
+    "        padding:0; margin:0 0 0.75rem; font-size:0.9375rem; max-width:none; }\n",
+    ".simbolo { width:14px; height:14px; flex:none; }\n",
+    ".tela { flex-basis:100%; overflow:auto; border:1px solid var(--linha); margin-top:0.5rem;\n",
+    "        padding:0.5rem; box-sizing:border-box; }\n",
+    ".grafo { display:block; width:100%; height:auto; }\n",
+    ".grafo .aresta { stroke:#b9c0c9; stroke-width:1; }\n",
+    ".forma { stroke:#fff; stroke-width:1.5; }\n",
+    ".t-pagina .forma { fill:#1d3557; }\n",
+    ".t-tecnica .forma { fill:#a6611a; }\n",
+    ".t-autores .forma { fill:#7b3294; }\n",
+    ".t-data .forma { fill:#6b6b6b; }\n",
+    ".t-conceitos .forma { fill:#1a7f6e; }\n",
+    ".t-problema .forma { fill:#b2182b; }\n",
+    ".grafo text { font-size:12px; fill:var(--tinta); paint-order:stroke; stroke:#fff;\n",
+    "        stroke-width:3px; stroke-linejoin:round; pointer-events:none; }\n",
+    ".grafo.global .no-chave text { opacity:0; }\n",
+    ".grafo .no:hover text, .grafo .no:focus text { opacity:1; font-weight:600; }\n",
+    ".grafo .no:focus { outline:none; }\n",
+    ".grafo .no:focus .forma { stroke:var(--marinho); stroke-width:3; }\n",
+    ".tela:has(.no:hover) .aresta, .tela:has(.no:focus) .aresta { stroke-opacity:0.15; }\n",
+    ".tela:has(.no:hover) .no, .tela:has(.no:focus) .no { opacity:0.3; }\n",
+    ".tela:has(.no:hover) .no:hover, .tela:has(.no:focus) .no:focus { opacity:1; }\n",
+    "#f-pagina:not(:checked) ~ .tela :is(.t-pagina, .aresta) { display:none; }\n",
+    "#f-tecnica:not(:checked) ~ .tela .t-tecnica { display:none; }\n",
+    "#f-autores:not(:checked) ~ .tela .t-autores { display:none; }\n",
+    "#f-data:not(:checked) ~ .tela .t-data { display:none; }\n",
+    "#f-conceitos:not(:checked) ~ .tela .t-conceitos { display:none; }\n",
+    "#f-problema:not(:checked) ~ .tela .t-problema { display:none; }\n",
+    ".escolha { display:flex; flex-wrap:wrap; gap:0.35rem 1.25rem; list-style:none;\n",
+    "        padding:0; margin:0; max-width:none; }\n",
+    ".escolha.longa { display:block; }\n",
+    ".escolha.longa li { margin:0 0 0.35rem; }\n",
+    ".escolha .chave-nome { display:inline-block; }\n",
+    ".escolha .chave-nome::first-letter, h2.foco::first-letter { text-transform:uppercase; }\n",
     "@media (max-width:40rem) {\n",
     "  body { font-size:1rem; }\n",
     "  .faixa, .navegacao ul, main, .rodape > div { padding-left:1rem; padding-right:1rem; }\n",
@@ -155,6 +217,7 @@ static const char *const SITE_CSS_LINES[] = {
     "  .abertura { font-size:1.0625rem; }\n",
     "  .indices { grid-template-columns:minmax(0, 1fr); }\n",
     "  .ficha th { width:6.5rem; }\n",
+    "  .grafo.global { min-width:44rem; }\n",
     "  .tabela table, .tabela tbody, .tabela tr, .tabela td { display:block; }\n",
     "  .tabela table { border-top:2px solid var(--marinho); }\n",
     "  .tabela thead { position:absolute; width:1px; height:1px; overflow:hidden;\n",
@@ -167,7 +230,8 @@ static const char *const SITE_CSS_LINES[] = {
     "  .tabela td:empty { display:none; }\n",
     "}\n",
     "@media print {\n",
-    "  .pular, .navegacao, .chaves, .ordenacao { display:none; }\n",
+    "  .pular, .navegacao, .chaves, .ordenacao, .dica, .ver-grafo { display:none; }\n",
+    "  .grafo-vista > input, .grafo-vista > label { display:none; }\n",
     "  .cabecalho { border-top-width:2px; }\n",
     "  a { color:inherit; text-decoration:none; }\n",
     "  .tabela { overflow:visible; }\n",
@@ -201,8 +265,9 @@ static void write_head_start(FILE *html_file)
 
 /* Closes the head and opens the body with the skip link, the masthead and the
    index bar. On the home page the course name is the page's h1. current_index
-   marks one index in the bar (NO_CURRENT_INDEX for none); its link opens the
-   default order, so the mark says "this page" only when that is the order shown. */
+   marks one index in the bar (NO_CURRENT_INDEX for none, or one of the
+   CURRENT_GRAPH_ marks for the graph tab); its link opens the default order,
+   so the mark says "this page" only when that is the order shown. */
 static void write_site_header(FILE *html_file, int is_home_page, int current_index,
                               enum page_attribute current_attribute)
 {
@@ -235,6 +300,9 @@ static void write_site_header(FILE *html_file, int is_home_page, int current_ind
                   html_file);
         fprintf(html_file, ">%s</a></li>\n", INDEX_TITLES[index]);
     }
+    fprintf(html_file, "<li><a href=\"" GRAPH_FILE_NAME "\"%s>Grafo</a></li>\n",
+            current_index == CURRENT_GRAPH_PAGE ? " aria-current=\"page\""
+            : current_index == CURRENT_GRAPH_SECTION ? " aria-current=\"true\"" : "");
     fputs("</ul>\n</nav>\n</header>\n<main id=\"conteudo\">\n", html_file);
 }
 
@@ -599,11 +667,370 @@ int html_write_content_page(FILE *html_file, const page *page_header, const page
         write_text_field(html_file, "Problema", page_header->problem);
         fputs("</tbody>\n</table>\n", html_file);
     }
+    fputs("<p class=\"ver-grafo\"><a href=\"" LOCAL_PAGE_FILE_PREFIX, html_file);
+    text_utils_write_url_component(html_file, page_header->html_name);
+    fputs("\">Ver no grafo</a></p>\n", html_file);
 
     write_body_blocks(html_file, body);
     write_references(html_file, body);
     write_site_footer(html_file);
     return 1;
+}
+
+/* ------------------------------------------------------------- graph */
+
+/* In the order of enum graph_node_type. The class names are Portuguese
+   because they are part of the generated pages. */
+static const char *const GRAPH_TYPE_CLASSES[GRAPH_NODE_TYPE_COUNT] = {
+    "pagina", "tecnica", "autores", "data", "conceitos", "problema"
+};
+static const char *const GRAPH_TYPE_PLURALS[GRAPH_NODE_TYPE_COUNT] = {
+    "Páginas", "Técnicas", "Autores", "Datas", "Conceitos", "Problemas"
+};
+static const char *const GRAPH_TYPE_SINGULARS[GRAPH_NODE_TYPE_COUNT] = {
+    "Página", "Técnica", "Autor", "Data", "Conceito", "Problema"
+};
+
+/* The local graph page of a key node: local_<index file prefix>_<ordinal>.html. */
+static void write_local_key_file_name(char *file_name, const graph_node *node)
+{
+    /* Fixed prefixes and an int, shorter than MAX_FILE_NAME_LEN. */
+    sprintf(file_name, LOCAL_FILE_PREFIX "%s_%d.html", INDEX_FILE_PREFIXES[node->index],
+            node->ordinal);
+}
+
+/* Writes the href of a node's local graph page. */
+static void write_local_href(FILE *html_file, const graph_node *node)
+{
+    char file_name[MAX_FILE_NAME_LEN];
+
+    if (node->type == GRAPH_NODE_PAGE) {
+        fputs(LOCAL_PAGE_FILE_PREFIX, html_file);
+        text_utils_write_url_component(html_file, node->page_entry->html_name);
+        return;
+    }
+    write_local_key_file_name(file_name, node);
+    fputs(file_name, html_file);
+}
+
+/* Writes the href of the node's real page: the content page, or the key's
+   section on its index page in the default order. */
+static void write_node_href(FILE *html_file, const graph_node *node)
+{
+    char file_name[MAX_FILE_NAME_LEN];
+
+    if (node->type == GRAPH_NODE_PAGE) {
+        text_utils_write_url_component(html_file, node->page_entry->html_name);
+        return;
+    }
+    write_index_file_name(file_name, node->index, indexes_get_default_attribute(node->index));
+    fprintf(html_file, "%s#", file_name);
+    text_utils_write_anchor_id(html_file, node->key);
+}
+
+/* Writes the node's name as text: the page title or the key as the TXTs spell it. */
+static void write_node_name(FILE *html_file, const graph_node *node)
+{
+    if (node->type == GRAPH_NODE_PAGE)
+        write_page_title(html_file, node->page_entry);
+    else
+        text_utils_write_html_string(html_file, node->display_key);
+}
+
+/* Writes at most max_characters UTF-8 characters of text, escaped, with an
+   ellipsis when it was cut. */
+static void write_cut_text(FILE *html_file, const char *text, int max_characters)
+{
+    const unsigned char *cursor = (const unsigned char *)text;
+    int character_count = 0;
+
+    while (*cursor != '\0') {
+        /* A byte 10xxxxxx continues the character before it. */
+        if ((*cursor & 0xC0) != 0x80) {
+            if (character_count == max_characters) {
+                fputs("…", html_file);
+                return;
+            }
+            character_count++;
+        }
+        text_utils_write_html_character(html_file, *cursor);
+        cursor++;
+    }
+}
+
+static void write_node_label(FILE *html_file, const graph_node *node)
+{
+    if (node->type == GRAPH_NODE_PAGE && node->page_entry->algorithm == NULL)
+        write_page_title(html_file, node->page_entry);
+    else if (node->type == GRAPH_NODE_PAGE)
+        write_cut_text(html_file, node->page_entry->algorithm, MAX_LABEL_CHARACTERS);
+    else
+        write_cut_text(html_file, node->display_key, MAX_LABEL_CHARACTERS);
+}
+
+/* Radius of a node: bigger with more links, as in Obsidian. */
+static long get_node_radius(const graph_node *node)
+{
+    long radius = (node->type == GRAPH_NODE_PAGE ? 6 : 4)
+                  + (long)(1.6 * graph_square_root((double)node->degree) + 0.5);
+
+    return radius > 18 ? 18 : radius;
+}
+
+/* Writes the node's shape centred on (x, y): a circle for pages, and a
+   square, triangle, plus sign, diamond or hexagon for the key types. */
+static void write_node_shape(FILE *html_file, enum graph_node_type type, long x, long y,
+                             long radius)
+{
+    /* Shapes other than the circle are drawn slightly larger, so their area
+       matches a circle of the same radius. */
+    long size = radius * 9 / 8;
+    long half = size / 2;
+    long arm = size / 3 > 1 ? size / 3 : 1;
+    long height = size * 87 / 100;
+
+    switch (type) {
+    case GRAPH_NODE_TECHNIQUE:
+        fprintf(html_file, "<rect class=\"forma\" x=\"%ld\" y=\"%ld\" width=\"%ld\" height=\"%ld\"/>",
+                x - radius * 7 / 8, y - radius * 7 / 8, radius * 7 / 4, radius * 7 / 4);
+        break;
+    case GRAPH_NODE_AUTHORS:
+        fprintf(html_file, "<polygon class=\"forma\" points=\"%ld,%ld %ld,%ld %ld,%ld\"/>",
+                x, y - size, x + height, y + half, x - height, y + half);
+        break;
+    case GRAPH_NODE_DATE:
+        fprintf(html_file, "<polygon class=\"forma\" points=\"%ld,%ld %ld,%ld %ld,%ld %ld,%ld "
+                "%ld,%ld %ld,%ld %ld,%ld %ld,%ld %ld,%ld %ld,%ld %ld,%ld %ld,%ld\"/>",
+                x - arm, y - size, x + arm, y - size, x + arm, y - arm, x + size, y - arm,
+                x + size, y + arm, x + arm, y + arm, x + arm, y + size, x - arm, y + size,
+                x - arm, y + arm, x - size, y + arm, x - size, y - arm, x - arm, y - arm);
+        break;
+    case GRAPH_NODE_CONCEPTS:
+        fprintf(html_file, "<polygon class=\"forma\" points=\"%ld,%ld %ld,%ld %ld,%ld %ld,%ld\"/>",
+                x, y - size, x + size, y, x, y + size, x - size, y);
+        break;
+    case GRAPH_NODE_PROBLEM:
+        fprintf(html_file, "<polygon class=\"forma\" points=\"%ld,%ld %ld,%ld %ld,%ld %ld,%ld "
+                "%ld,%ld %ld,%ld\"/>",
+                x + size, y, x + half, y + height, x - half, y + height, x - size, y,
+                x - half, y - height, x + half, y - height);
+        break;
+    default:
+        fprintf(html_file, "<circle class=\"forma\" cx=\"%ld\" cy=\"%ld\" r=\"%ld\"/>",
+                x, y, radius);
+        break;
+    }
+}
+
+/* A 14px copy of a type's shape, for filters and legends. */
+static void write_type_symbol(FILE *html_file, enum graph_node_type type)
+{
+    fprintf(html_file, "<svg class=\"simbolo t-%s\" viewBox=\"0 0 16 16\" aria-hidden=\"true\">",
+            GRAPH_TYPE_CLASSES[type]);
+    write_node_shape(html_file, type, 8, 8, 6);
+    fputs("</svg>", html_file);
+}
+
+/* One rule per node: while it is hovered or focused, its edges turn navy and
+   its neighbours and their labels stay visible. Generated, because CSS
+   cannot follow an edge on its own. */
+static void write_highlight_rules(FILE *html_file, const graph *drawn_graph)
+{
+    int node_id;
+    int position;
+    int start;
+    int end;
+
+    fputs("<style>\n", html_file);
+    for (node_id = 0; node_id < drawn_graph->node_count; node_id++) {
+        start = drawn_graph->neighbour_start[node_id];
+        end = drawn_graph->neighbour_start[node_id + 1];
+        if (start == end)
+            continue;
+        fprintf(html_file, ".tela:has(#n%d:hover, #n%d:focus) .a%d { stroke:#1d3557;"
+                " stroke-opacity:1; stroke-width:1.5; }\n", node_id, node_id, node_id);
+        fprintf(html_file, ".tela:has(#n%d:hover, #n%d:focus) :is(", node_id, node_id);
+        for (position = start; position < end; position++)
+            fprintf(html_file, "%s#n%d", position == start ? "" : ", ",
+                    drawn_graph->neighbours[position]);
+        fputs(") { opacity:1; }\n", html_file);
+        fprintf(html_file, ".tela:has(#n%d:hover, #n%d:focus) :is(", node_id, node_id);
+        for (position = start; position < end; position++)
+            fprintf(html_file, "%s#n%d text", position == start ? "" : ", ",
+                    drawn_graph->neighbours[position]);
+        fputs(") { opacity:1; }\n", html_file);
+    }
+    fputs("</style>\n", html_file);
+}
+
+/* Writes the drawing. On a local graph, labels on the left half point left,
+   so they grow away from the centre. */
+static void write_graph_svg(FILE *html_file, const graph *drawn_graph, int is_global)
+{
+    const graph_node *node;
+    const graph_node *key_node;
+    long radius;
+    long centre_x = drawn_graph->width / 2;
+    int is_label_left;
+    int node_id;
+    int edge_index;
+
+    fprintf(html_file, "<div class=\"tela\">\n<svg class=\"grafo %s\" viewBox=\"0 0 %ld %ld\" "
+            "width=\"%ld\" height=\"%ld\" role=\"group\" aria-label=\"Grafo\">\n",
+            is_global ? "global" : "local", drawn_graph->width, drawn_graph->height,
+            drawn_graph->width, drawn_graph->height);
+    write_highlight_rules(html_file, drawn_graph);
+
+    fputs("<g class=\"arestas\">\n", html_file);
+    for (edge_index = 0; edge_index < drawn_graph->edge_count; edge_index++) {
+        node = &drawn_graph->nodes[drawn_graph->edges[edge_index].page_node];
+        key_node = &drawn_graph->nodes[drawn_graph->edges[edge_index].key_node];
+        fprintf(html_file, "<line class=\"aresta t-%s a%d a%d\" x1=\"%ld\" y1=\"%ld\" "
+                "x2=\"%ld\" y2=\"%ld\"/>\n", GRAPH_TYPE_CLASSES[key_node->type],
+                drawn_graph->edges[edge_index].page_node, drawn_graph->edges[edge_index].key_node,
+                node->x, node->y, key_node->x, key_node->y);
+    }
+    fputs("</g>\n<g class=\"nos\">\n", html_file);
+
+    for (node_id = 0; node_id < drawn_graph->node_count; node_id++) {
+        node = &drawn_graph->nodes[node_id];
+        radius = get_node_radius(node);
+        if (drawn_graph->centre == node_id)
+            radius += 4;
+        is_label_left = !is_global && node->x < centre_x;
+        fprintf(html_file, "<a id=\"n%d\" class=\"no t-%s%s\" href=\"", node_id,
+                GRAPH_TYPE_CLASSES[node->type],
+                node->type == GRAPH_NODE_PAGE ? "" : " no-chave");
+        write_node_href(html_file, node);
+        fputs("\"><title>", html_file);
+        write_node_name(html_file, node);
+        fprintf(html_file, " (%s)</title>", GRAPH_TYPE_SINGULARS[node->type]);
+        write_node_shape(html_file, node->type, node->x, node->y, radius);
+        fprintf(html_file, "<text x=\"%ld\" y=\"%ld\"%s>",
+                is_label_left ? node->x - radius - 5 : node->x + radius + 5, node->y + 4,
+                is_label_left ? " text-anchor=\"end\"" : "");
+        write_node_label(html_file, node);
+        fputs("</text></a>\n", html_file);
+    }
+    fputs("</g>\n</svg>\n</div>\n", html_file);
+}
+
+/* Writes "Vista: Global Local", marking the current view. */
+static void write_view_links(FILE *html_file, int is_global_view, int is_chooser)
+{
+    fputs("<p class=\"ordenacao\">Vista:", html_file);
+    if (is_global_view)
+        fputs(" <strong aria-current=\"page\">Global</strong>", html_file);
+    else
+        fputs(" <a href=\"" GRAPH_FILE_NAME "\">Global</a>", html_file);
+    if (is_chooser)
+        fputs(" <strong aria-current=\"page\">Local</strong>", html_file);
+    else if (is_global_view)
+        fputs(" <a href=\"" GRAPH_CHOOSER_FILE_NAME "\">Local</a>", html_file);
+    else
+        fputs(" <a href=\"" GRAPH_CHOOSER_FILE_NAME "\" aria-current=\"true\">Local</a>",
+              html_file);
+    fputs("</p>\n", html_file);
+}
+
+void html_write_graph_page(FILE *html_file, const graph *site_graph)
+{
+    int type;
+
+    write_head_start(html_file);
+    fputs("Grafo · " SITE_TITLE, html_file);
+    write_site_header(html_file, 0, CURRENT_GRAPH_PAGE, ATTRIBUTE_ALGORITHM);
+    fputs("<h1>Grafo</h1>\n", html_file);
+    write_view_links(html_file, 1, 0);
+    fputs("<div class=\"grafo-vista\">\n<p class=\"dica\">Passe o cursor sobre um nó para ver "
+          "as suas ligações; clique para abrir.</p>\n", html_file);
+    /* The checkboxes must come before the drawing, as its siblings, for the
+       CSS that hides each type. Data starts hidden: dates seldom join pages. */
+    for (type = 0; type < GRAPH_NODE_TYPE_COUNT; type++) {
+        fprintf(html_file, "<input type=\"checkbox\" id=\"f-%s\"%s>"
+                "<label for=\"f-%s\">", GRAPH_TYPE_CLASSES[type],
+                type == GRAPH_NODE_DATE ? "" : " checked", GRAPH_TYPE_CLASSES[type]);
+        write_type_symbol(html_file, (enum graph_node_type)type);
+        fprintf(html_file, "%s</label>\n", GRAPH_TYPE_PLURALS[type]);
+    }
+    write_graph_svg(html_file, site_graph, 1);
+    fputs("</div>\n", html_file);
+    write_site_footer(html_file);
+}
+
+void html_write_graph_chooser_page(FILE *html_file, const graph *site_graph)
+{
+    const graph_node *node;
+    int type;
+    int node_id;
+    int has_type;
+
+    write_head_start(html_file);
+    fputs("Grafo local · " SITE_TITLE, html_file);
+    write_site_header(html_file, 0, CURRENT_GRAPH_SECTION, ATTRIBUTE_ALGORITHM);
+    fputs("<h1>Grafo</h1>\n", html_file);
+    write_view_links(html_file, 0, 1);
+    fputs("<p>Escolha uma página ou chave para ver o seu grafo local: ela no centro, as "
+          "suas ligações em volta e, no anel de fora, o que se liga a elas.</p>\n", html_file);
+    for (type = 0; type < GRAPH_NODE_TYPE_COUNT; type++) {
+        has_type = 0;
+        for (node_id = 0; node_id < site_graph->node_count; node_id++) {
+            node = &site_graph->nodes[node_id];
+            if ((int)node->type != type)
+                continue;
+            if (!has_type) {
+                fprintf(html_file, "<h2>%s</h2>\n<ul class=\"escolha%s\">\n",
+                        GRAPH_TYPE_PLURALS[type], type == GRAPH_NODE_PROBLEM ? " longa" : "");
+                has_type = 1;
+            }
+            fputs("<li><a href=\"", html_file);
+            write_local_href(html_file, node);
+            fputs(type == GRAPH_NODE_PAGE ? "\">" : "\" class=\"chave-nome\">", html_file);
+            write_node_name(html_file, node);
+            fputs("</a></li>\n", html_file);
+        }
+        if (has_type)
+            fputs("</ul>\n", html_file);
+    }
+    write_site_footer(html_file);
+}
+
+void html_write_local_graph_page(FILE *html_file, const graph *local_graph)
+{
+    const graph_node *centre = &local_graph->nodes[local_graph->centre];
+    char present[GRAPH_NODE_TYPE_COUNT];
+    int type;
+    int node_id;
+
+    write_head_start(html_file);
+    write_node_name(html_file, centre);
+    fputs(" · Grafo · " SITE_TITLE, html_file);
+    write_site_header(html_file, 0, CURRENT_GRAPH_SECTION, ATTRIBUTE_ALGORITHM);
+    fputs("<h1>Grafo</h1>\n", html_file);
+    write_view_links(html_file, 0, 0);
+    fprintf(html_file, "<h2 class=\"foco%s\">", centre->type == GRAPH_NODE_PAGE ? "" : " chave");
+    write_node_name(html_file, centre);
+    fprintf(html_file, "</h2>\n<p class=\"fonte\">%s · <a href=\"",
+            GRAPH_TYPE_SINGULARS[centre->type]);
+    write_node_href(html_file, centre);
+    fprintf(html_file, "\">%s</a></p>\n",
+            centre->type == GRAPH_NODE_PAGE ? "Abrir a página" : "Ver no índice");
+
+    /* Legend of the types this graph holds. */
+    memset(present, 0, sizeof(present));
+    for (node_id = 0; node_id < local_graph->node_count; node_id++)
+        present[local_graph->nodes[node_id].type] = 1;
+    fputs("<ul class=\"legenda\">\n", html_file);
+    for (type = 0; type < GRAPH_NODE_TYPE_COUNT; type++) {
+        if (!present[type])
+            continue;
+        fputs("<li>", html_file);
+        write_type_symbol(html_file, (enum graph_node_type)type);
+        fprintf(html_file, "%s</li>\n", GRAPH_TYPE_PLURALS[type]);
+    }
+    fputs("</ul>\n", html_file);
+    write_graph_svg(html_file, local_graph, 0);
+    write_site_footer(html_file);
 }
 
 /* Returns the opened file, or NULL after reporting why on stderr. */
@@ -710,13 +1137,82 @@ int html_write_content_file(const char *output_directory, const page *page_heade
     return close_output_file(html_file, page_header->html_name, has_written);
 }
 
+/* Builds, writes and frees the local graph of one node. */
+static int write_local_graph_file(const char *output_directory, const graph *site_graph,
+                                  int node_id)
+{
+    const graph_node *node = &site_graph->nodes[node_id];
+    char file_name[MAX_FILE_NAME_LEN];
+    char *page_file_name = NULL;
+    const char *name;
+    graph *local_graph;
+    FILE *html_file;
+    int has_written;
+
+    if (node->type == GRAPH_NODE_PAGE) {
+        page_file_name = malloc(strlen(LOCAL_PAGE_FILE_PREFIX)
+                                + strlen(node->page_entry->html_name) + 1);
+        if (page_file_name == NULL) {
+            fprintf(stderr, "%s: out of memory\n", node->page_entry->html_name);
+            return 0;
+        }
+        strcpy(page_file_name, LOCAL_PAGE_FILE_PREFIX);
+        strcat(page_file_name, node->page_entry->html_name);
+        name = page_file_name;
+    } else {
+        write_local_key_file_name(file_name, node);
+        name = file_name;
+    }
+
+    local_graph = graph_build_local(site_graph, node_id);
+    html_file = local_graph == NULL ? NULL : open_output_file(output_directory, name);
+    if (local_graph == NULL)
+        fprintf(stderr, "%s: out of memory\n", name);
+    has_written = html_file != NULL;
+    if (html_file != NULL) {
+        html_write_local_graph_page(html_file, local_graph);
+        has_written = close_output_file(html_file, name, 1);
+    }
+    graph_free(local_graph);
+    free(page_file_name);
+    return has_written;
+}
+
+int html_write_graph_files(const char *output_directory, const graph *site_graph)
+{
+    FILE *html_file;
+    int node_id;
+
+    html_file = open_output_file(output_directory, GRAPH_FILE_NAME);
+    if (html_file == NULL)
+        return 0;
+    html_write_graph_page(html_file, site_graph);
+    if (!close_output_file(html_file, GRAPH_FILE_NAME, 1))
+        return 0;
+
+    html_file = open_output_file(output_directory, GRAPH_CHOOSER_FILE_NAME);
+    if (html_file == NULL)
+        return 0;
+    html_write_graph_chooser_page(html_file, site_graph);
+    if (!close_output_file(html_file, GRAPH_CHOOSER_FILE_NAME, 1))
+        return 0;
+
+    for (node_id = 0; node_id < site_graph->node_count; node_id++) {
+        if (!write_local_graph_file(output_directory, site_graph, node_id))
+            return 0;
+    }
+    return 1;
+}
+
 int html_is_generated_file_name(const char *file_name)
 {
     char index_file_name[MAX_FILE_NAME_LEN];
     int index;
     int attribute;
 
-    if (strcmp(file_name, HOME_FILE_NAME) == 0)
+    if (strcmp(file_name, HOME_FILE_NAME) == 0 || strcmp(file_name, GRAPH_FILE_NAME) == 0
+        || strcmp(file_name, GRAPH_CHOOSER_FILE_NAME) == 0
+        || strncmp(file_name, LOCAL_FILE_PREFIX, strlen(LOCAL_FILE_PREFIX)) == 0)
         return 1;
     for (index = 0; index < INDEX_COUNT; index++) {
         for (attribute = 0; attribute < ATTRIBUTE_COUNT; attribute++) {
