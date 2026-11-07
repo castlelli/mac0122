@@ -215,3 +215,33 @@ int text_utils_compare_normalized(const char *first, const char *second)
     return first_byte - second_byte;
 }
 
+static int is_ascii_letter_or_digit(int byte)
+{
+    return (byte >= 'a' && byte <= 'z') || (byte >= 'A' && byte <= 'Z')
+           || (byte >= '0' && byte <= '9');
+}
+
+void text_utils_write_url_component(FILE *html_file, const char *text)
+{
+    const unsigned char *cursor;
+
+    for (cursor = (const unsigned char *)text; *cursor != '\0'; cursor++) {
+        if (is_ascii_letter_or_digit(*cursor) || *cursor == '-' || *cursor == '.'
+            || *cursor == '_' || *cursor == '~')
+            fputc(*cursor, html_file);
+        else
+            fprintf(html_file, "%%%02X", (unsigned int)*cursor);
+    }
+}
+
+void text_utils_write_anchor_id(FILE *html_file, const char *text)
+{
+    const unsigned char *cursor;
+
+    for (cursor = (const unsigned char *)text; *cursor != '\0'; cursor++) {
+        if (is_ascii_letter_or_digit(*cursor))
+            fputc(*cursor, html_file);
+        else
+            fprintf(html_file, "_%02X", (unsigned int)*cursor);
+    }
+}

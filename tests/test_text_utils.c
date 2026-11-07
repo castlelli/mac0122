@@ -206,6 +206,40 @@ static void test_compare_normalized(void)
     check_compare_normalized("a\xC3", "a\xC3\xA6");
 }
 
+/* Runs one writer over text and checks what it wrote. */
+static void check_writer(void (*write_text)(FILE *, const char *), const char *text,
+                         const char *expected_output)
+{
+    FILE *output_file = tmpfile();
+
+    if (output_file == NULL) {
+        printf("FAIL could not open a temporary file\n");
+        failure_count++;
+        return;
+    }
+    write_text(output_file, text);
+    check_output(output_file, expected_output);
+}
+
+static void test_url_component(void)
+{
+    check_writer(text_utils_write_url_component, "kruskal-v1_a.b~c.html", "kruskal-v1_a.b~c.html");
+    check_writer(text_utils_write_url_component, "a b", "a%20b");
+    check_writer(text_utils_write_url_component, "a\"b<c>d&e#f", "a%22b%3Cc%3Ed%26e%23f");
+    check_writer(text_utils_write_url_component, "\xC3\xA1", "%C3%A1");
+}
+
+static void test_anchor_id(void)
+{
+    check_writer(text_utils_write_anchor_id, "grafo2", "grafo2");
+    /* Two different keys keep different ids, also the escape character itself. */
+    check_writer(text_utils_write_anchor_id, "union find", "union_20find");
+    check_writer(text_utils_write_anchor_id, "union-find", "union_2Dfind");
+    check_writer(text_utils_write_anchor_id, "union_2Dfind", "union_5F2Dfind");
+    check_writer(text_utils_write_anchor_id, "12/03/1956", "12_2F03_2F1956");
+    check_writer(text_utils_write_anchor_id, "\"<&", "_22_3C_26");
+}
+
 int main(void){
     test_trim();
     test_trim_end();
@@ -214,5 +248,7 @@ int main(void){
     test_html_escape();
     test_normalize();
     test_compare_normalized();
+    test_url_component();
+    test_anchor_id();
     return failure_count == 0 ? 0 : 1;
 }

@@ -43,6 +43,17 @@ char *text_utils_normalize(const char *text);
    Returns a negative value, 0 or a positive value. */
 int text_utils_compare_normalized(const char *first, const char *second);
 
+/* Writes text to html_file as part of a URL: letters, digits and "-._~" as
+   they are, every other byte as %XX. The result is safe inside a double-quoted
+   href attribute. Nothing is allocated; the FILE stays owned by the caller. */
+void text_utils_write_url_component(FILE *html_file, const char *text);
+
+/* Writes text to html_file as an anchor id: letters and digits as they are,
+   every other byte as _XX. Two different texts never share an id, and the
+   result is safe both in an id attribute and after '#' in an href. Nothing is
+   allocated; the FILE stays owned by the caller. */
+void text_utils_write_anchor_id(FILE *html_file, const char *text);
+
 /*
  * HTML escape shared by html.c and the C highlighter.
  *
