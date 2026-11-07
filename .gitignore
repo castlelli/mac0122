@@ -1,5 +1,6 @@
 # Build products: never commit binaries (see AGENTS.md)
 /ep1
+/ep1_asan
 *.o
 *.exe
 /c_filter
@@ -8,3 +9,6 @@
 tests/comparator
 # Local git worktrees
 /.worktrees/
+# Generated site: rebuild it with ./ep1 input/*.txt
+/output/*
+!/output/.gitkeep
