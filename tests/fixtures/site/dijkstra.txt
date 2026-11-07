@@ -1,0 +1,8 @@
+Tecnica: Método guloso
+Algoritmo: Dijkstra
+Autores: Edsger Dijkstra
+Data: 01/01/1956
+Conceitos: grafo, heap, caminho <mínimo> & custo
+Problema: Encontrar os caminhos mais curtos a partir de um vértice.
+---
+Parágrafo antes de qualquer seção, com a < b && c > d.
