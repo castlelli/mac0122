@@ -53,6 +53,8 @@ flowchart TD
     parser --> headers["Header structs<br/>(one per TXT)"]
     headers --> indexes["Indexes<br/>(BST of keys)"]
     indexes --> index_pages[/"index.html and<br/>index pages"/]
+    indexes --> graph["Graph<br/>(pages and keys)"]
+    graph --> graph_pages[/"graph pages"/]
     headers -. "TXT file name" .-> txt
     txt -- "pass 2: body, one TXT at a time" --> body["Body<br/>(sections, text, code)"]
     body -- "C code block" --> highlighter["Highlighter"]
@@ -66,7 +68,9 @@ flowchart TD
 2. **Indexes.** The header structs build the six indexes. Each index
    points to header structs; it never copies them.
 3. **Index pages.** `index.html` and the index pages (one per index
-   and sort order) are written from the indexes.
+   and sort order) are written from the indexes. The graph of pages and
+   keys is built from the indexes, laid out, and written as the graph
+   pages (see [Graph view](#graph-view)).
 4. **Pass 2.** For each header struct, the processor re-opens its TXT,
    skips the header, and reads the body. Code blocks go through the
    highlighter. The content page is written from the header struct (top
@@ -441,8 +445,40 @@ Accepted to keep the machine small:
   directive's style.
 - Braces in `#if` branches all count towards `brace_depth`.
 
-## Future work
+## Graph view
 
-- Graph view of the site: pages and keys as nodes, linked when a page
-  lists a key. The data model above already holds this graph; only
-  drawing it is missing. Not part of phase 1.
+The "Grafo" tab draws the bipartite graph of the data model as inline
+SVG, with no JavaScript. `graph.c` builds and lays out the graph;
+`html.c` writes it.
+
+- **Nodes and edges.** Every page, and every key of five indexes; an edge
+  joins a page to each key it lists. Algorithm keys are left out: an
+  algorithm key names its own page, so it would draw every page twice.
+  Node ids put pages first, in TXT file-name order, then each index's
+  keys in key order, so ids never depend on the order of the arguments.
+- **Global view (`graph.html`).** A force-directed layout
+  (Fruchterman–Reingold): pages start on an inner circle and keys on an
+  outer one, then every pair repels and every edge pulls for a fixed
+  number of steps while the allowed movement cools to zero. Date nodes
+  stay out of the forces and are placed beside their pages at the end,
+  since they start hidden and seldom join two pages. Checkboxes before
+  the drawing hide each node type through CSS (`:checked`).
+- **Local views (`graph_local.html`, `local_*.html`).** One page per
+  node: the node in the centre, its neighbours on a first ring, and
+  their neighbours on a second ring, each ring evenly spaced in id
+  order. `graph_local.html` lists them all, by type; each content page
+  links its own as "Ver no grafo". Local pages are named
+  `local_page_<page>.html` and `local_<index>_<n>.html`, where `n` is
+  the key's position in key order; `local_` names are reserved.
+- **Interaction without JavaScript.** Each node is an SVG link to the
+  real page (a content page, or the key's section on its index page),
+  with a `<title>` as tooltip and accessible name. Hovering or focusing a
+  node highlights its edges and neighbours through one generated
+  `:has()` rule per node.
+- **Same output on every run.** The layout uses its own square root,
+  sine and cosine instead of `<math.h>` (so the build needs no `-lm` and
+  no math library can change a coordinate), a fixed start and a fixed
+  number of steps, and coordinates are rounded to integers.
+- **Memory.** The whole graph holds only ids and borrowed pointers into
+  the headers and indexes. Local graphs are built, written and freed one
+  at a time.

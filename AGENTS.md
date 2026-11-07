@@ -91,7 +91,9 @@ src/
   sorted_list.h / .c        sorted linked list of pointers to header structs
   bst.h / bst.c             binary search tree of index keys
   indexes.h / indexes.c     builds the six indexes from the header structs
-  html.h / html.c           writes index.html, index pages, content pages and style.css
+  graph.h / graph.c         graph of pages and keys: global and local layouts
+  html.h / html.c           writes index.html, index pages, content pages, graph
+                            pages and style.css
   c_highlighter.h / .c      state machine: C source in, highlighted HTML out
   c_keywords.h / .c         sorted array of (word, kind) pairs + binary search
 input/                      course TXT files; template.txt shows the format
@@ -203,8 +205,20 @@ Highlighter:
 - Highlight `//` comments in the input even though our own code is C89:
   the code blocks are the professor's.
 
-Out of scope for phase 1; do not add: search bar, graph view of the
-site, automatic links inside `Problema`, plurals and synonyms.
+Graph view:
+- The graph is built from the headers and indexes only, and its layout
+  is deterministic: a fixed start, a fixed number of steps, integer
+  coordinates. Do not include `<math.h>`; use graph.c's square root,
+  sine and cosine, so the build needs no `-lm`.
+- Algorithm keys are not nodes. Pages and keys are linked only through
+  the index lists.
+- Text from a TXT goes into the SVG only as element content (`<title>`,
+  `<text>`), never into an attribute; hrefs and ids use the text_utils
+  writers.
+- Local graph pages are built, written and freed one at a time.
+
+Out of scope for phase 1; do not add: search bar, automatic links inside
+`Problema`, plurals and synonyms.
 
 ## Decisions made
 

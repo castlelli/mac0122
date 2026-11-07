@@ -49,6 +49,9 @@ from whichever angle the reader starts with.
   README.md.
 - Code colors come from the C highlighter and are not changed by the site
   design.
+- A "Grafo" tab shows the whole database as a graph of pages and keys
+  (global view) and one local graph per page or key, still as static
+  HTML and SVG with no JavaScript.
 
 ## Brand Commitments
 

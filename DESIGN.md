@@ -108,7 +108,13 @@ decoration that does not help a reader find or read something.
 - **The White Page Rule.** The page and code backgrounds are white, and the
   page declares `color-scheme: only light`, because the highlighter's colors
   were chosen for white. Dark modes must not repaint it.
-- **The One Accent Rule.** Navy is the only hue in the site's own CSS. The C
+- **The Graph Palette Exception.** On the graph pages only, node types
+  get their own hues, always paired with a shape so colour is never the
+  only cue: pages navy circles, Técnica `#a6611a` squares, Autores
+  `#7b3294` triangles, Data `#6b6b6b` plus signs, Conceitos `#1a7f6e`
+  diamonds, Problema `#b2182b` hexagons. Edges are `#b9c0c9`; a hovered
+  node's edges turn navy. These hues appear nowhere else.
+- **The One Accent Rule.** Outside the graph, navy is the only hue in the site's own CSS. The C
   code colors (and the code block's grey border and line numbers) belong to
   the highlighter's CSS, which `style.css` includes first; they are not part
   of this palette and are not retuned here.
@@ -183,6 +189,26 @@ borders. The first column is always the algorithm, linked to its page.
 The keys of an index page as a wrapped run of anchor links. Long keys (problem
 sentences) are cut with an ellipsis at 24ch in this list only; the heading below
 shows them whole.
+
+### Graph pages
+
+- The "Grafo" tab follows Problema in the nav. "Vista:" switches between
+  Global and Local, styled like the sort options.
+- Global: a one-line hint, then one checkbox per node type, drawn as a
+  square (navy and filled when on) followed by the type's symbol and
+  name, so the filters are also the legend. Data starts off. The drawing
+  sits in a hairline frame that scrolls when it overflows; on phones it
+  keeps a 44rem minimum width.
+- Page labels are always written; key labels appear on hover or focus.
+  Labels are 12px with a white halo, cut at 32 characters (the tooltip
+  keeps the whole text). Node size grows with the number of links.
+- Hover or focus fades every other node to 30% and every other edge to
+  15%, keeping the node and its neighbours sharp.
+- Local: the centre node's name as an `h2`, its type and a link to the
+  real page, a legend of the types present, then the ring drawing with
+  every label written, pointing away from the centre.
+- Chooser: one `h2` per type and a wrapped list of links; problems are
+  one per line.
 
 ### Keys and sort options
 
