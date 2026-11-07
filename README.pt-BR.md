@@ -8,6 +8,21 @@ EP1: um programa em C89 que lê arquivos TXT com o conteúdo da
 disciplina e gera um site HTML estático, com cada bloco de código C
 destacado (*syntax highlighting*).
 
+## Como executar
+
+Na raiz do repositório, com os TXTs como argumentos:
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
+./ep1 input/*.txt
+```
+
+O site é escrito em `output/`, que precisa existir e não vai para o
+repositório. `template.txt` mostra o formato e nunca vira página, esteja
+onde estiver. O programa informa um TXT que não segue o formato (não abre,
+não tem a linha `---` ou tem um `Data` inválido) ou cujo nome de página já
+está em uso, e então termina com status 1 antes de escrever qualquer página.
+
 ## Fluxo básico
 
 ```mermaid
@@ -51,7 +66,8 @@ flowchart TD
    seu TXT, pula o cabeçalho e lê o corpo. Os blocos de código passam
    pelo colorizador. A página de conteúdo é gerada a partir da struct
    de cabeçalho (topo da página) e do corpo (o restante), e o corpo é
-   liberado.
+   liberado. As referências são reunidas no fim da página, onde quer que
+   apareçam no TXT.
 
 ## Modelo de dados
 
@@ -96,8 +112,12 @@ structs de cabeçalho:
   vira uma chave própria, então uma página pode aparecer sob várias
   chaves.
 - As chaves são normalizadas (minúsculas, sem acentos) antes de serem
-  comparadas, então "Árvores" e "árvores" ficam no mesmo nó. As
-  páginas de índice mostram a chave normalizada.
+  comparadas, então "Árvores" e "árvores" ficam no mesmo nó, e as
+  âncoras são feitas da chave normalizada. As páginas de índice mostram
+  a chave como o primeiro TXT, na ordem dos nomes de arquivo, a escreve,
+  com a primeira letra maiúscula (pelo CSS); o nó da BST guarda essa
+  grafia. Os TXTs são UTF-8, e as
+  páginas declaram esse charset.
 - Datas são escritas como `dd/MM/AAAA` ou `AAAA` e são comparadas como
   datas, não como texto. Uma data só com o ano vem antes de qualquer
   data completa do mesmo ano (`1956` vem antes de `12/03/1956`).
@@ -132,8 +152,14 @@ de links no topo da página de índice.
   deles, então não tem uma posição única na ordem.
 - Cada ordenação é uma página separada, gerada de antemão (por exemplo
   `concepts_by_date.html`), então o site não precisa de JavaScript.
+- Uma página sem valor no atributo vem depois das que têm valor.
 - Empates são desfeitos pelo nome do arquivo TXT, que é único, então
   toda ordenação é completa e igual em toda execução.
+- A lista de um nó é ordenada pelo nome do arquivo TXT. Cada ordenação é
+  montada como uma lista temporária apenas enquanto sua tabela é escrita,
+  então um nó guarda uma só lista, quantas ordenações o site oferecer.
+- Cada índice abre por algoritmo, e o índice de algoritmos por técnica.
+  As páginas de conteúdo ligam cada autor e conceito à sua chave ali.
 
 ## Colorizador
 
@@ -148,12 +174,19 @@ A interface:
 
 ```c
 void c_highlighter_write_html(FILE *source_file, FILE *html_file);
+void c_highlighter_write_html_from_text(const char *source_text, FILE *html_file);
 void c_highlighter_write_css(FILE *css_file);
 void c_highlighter_write_head_styles(FILE *html_file, int has_page_style);
 ```
 
+O processador guarda cada bloco de código na memória, como parte do corpo,
+então usa `c_highlighter_write_html_from_text`; o `c_filter` lê um arquivo.
+Os dois executam a mesma máquina de estados e geram o mesmo HTML.
+
 O site tem um único `style.css` compartilhado, escrito com
-`c_highlighter_write_css`. Toda página o referencia com
+`c_highlighter_write_css` seguido das regras do site: layout e fundo
+branco em toda página e bloco de código, o fundo para o qual as cores do
+código foram escolhidas. Toda página o referencia com
 `c_highlighter_write_head_styles`. Um estilo presente na página tem
 prioridade sobre a folha compartilhada: entre duas regras equivalentes, o
 navegador aplica a última, então qualquer bloco `<style>` vem depois do

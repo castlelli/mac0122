@@ -7,6 +7,21 @@ Tools and Solutions for the MAC0122 discipline.
 EP1: a C89 program that reads course-content TXT files and generates a
 static HTML site, with every C code block syntax-highlighted.
 
+## Running
+
+From the repository root, with the TXTs given as arguments:
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
+./ep1 input/*.txt
+```
+
+The site is written to `output/`, which must exist and is not committed.
+`template.txt` shows the format and is never a page, wherever it is. The
+program reports a TXT that does not fit the format (it cannot be opened,
+has no `---` line, or has an invalid `Data`) or whose page name is taken,
+and then stops with status 1 before writing any page.
+
 ## Basic flow
 
 ```mermaid
@@ -49,6 +64,8 @@ flowchart TD
    skips the header, and reads the body. Code blocks go through the
    highlighter. The content page is written from the header struct (top
    of the page) and the body (the rest), and the body is freed.
+   References are collected at the end of the page, wherever they appear
+   in the TXT.
 
 ## Data model
 
@@ -91,8 +108,10 @@ holds a sorted list of pointers to header structs:
   and date hold exactly one. Each value of a multi-value field becomes
   its own key, so one page can appear under several keys.
 - Keys are normalized (lowercase, accents stripped) before they are
-  compared, so "Árvores" and "árvores" share a node. Index pages show
-  the normalized key.
+  compared, so "Árvores" and "árvores" share a node, and anchors are
+  built from the normalized key. Index pages show the key as the first
+  TXT, in file-name order, spells it, with its first letter capitalized
+  (by CSS); the BST node keeps that spelling. The TXTs are UTF-8, and pages declare that charset.
 - Dates are written `dd/MM/YYYY` or `YYYY` and are compared by date,
   not as text. A year-only date sorts before every full date in the
   same year (`1956` comes before `12/03/1956`).
@@ -125,8 +144,15 @@ at the top of the index page.
   them, so it has no single position in the order.
 - Each order is a separate, pre-generated page (for example
   `concepts_by_date.html`), so the site needs no JavaScript.
+- A page with no value for the attribute comes after those that have
+  one.
 - Ties are broken by TXT file name, which is unique, so every order is
   complete and the same on every run.
+- A node's list is sorted by TXT file name. Each order is built as a
+  temporary list only while its table is written, so a node keeps one
+  list, however many orders the site offers.
+- Each index opens by algorithm, and the algorithm index by technique.
+  Content pages link each author and concept to its key there.
 
 ## Highlighter
 
@@ -141,12 +167,19 @@ The interface:
 
 ```c
 void c_highlighter_write_html(FILE *source_file, FILE *html_file);
+void c_highlighter_write_html_from_text(const char *source_text, FILE *html_file);
 void c_highlighter_write_css(FILE *css_file);
 void c_highlighter_write_head_styles(FILE *html_file, int has_page_style);
 ```
 
+The processor holds each code block in memory, as part of the body, so it
+uses `c_highlighter_write_html_from_text`; `c_filter` reads a file. Both
+run the same state machine and give the same HTML.
+
 The site has one shared `style.css`, written with
-`c_highlighter_write_css`. Every page links it with
+`c_highlighter_write_css` followed by the site's rules: layout, and a
+white background on every page and code block, the background the code
+colors were chosen for. Every page links it with
 `c_highlighter_write_head_styles`. A style present on a page takes
 priority over the shared sheet: the browser lets the later of two equal
 rules win, so any `<style>` block comes after the link. Rules the page

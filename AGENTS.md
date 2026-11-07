@@ -29,6 +29,12 @@ Build the program:
 gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
 ```
 
+Generate the site into `output/` (`template.txt` is skipped, never a page):
+
+```
+./ep1 input/*.txt
+```
+
 Build one program from `algorithms/` (each is standalone):
 
 ```
@@ -126,6 +132,11 @@ Paragraph text.
   `Tecnica`, `Algoritmo` and `Data` hold exactly one value.
 - `Data` is `dd/MM/YYYY` or `YYYY`.
 - Strip `\r` from every line: files may have Windows line endings.
+- Files are UTF-8. One line is one paragraph; `[ref]` lines are collected
+  at the end of the page.
+- A file that does not fit (cannot be opened, no `---` line, invalid
+  `Data`) is reported, and the program stops with status 1 before writing
+  any page.
 
 ## Architecture rules
 
@@ -145,8 +156,9 @@ Indexes:
   to header structs; add pages with `sorted_list_insert_unique`, so a
   page appears once per key.
 - Each value of `Autores` and `Conceitos` is its own key.
-- Keys are normalized (lowercase, accents stripped) before comparison,
-  and index pages show the normalized key.
+- Keys are normalized (lowercase, accents stripped) before comparison and
+  in anchor ids. Index pages show the spelling of the first TXT, by file
+  name, that uses the key, with the first letter capitalized by CSS.
 - The problem index's key is the whole normalized problem sentence.
 - Dates compare as dates, not as text. A year-only date sorts before
   every full date of the same year (`1956` before `12/03/1956`).
@@ -157,7 +169,10 @@ Index pages:
   offer its own attribute. Authors and concepts are never sort orders.
 - Each sort order is its own pre-generated file,
   `<index>_by_<attribute>.html` (for example `concepts_by_date.html`).
+- A page with no value for the attribute comes after those that have one.
 - Ties are broken by TXT file name, and only by it.
+- A node's list is sorted by TXT file name; each sort order is a temporary
+  list that lasts while its table is written.
 - The generated site is static HTML and CSS. No JavaScript.
 - The site has one shared `style.css`. Every page links it with
   `c_highlighter_write_head_styles`. A style present on a page overrides
@@ -190,25 +205,24 @@ site, automatic links inside `Problema`, plurals and synonyms.
 
 - Highlighter interface:
   `void c_highlighter_write_html(FILE *source_file, FILE *html_file);`
+  `void c_highlighter_write_html_from_text(const char *source_text, FILE *html_file);`
   `void c_highlighter_write_css(FILE *css_file);`
   `void c_highlighter_write_head_styles(FILE *html_file, int has_page_style);`
-- The parser keeps a code block as `char *`, so `html.c` passes it to the
-  highlighter through `tmpfile()`.
+- The parser keeps a code block as `char *`, so `html.c` passes it to
+  `c_highlighter_write_html_from_text`.
 - The HTML escape shared by `html.c` and the highlighter lives in
   `text_utils`, so the standalone filter in `tools/` does not depend on
   `html.c`.
 - One shared `style.css`, written by the program. A style present on a
   page takes priority over it.
+- TXTs are UTF-8, one line is one paragraph, and `[ref]` lines are
+  collected at the end of the page.
 
 ## Open decisions
 
 Ask before implementing any of these; do not pick one silently.
 
-- Whether consecutive text lines merge into one paragraph until a blank
-  line.
-- TXT encoding (UTF-8 or Latin-1); it affects accent stripping and the
-  HTML charset.
-- Where `[ref]` lines go: collected at the end of the page, or in place.
+None at the moment.
 
 ## Code style
 
