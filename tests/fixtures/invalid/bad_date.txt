@@ -1,0 +1,4 @@
+Algoritmo: X
+Data: 31/02/1956
+---
+Texto.
