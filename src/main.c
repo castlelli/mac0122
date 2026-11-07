@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "graph.h"
 #include "html.h"
 #include "indexes.h"
 #include "page.h"
@@ -105,6 +106,7 @@ int main(int argument_count, char *arguments[])
 {
     page **pages;
     site_indexes *indexes;
+    graph *site_graph;
     int page_count;
     int has_succeeded;
 
@@ -140,9 +142,21 @@ int main(int argument_count, char *arguments[])
         return 1;
     }
 
+    /* The graph uses the headers and indexes only, like the index pages. */
+    site_graph = graph_build(pages, page_count, indexes);
+    if (site_graph == NULL || !graph_layout_global(site_graph)) {
+        fprintf(stderr, "out of memory\n");
+        graph_free(site_graph);
+        indexes_free(indexes);
+        free_pages(pages, page_count);
+        return 1;
+    }
+
     has_succeeded = html_write_index_files(OUTPUT_DIRECTORY, indexes, pages, page_count)
+                    && html_write_graph_files(OUTPUT_DIRECTORY, site_graph)
                     && write_content_files(pages, page_count);
 
+    graph_free(site_graph);
     indexes_free(indexes);
     free_pages(pages, page_count);
     return has_succeeded ? 0 : 1;
