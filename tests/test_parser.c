@@ -66,6 +66,12 @@ static void test_read_header_missing_file(void){
                parser_read_header("tests/fixtures/does_not_exist.txt") == NULL);
 }
 
+static void test_read_header_no_separator(void){
+    /* The warning it writes on stderr is checked in check_warnings. */
+    check_true("no separator returns NULL",
+               parser_read_header("tests/fixtures/invalid/no_separator.txt") == NULL);
+}
+
 static void test_read_body(void){
     page *header = parser_read_header("tests/fixtures/full.txt");
     page_body *body;
@@ -171,6 +177,8 @@ static void check_warnings(void){
 
     check_true("warnings: missing file is reported",
                strstr(warnings, "tests/fixtures/does_not_exist.txt") != NULL);
+    check_true("warnings: missing separator is reported with its file",
+               strstr(warnings, "tests/fixtures/invalid/no_separator.txt: no \"---\" line") != NULL);
     check_true("warnings: cut line is reported with its file",
                strstr(warnings, "tests/fixtures/long_lines.txt: line longer than 4095 characters, cut") != NULL);
 }
@@ -184,6 +192,7 @@ int main(void){
     test_read_header();
     test_read_header_empty_values();
     test_read_header_missing_file();
+    test_read_header_no_separator();
     test_read_body();
     test_long_lines();
 

@@ -131,6 +131,7 @@ page* parser_read_header(const char * file_path){
     char *colon;
     char* trimmed_line;
     int has_failed = 0;
+    int has_separator = 0;
 
     if (file == NULL){
         perror(file_path);
@@ -152,7 +153,10 @@ page* parser_read_header(const char * file_path){
     while (!has_failed && read_line(line, MAX_LINE_SIZE, file, file_path) != NULL)
     {
         trimmed_line = text_utils_trim(line);
-        if (!strcmp(trimmed_line, "---")) break;
+        if (!strcmp(trimmed_line, "---")){
+            has_separator = 1;
+            break;
+        }
 
         colon = strchr(trimmed_line, ':');
         if (colon == NULL) continue;
@@ -162,6 +166,11 @@ page* parser_read_header(const char * file_path){
         if (!strcmp(value, "")) continue;
 
         if (!fill_page_field(page_header, key, value)) has_failed = 1;
+    }
+
+    if (!has_failed && !has_separator){
+        fprintf(stderr, "%s: no \"---\" line ends the header\n", file_path);
+        has_failed = 1;
     }
 
     /* Single cleanup point, so every failure frees the same things. */
