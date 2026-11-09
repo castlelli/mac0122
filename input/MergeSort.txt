@@ -1,0 +1,41 @@
+Tecnica: Divisão e conquista.
+Algoritmo: Merge Sort.
+Autores: John von Neumann.
+Data: 1945.
+Conceitos: Vetor, divisão, recursividade, intercalação e comparação.
+Problema: Organizar uma sequência dividindo-a repetidamente em partes menores, ordenando essas partes e combinando-as para formar uma sequência ordenada.
+---
+# Ideia do algoritmo
+Dividir o vetor em partes menores, ordenar essas partes e depois juntá-las.
+
+Divida o vetor em duas metades até obter metades com um elemento comparando-os e juntando os elementos na ordem correta.
+
+# Implementação em C
+[code]
+mergesort(int a[], int l, int r)
+{
+    int i, j, k, m;
+
+    if (r > l)
+    {
+        m = (r+l)/2;
+
+        mergesort(a, l, m);
+        mergesort(a, m+1, r);
+
+        for (i = m+1; i > l; i--)
+            b[i-1] = a[i-1];
+
+        for (j = m; j < r; j++)
+            b[r+m-j] = a[j+1];
+
+        for (k = l; k <= r; k++)
+            a[k] = (b[i] < b[j]) ? b[i++] : b[j--];
+    }
+}
+[/code]
+
+# Complexidade
+O(n log n).
+
+[ref] Algorithms in C, Robert Sedgewick, cap. 12, pag. 166.
