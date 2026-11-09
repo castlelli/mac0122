@@ -1,0 +1,49 @@
+Tecnica: Ordenação por distribuição.
+Algoritmo: Radix Sort.
+Autores:
+Data:
+Conceitos: Dígitos, posições numéricas, distribuição, agrupamento e ordenação estável.
+Problema: Organizar números ou chaves utilizando seus dígitos ou posições, processando essas informações progressivamente.
+---
+# Ideia do algoritmo
+Ordenar números analisando seus dígitos, em vez de comparar diretamente os números inteiros.
+
+Começa comparando os dígitos menos significativos e os ordenando de acordo, em seguida repetindo o processo com os próximos digitos.
+
+# Implementação em C
+[code]
+radixexchange(int a[], int l, int r, int b)
+{
+    int t, i, j;
+
+    if (r > l && b >= 0)
+    {
+        i = l;
+        j = r;
+
+        while (j != i)
+        {
+            while (bits(a[i], b, 1) == 0 && i < j)
+                i++;
+
+            while (bits(a[j], b, 1) != 0 && j > i)
+                j--;
+
+            t = a[i];
+            a[i] = a[j];
+            a[j] = t;
+        }
+
+        if (bits(a[r], b, 1) == 0)
+            j++;
+
+        radixexchange(a, l, j-1, b-1);
+        radixexchange(a, j, r, b-1);
+    }
+}
+[/code]
+
+# Complexidade
+O(d * (n + b)) sendo n = quantidade de elementos, d = quantidade de dígitos e b = base numérica.
+
+[ref] Algorithms in C, Robert Sedgewick, cap. 10, pag. 135.
