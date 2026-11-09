@@ -411,6 +411,12 @@ static void test_graph_page(void)
     check_contains("graph: edges carry the key type", output, "<line class=\"aresta t-tecnica a");
     check_contains("graph: hover rule for kruskal's edges", output,
                    ".tela:has(#n1:hover, #n1:focus) .a1 { stroke:#1d3557;");
+    check_contains("graph: fit zoom chosen", output,
+                   "<input type=\"radio\" name=\"zoom\" id=\"z-ajustar\" checked>");
+    check_contains("graph: 200% zoom", output, "<label for=\"z-200\" class=\"z\">200%</label>");
+    check_order("graph: zoom before the drawing", output, "id=\"z-200\"", "<div class=\"tela\">");
+    check_contains("graph: 100% zoom is the drawing size", output,
+                   "#z-100:checked ~ .tela .grafo { width:");
     check_absent("graph: no algorithm keys", output, "(Algoritmo)");
     check_absent("graph: no script", output, "<script");
 }
@@ -458,6 +464,8 @@ static void test_local_graph_page(void)
     check_contains("local: local drawing", output, "<svg class=\"grafo local\"");
     check_contains("local: centre is node 0", output, "<a id=\"n0\" class=\"no t-pagina\" href=\"kruskal.html\">");
     check_contains("local: dates shown", output, "(Data)</title>");
+    check_order("local: zoom before the drawing", output, "id=\"z-ajustar\"",
+                "<div class=\"tela\">");
 }
 
 int main(void)

@@ -482,6 +482,11 @@ embutido, sem JavaScript. O `graph.c` monta e posiciona o grafo; o
   para o menor, então uma página que não divide nenhuma chave fica ao
   lado das outras, e não longe. Caixas de seleção antes do desenho
   ocultam cada tipo de nó pelo CSS (`:checked`).
+- **Zoom.** Botões de opção antes do desenho, nas páginas global e
+  locais: "Ajustar" cabe na largura da página, e 100%, 150% e 200%
+  definem a largura do desenho a partir do seu tamanho, com regras de
+  cada desenho escritas junto das regras de destaque. A moldura rola nas
+  duas direções quando ampliada.
 - **Vistas locais (`graph_local.html`, `local_*.html`).** Uma página por
   nó: o nó no centro, os vizinhos num primeiro anel e os vizinhos deles
   num segundo anel, cada anel com espaçamento igual na ordem dos ids. O

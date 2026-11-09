@@ -197,10 +197,16 @@ shows them whole.
 - Global: a one-line hint, then one checkbox per node type, drawn as a
   square (navy and filled when on) followed by the type's symbol and
   name, so the filters are also the legend. Data starts off. The drawing
-  sits in a hairline frame that scrolls when it overflows; on phones it
-  keeps a 44rem minimum width.
+  sits in a hairline frame, at most 80vh tall, that scrolls when it
+  overflows; on phones it keeps a 44rem minimum width.
+- Zoom, on global and local pages, on its own line under the filters:
+  "Zoom:" in the secondary colour, then Ajustar, 100%, 150%, 200% as
+  text options. The chosen one is ink, semibold, with a navy underline;
+  the others are secondary and turn navy on hover. Ajustar, the default,
+  fits the content width; the percentages are of the drawing's own size,
+  where key labels are 14px. Hidden in print.
 - Page labels are always written; key labels appear on hover or focus.
-  Labels are 12px with a white halo, cut at 32 characters (the tooltip
+  Key labels are 14px and page labels 18px, with a white halo, cut at 32 characters (the tooltip
   keeps the whole text). Node size grows with the number of links.
 - Hover or focus fades every other node to 30% and every other edge to
   15%, keeping the node and its neighbours sharp.

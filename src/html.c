@@ -175,8 +175,15 @@ static const char *const SITE_CSS_LINES[] = {
     "        padding:0; margin:0 0 0.75rem; font-size:0.9375rem; max-width:none; }\n",
     ".simbolo { width:14px; height:14px; flex:none; }\n",
     ".tela { flex-basis:100%; overflow:auto; border:1px solid var(--linha); margin-top:0.5rem;\n",
-    "        padding:0.5rem; box-sizing:border-box; }\n",
-    ".grafo { display:block; width:100%; height:auto; }\n",
+    "        padding:0.5rem; box-sizing:border-box; max-height:80vh; }\n",
+    ".grafo { display:block; width:100%; max-width:none; height:auto; }\n",
+    ".grafo-vista > .quebra { flex-basis:100%; height:0; }\n",
+    ".zoom { color:var(--secundaria); }\n",
+    ".grafo-vista > input + label.z::before { content:none; }\n",
+    ".grafo-vista > label.z:hover { color:var(--marinho); }\n",
+    ".grafo-vista > input:checked + label.z { color:var(--tinta); font-weight:600;\n",
+    "        text-decoration:underline; text-decoration-color:var(--marinho);\n",
+    "        text-underline-offset:0.3em; }\n",
     ".grafo .aresta { stroke:#b9c0c9; stroke-width:1; }\n",
     ".forma { stroke:#fff; stroke-width:1.5; }\n",
     ".t-pagina .forma { fill:#1d3557; }\n",
@@ -185,8 +192,9 @@ static const char *const SITE_CSS_LINES[] = {
     ".t-data .forma { fill:#6b6b6b; }\n",
     ".t-conceitos .forma { fill:#1a7f6e; }\n",
     ".t-problema .forma { fill:#b2182b; }\n",
-    ".grafo text { font-size:12px; fill:var(--tinta); paint-order:stroke; stroke:#fff;\n",
+    ".grafo text { font-size:14px; fill:var(--tinta); paint-order:stroke; stroke:#fff;\n",
     "        stroke-width:3px; stroke-linejoin:round; pointer-events:none; }\n",
+    ".grafo .t-pagina text { font-size:18px; }\n",
     ".grafo.global .no-chave text { opacity:0; }\n",
     ".grafo .no:hover text, .grafo .no:focus text { opacity:1; font-weight:600; }\n",
     ".grafo .no:focus { outline:none; }\n",
@@ -230,7 +238,7 @@ static const char *const SITE_CSS_LINES[] = {
     "  .tabela td:empty { display:none; }\n",
     "}\n",
     "@media print {\n",
-    "  .pular, .navegacao, .chaves, .ordenacao, .dica, .ver-grafo { display:none; }\n",
+    "  .pular, .navegacao, .chaves, .ordenacao, .dica, .ver-grafo, .zoom { display:none; }\n",
     "  .grafo-vista > input, .grafo-vista > label { display:none; }\n",
     "  .cabecalho { border-top-width:2px; }\n",
     "  a { color:inherit; text-decoration:none; }\n",
@@ -831,17 +839,42 @@ static void write_type_symbol(FILE *html_file, enum graph_node_type type)
     fputs("</svg>", html_file);
 }
 
+/* Zoom levels besides "Ajustar", which fits the drawing to the page width:
+   percentages of its size in drawing units, where key labels are 14px. */
+static const int ZOOM_PERCENTS[] = { 100, 150, 200 };
+#define ZOOM_LEVEL_COUNT 3
+
+/* Writes "Zoom: Ajustar 100% 150% 200%" as radio buttons on a line of their
+   own, fit chosen. They must be siblings that come before the drawing, for the CSS that sizes it. */
+static void write_zoom_controls(FILE *html_file)
+{
+    int zoom_index;
+
+    fputs("<span class=\"quebra\"></span><span class=\"zoom\">Zoom:</span>\n<input type=\"radio\" name=\"zoom\" "
+          "id=\"z-ajustar\" checked><label for=\"z-ajustar\" class=\"z\">Ajustar</label>\n",
+          html_file);
+    for (zoom_index = 0; zoom_index < ZOOM_LEVEL_COUNT; zoom_index++)
+        fprintf(html_file, "<input type=\"radio\" name=\"zoom\" id=\"z-%d\"><label for=\"z-%d\" "
+                "class=\"z\">%d%%</label>\n", ZOOM_PERCENTS[zoom_index],
+                ZOOM_PERCENTS[zoom_index], ZOOM_PERCENTS[zoom_index]);
+}
+
 /* One rule per node: while it is hovered or focused, its edges turn navy and
    its neighbours and their labels stay visible. Generated, because CSS
    cannot follow an edge on its own. */
 static void write_highlight_rules(FILE *html_file, const graph *drawn_graph)
 {
+    int zoom_index;
     int node_id;
     int position;
     int start;
     int end;
 
     fputs("<style>\n", html_file);
+    /* Zoom levels are sizes of this drawing, so they are written with it. */
+    for (zoom_index = 0; zoom_index < ZOOM_LEVEL_COUNT; zoom_index++)
+        fprintf(html_file, "#z-%d:checked ~ .tela .grafo { width:%ldpx; }\n",
+                ZOOM_PERCENTS[zoom_index], drawn_graph->width * ZOOM_PERCENTS[zoom_index] / 100);
     for (node_id = 0; node_id < drawn_graph->node_count; node_id++) {
         start = drawn_graph->neighbour_start[node_id];
         end = drawn_graph->neighbour_start[node_id + 1];
@@ -907,7 +940,8 @@ static void write_graph_svg(FILE *html_file, const graph *drawn_graph, int is_gl
         fprintf(html_file, " (%s)</title>", GRAPH_TYPE_SINGULARS[node->type]);
         write_node_shape(html_file, node->type, node->x, node->y, radius);
         fprintf(html_file, "<text x=\"%ld\" y=\"%ld\"%s>",
-                is_label_left ? node->x - radius - 5 : node->x + radius + 5, node->y + 4,
+                is_label_left ? node->x - radius - 6 : node->x + radius + 6,
+                node->y + (node->type == GRAPH_NODE_PAGE ? 6 : 5),
                 is_label_left ? " text-anchor=\"end\"" : "");
         write_node_label(html_file, node);
         fputs("</text></a>\n", html_file);
@@ -953,6 +987,7 @@ void html_write_graph_page(FILE *html_file, const graph *site_graph)
         write_type_symbol(html_file, (enum graph_node_type)type);
         fprintf(html_file, "%s</label>\n", GRAPH_TYPE_PLURALS[type]);
     }
+    write_zoom_controls(html_file);
     write_graph_svg(html_file, site_graph, 1);
     fputs("</div>\n", html_file);
     write_site_footer(html_file);
@@ -1028,8 +1063,10 @@ void html_write_local_graph_page(FILE *html_file, const graph *local_graph)
         write_type_symbol(html_file, (enum graph_node_type)type);
         fprintf(html_file, "%s</li>\n", GRAPH_TYPE_PLURALS[type]);
     }
-    fputs("</ul>\n", html_file);
+    fputs("</ul>\n<div class=\"grafo-vista\">\n", html_file);
+    write_zoom_controls(html_file);
     write_graph_svg(html_file, local_graph, 0);
+    fputs("</div>\n", html_file);
     write_site_footer(html_file);
 }
 

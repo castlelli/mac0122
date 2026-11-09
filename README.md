@@ -466,6 +466,10 @@ SVG, with no JavaScript. `graph.c` builds and lays out the graph;
   are then packed in rows, largest first, so a page that shares no key
   sits beside the rest instead of far away. Checkboxes before the
   drawing hide each node type through CSS (`:checked`).
+- **Zoom.** Radio buttons before the drawing, on the global and local
+  pages: "Ajustar" fits the page width, and 100%, 150% and 200% set the
+  drawing's width from its size, with per-drawing rules written next to
+  the hover rules. The frame scrolls in both directions when zoomed.
 - **Local views (`graph_local.html`, `local_*.html`).** One page per
   node: the node in the centre, its neighbours on a first ring, and
   their neighbours on a second ring, each ring evenly spaced in id
