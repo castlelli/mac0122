@@ -1,0 +1,35 @@
+Tecnica: Ordenação por comparação.
+Algoritmo: Selection Sort.
+Autores:
+Data:
+Conceitos: Vetor, comparação, seleção do menor elemento e troca de posições.
+Problema: Dada uma sequência de elementos, organizá-los em ordem crescente ou decrescente.
+---
+# Ideia do algoritmo
+Encontrar o menor/maior elemento e colocá-lo na primeira posição disponível.
+
+Percorre o vetor procurando o menor/maior elemento e trocando sua posição com o primeiro elemento, repetindo o processo.
+
+# Implementação em C
+[code]
+selection(int a[], int N)
+{
+    int i, j, min, t;
+
+    for (i = 1; i < N; i++)
+    {
+        min = i;
+        for (j = i+1; j <= N; j++)
+            if (a[j] < a[min]) min = j;
+
+        t = a[min];
+        a[min] = a[i];
+        a[i] = t;
+    }
+}
+[/code]
+
+# Complexidade
+O(n^2).
+
+[ref] Algorithms in C, Robert Sedgewick, cap. 8, pag. 98.
