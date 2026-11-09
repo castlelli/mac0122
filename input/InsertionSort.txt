@@ -1,0 +1,38 @@
+Tecnica: Ordenação por comparação.
+Algoritmo: Insertion Sort.
+Autores:
+Data:
+Conceitos: Vetor, comparação, inserção, deslocamento de elementos e sequência parcialmente ordenada.
+Problema: Organizar uma sequência de elementos inserindo cada novo elemento na posição correta em relação aos elementos que já foram ordenados.
+---
+# Ideia do algoritmo
+Construir uma parte ordenada do vetor, inserindo cada novo elemento na posição correta.
+
+Considera o primeiro elemento como ordenado, em seguida pega próximo elemento e compara com os elementos anteriores os deslocando de acordo com a posição correta.
+
+# Implementação em C
+[code]
+insertion(int a[], int N)
+{
+    int i, j, v;
+
+    for (i = 2; i <= N; i++)
+    {
+        v = a[i];
+        j = i;
+
+        while (a[j-1] > v)
+        {
+            a[j] = a[j-1];
+            j--;
+        }
+
+        a[j] = v;
+    }
+}
+[/code]
+
+# Complexidade
+O(n^2).
+
+[ref] Algorithms in C, Robert Sedgewick, cap. 8, pag. 100.
