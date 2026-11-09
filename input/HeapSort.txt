@@ -1,0 +1,36 @@
+Tecnica: Ordenação por comparação.
+Algoritmo: Heap Sort.
+Autores: J. W. J. Williams.
+Data: 1964.
+Conceitos: Árvore binária, heap máximo, heap mínimo, propriedade de heap e troca de elementos.
+Problema: Organizar uma sequência de elementos utilizando uma estrutura de heap para selecionar repetidamente o maior ou menor elemento.
+---
+# Ideia do algoritmo
+Utilizar uma estrutura de dados chamada heap para encontrar rapidamente o maior elemento.
+
+Constrói uma arvore binaria, em seguida troca o filho com os pais caso sejam maiores, de modo que o maior elemento fique na raiz, o tirando da arvore e colocando o ultimo elemento da arvore no lugar e repetindo o processo.
+
+# Implementação em C
+[code]
+heapsort(int a[], int N)
+{
+    int k, t;
+
+    for (k = N/2; k >= 1; k--)
+        downheap(a, N, k);
+
+    while (N > 1)
+    {
+        t = a[1];
+        a[1] = a[N];
+        a[N] = t;
+
+        downheap(a, --N, 1);
+    }
+}
+[/code]
+
+# Complexidade
+O(n log n).
+
+[ref] Algorithms in C, Robert Sedgewick, cap. 11, pag. 156; Algorithm 232: Heapsort.
