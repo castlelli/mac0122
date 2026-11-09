@@ -96,7 +96,8 @@ src/
                             pages and style.css
   c_highlighter.h / .c      state machine: C source in, highlighted HTML out
   c_keywords.h / .c         sorted array of (word, kind) pairs + binary search
-input/                      course TXT files; template.txt shows the format
+input/                      course TXT files
+docs/template.txt           shows the TXT format; never a page
 output/                     generated site; never edit by hand
 algorithms/                 standalone C programs + data files (separate deliverable)
 tests/                      one test program per module: test_<module>.c; comparator.c,
