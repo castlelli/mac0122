@@ -1,0 +1,33 @@
+Tecnica: Método de ordenação por comparação e troca.
+Algoritmo: Bubble Sort.
+Autores:
+Data:
+Conceitos: Vetor, comparação de elementos, elementos adjacentes, troca de posições e ordenação crescente.
+Problema: Ordenar um conjunto de elementos em ordem crescente, reorganizando suas posições dentro de um vetor.
+---
+# Ideia do algoritmo
+Percorrer o vetor comparando elementos adjacentes e trocando suas posições quando estiverem fora de ordem.
+
+Escolhe o primeiro elemento e compara com o próximo, caso seja maior troca suas posições, caso contrario mantem suas posições e compara com próximo elemento o maior elemento, repetindo o processo.
+
+# Implementação em C
+[code]
+bubble(int a[], int N)
+{
+    int i, j, t;
+
+    for (i = N; i >= 1; i--)
+        for (j = 2; j <= i; j++)
+            if (a[j-1] > a[j])
+            {
+                t = a[j-1];
+                a[j-1] = a[j];
+                a[j] = t;
+            }
+}
+[/code]
+
+# Complexidade
+O(N^2).
+
+[ref] Algorithms in C, Robert Sedgewick, cap. 8, pag. 101.
