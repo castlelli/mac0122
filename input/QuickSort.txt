@@ -1,0 +1,50 @@
+Tecnica: Divisão e conquista.
+Algoritmo: Quick Sort.
+Autores: Tony Hoare.
+Data: 1959.
+Conceitos: Vetor, pivô, particionamento, recursividade e comparação.
+Problema: Organizar uma sequência de elementos dividindo-a em partes menores com base em um elemento escolhido como pivô.
+---
+# Ideia do algoritmo
+Dividir o vetor em partes menores utilizando um elemento chamado pivô.
+
+Escolha um elemento como pivô e coloque os elementos menores e maiores na esquerda e direita respectivamente, e repita o processo escolhendo novos pivôs até ordenar.
+
+# Implementação em C
+[code]
+quicksort(int a[], int l, int r)
+{
+    int v, i, j, t;
+
+    if (r > l)
+    {
+        v = a[r];
+        i = l-1;
+        j = r;
+
+        for (;;)
+        {
+            while (a[++i] < v);
+            while (a[--j] > v);
+
+            if (i >= j) break;
+
+            t = a[i];
+            a[i] = a[j];
+            a[j] = t;
+        }
+
+        t = a[i];
+        a[i] = a[r];
+        a[r] = t;
+
+        quicksort(a, l, i-1);
+        quicksort(a, i+1, r);
+    }
+}
+[/code]
+
+# Complexidade
+O(n^2) no pior dos casos, ou O(n log n) no melhor e médio caso.
+
+[ref] Algorithms in C, Robert Sedgewick, cap. 9, pag. 118; Algorithm 64: Quicksort, C. A. R. Hoare.
