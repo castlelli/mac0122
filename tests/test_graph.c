@@ -153,6 +153,32 @@ static void test_layout(graph *site_graph)
     check_true("no node on top of the first", has_distinct);
 }
 
+/* A page that shares no key forms its own cluster. Clusters do not repel
+   each other and are packed side by side, so it sits beside the rest instead
+   of being pushed far away, which shrank the whole drawing. */
+static void test_separate_clusters(page *kruskal)
+{
+    page *pages[2];
+    site_indexes *indexes;
+    graph *site_graph;
+
+    pages[0] = kruskal;
+    pages[1] = parser_read_header("tests/fixtures/graph/isolada.txt");
+    check_true("read isolada", pages[1] != NULL);
+    if (pages[1] == NULL)
+        return;
+    indexes = indexes_build(pages, 2);
+    site_graph = indexes == NULL ? NULL : graph_build(pages, 2, indexes);
+    check_true("two-cluster graph built", site_graph != NULL);
+    if (site_graph != NULL) {
+        check_true("two-cluster layout succeeds", graph_layout_global(site_graph));
+        check_true("clusters packed close", site_graph->width < 1000 && site_graph->height < 1000);
+        graph_free(site_graph);
+    }
+    indexes_free(indexes);
+    page_free(pages[1]);
+}
+
 static void test_local(const graph *site_graph)
 {
     graph *local_graph;
@@ -228,6 +254,7 @@ int main(void)
     test_build(site_graph, pages);
     test_layout(site_graph);
     test_local(site_graph);
+    test_separate_clusters(pages[1]);
 
     graph_free(site_graph);
     indexes_free(indexes);

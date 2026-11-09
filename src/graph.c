@@ -6,19 +6,25 @@
 /* Ideal edge length of the global layout, in drawing units. */
 #define IDEAL_EDGE_LEN 95.0
 #define GLOBAL_LAYOUT_STEPS 500
-/* Pull towards the centre, so separate clusters stay near each other. */
+/* Pull towards the centre, so a cluster does not drift while it forms. */
 #define GRAVITY 0.02
+/* Space between clusters once they are packed side by side: wider across,
+   for the page labels written to the right of their nodes. */
+#define CLUSTER_GAP_X 200.0
+#define CLUSTER_GAP_Y 60.0
+/* Width over height that the packed clusters aim for. */
+#define DRAWING_ASPECT 1.6
 /* Room around the drawing, wider on the right for page labels. */
 #define MARGIN_LEFT 40.0
 #define MARGIN_TOP 40.0
-#define MARGIN_RIGHT 200.0
+#define MARGIN_RIGHT 260.0
 #define MARGIN_BOTTOM 40.0
 /* Space each node takes on a ring of a local graph. */
 #define RING_NODE_SPACING 64.0
 #define FIRST_RING_MIN_RADIUS 150.0
 #define RING_GAP 170.0
 /* Local graphs leave room on both sides for labels written outwards. */
-#define LOCAL_MARGIN_SIDES 260.0
+#define LOCAL_MARGIN_SIDES 300.0
 #define LOCAL_MARGIN_ENDS 60.0
 
 /* The indexes drawn as key nodes, in node-id order. */
@@ -421,6 +427,153 @@ static void place_dates_beside_pages(const graph *site_graph, double *position_x
     }
 }
 
+/* Numbers the clusters (connected parts) of the graph in node-id order and
+   returns how many there are. Date nodes join no cluster and get -1: they
+   stay out of the forces, so a date shared by two clusters must not merge
+   them. Returns -1 if memory runs out. */
+static int label_clusters(const graph *site_graph, int *cluster)
+{
+    int *queue = malloc((size_t)site_graph->node_count * sizeof(int));
+    int cluster_count = 0;
+    int queue_start;
+    int queue_end;
+    int node_id;
+    int current;
+    int position;
+    int neighbour;
+
+    if (queue == NULL)
+        return -1;
+    for (node_id = 0; node_id < site_graph->node_count; node_id++)
+        cluster[node_id] = -1;
+    for (node_id = 0; node_id < site_graph->node_count; node_id++) {
+        if (cluster[node_id] != -1 || site_graph->nodes[node_id].type == GRAPH_NODE_DATE)
+            continue;
+        cluster[node_id] = cluster_count;
+        queue[0] = node_id;
+        queue_start = 0;
+        queue_end = 1;
+        while (queue_start < queue_end) {
+            current = queue[queue_start++];
+            for (position = site_graph->neighbour_start[current];
+                 position < site_graph->neighbour_start[current + 1]; position++) {
+                neighbour = site_graph->neighbours[position];
+                if (cluster[neighbour] != -1
+                    || site_graph->nodes[neighbour].type == GRAPH_NODE_DATE)
+                    continue;
+                cluster[neighbour] = cluster_count;
+                queue[queue_end++] = neighbour;
+            }
+        }
+        cluster_count++;
+    }
+    free(queue);
+    return cluster_count;
+}
+
+/* Moves each cluster so they sit in rows, largest first, instead of where
+   the forces left them. Clusters never repel each other, so each one forms
+   around the origin; packing keeps a page that shares no key from sitting
+   far away and shrinking the whole drawing. Returns 0 if memory runs out. */
+static int pack_clusters(const graph *site_graph, const int *cluster, int cluster_count,
+                         double *position_x, double *position_y)
+{
+    double *min_x = malloc((size_t)cluster_count * sizeof(double));
+    double *min_y = malloc((size_t)cluster_count * sizeof(double));
+    double *max_x = malloc((size_t)cluster_count * sizeof(double));
+    double *max_y = malloc((size_t)cluster_count * sizeof(double));
+    double *offset_x = malloc((size_t)cluster_count * sizeof(double));
+    double *offset_y = malloc((size_t)cluster_count * sizeof(double));
+    int *size = malloc((size_t)cluster_count * sizeof(int));
+    int *order = malloc((size_t)cluster_count * sizeof(int));
+    int is_ok = min_x != NULL && min_y != NULL && max_x != NULL && max_y != NULL
+                && offset_x != NULL && offset_y != NULL && size != NULL && order != NULL;
+    double total_area = 0.0;
+    double row_limit = 0.0;
+    double cursor_x = 0.0;
+    double cursor_y = 0.0;
+    double row_height = 0.0;
+    double width;
+    double height;
+    int node_id;
+    int current;
+    int position;
+    int moved;
+
+    if (is_ok) {
+        for (current = 0; current < cluster_count; current++) {
+            size[current] = 0;
+            order[current] = current;
+        }
+        for (node_id = 0; node_id < site_graph->node_count; node_id++) {
+            current = cluster[node_id];
+            if (current == -1)
+                continue;
+            if (size[current] == 0 || position_x[node_id] < min_x[current])
+                min_x[current] = position_x[node_id];
+            if (size[current] == 0 || position_y[node_id] < min_y[current])
+                min_y[current] = position_y[node_id];
+            if (size[current] == 0 || position_x[node_id] > max_x[current])
+                max_x[current] = position_x[node_id];
+            if (size[current] == 0 || position_y[node_id] > max_y[current])
+                max_y[current] = position_y[node_id];
+            size[current]++;
+        }
+        /* Largest first; equal sizes keep cluster order, so the result is
+           the same on every run. Insertion sort: there are few clusters. */
+        for (position = 1; position < cluster_count; position++) {
+            moved = order[position];
+            current = position;
+            while (current > 0 && size[order[current - 1]] < size[moved]) {
+                order[current] = order[current - 1];
+                current--;
+            }
+            order[current] = moved;
+        }
+        for (current = 0; current < cluster_count; current++) {
+            width = max_x[current] - min_x[current] + CLUSTER_GAP_X;
+            height = max_y[current] - min_y[current] + CLUSTER_GAP_Y;
+            total_area += width * height;
+            if (width > row_limit)
+                row_limit = width;
+        }
+        /* Rows that make the drawing wider than tall, like a screen, never
+           narrower than the widest cluster. */
+        if (graph_square_root(total_area * DRAWING_ASPECT) > row_limit)
+            row_limit = graph_square_root(total_area * DRAWING_ASPECT);
+        for (position = 0; position < cluster_count; position++) {
+            current = order[position];
+            width = max_x[current] - min_x[current];
+            height = max_y[current] - min_y[current];
+            if (cursor_x > 0.0 && cursor_x + width > row_limit) {
+                cursor_x = 0.0;
+                cursor_y += row_height + CLUSTER_GAP_Y;
+                row_height = 0.0;
+            }
+            offset_x[current] = cursor_x - min_x[current];
+            offset_y[current] = cursor_y - min_y[current];
+            cursor_x += width + CLUSTER_GAP_X;
+            if (height > row_height)
+                row_height = height;
+        }
+        for (node_id = 0; node_id < site_graph->node_count; node_id++) {
+            if (cluster[node_id] == -1)
+                continue;
+            position_x[node_id] += offset_x[cluster[node_id]];
+            position_y[node_id] += offset_y[cluster[node_id]];
+        }
+    }
+    free(min_x);
+    free(min_y);
+    free(max_x);
+    free(max_y);
+    free(offset_x);
+    free(offset_y);
+    free(size);
+    free(order);
+    return is_ok;
+}
+
 int graph_layout_global(graph *site_graph)
 {
     int node_count = site_graph->node_count;
@@ -428,6 +581,8 @@ int graph_layout_global(graph *site_graph)
     double *position_y;
     double *move_x;
     double *move_y;
+    int *cluster;
+    int cluster_count;
     double temperature;
     double distance;
     double force;
@@ -448,11 +603,15 @@ int graph_layout_global(graph *site_graph)
     position_y = malloc((size_t)node_count * sizeof(double));
     move_x = malloc((size_t)node_count * sizeof(double));
     move_y = malloc((size_t)node_count * sizeof(double));
-    if (position_x == NULL || position_y == NULL || move_x == NULL || move_y == NULL) {
+    cluster = malloc((size_t)node_count * sizeof(int));
+    cluster_count = cluster == NULL ? -1 : label_clusters(site_graph, cluster);
+    if (position_x == NULL || position_y == NULL || move_x == NULL || move_y == NULL
+        || cluster_count == -1) {
         free(position_x);
         free(position_y);
         free(move_x);
         free(move_y);
+        free(cluster);
         return 0;
     }
 
@@ -462,7 +621,8 @@ int graph_layout_global(graph *site_graph)
        node moves at most "temperature" per step, which cools to zero. Date
        nodes stay out of the forces: they start hidden, and a date seldom joins
        two pages, so they would only spread the drawing. They are placed beside
-       their pages afterwards. */
+       their pages afterwards. Nodes repel only within their cluster; the
+       clusters are packed side by side at the end. */
     temperature = IDEAL_EDGE_LEN * 2.0;
     for (step = 0; step < GLOBAL_LAYOUT_STEPS; step++) {
         for (first_id = 0; first_id < node_count; first_id++) {
@@ -473,7 +633,8 @@ int graph_layout_global(graph *site_graph)
             if (site_graph->nodes[first_id].type == GRAPH_NODE_DATE)
                 continue;
             for (second_id = first_id + 1; second_id < node_count; second_id++) {
-                if (site_graph->nodes[second_id].type == GRAPH_NODE_DATE)
+                if (site_graph->nodes[second_id].type == GRAPH_NODE_DATE
+                    || cluster[second_id] != cluster[first_id])
                     continue;
                 delta_x = position_x[first_id] - position_x[second_id];
                 delta_y = position_y[first_id] - position_y[second_id];
@@ -525,6 +686,14 @@ int graph_layout_global(graph *site_graph)
                       + 0.5;
     }
 
+    if (!pack_clusters(site_graph, cluster, cluster_count, position_x, position_y)) {
+        free(position_x);
+        free(position_y);
+        free(move_x);
+        free(move_y);
+        free(cluster);
+        return 0;
+    }
     place_dates_beside_pages(site_graph, position_x, position_y);
     place_in_drawing(site_graph, position_x, position_y, MARGIN_LEFT, MARGIN_TOP,
                      MARGIN_RIGHT, MARGIN_BOTTOM);
@@ -532,6 +701,7 @@ int graph_layout_global(graph *site_graph)
     free(position_y);
     free(move_x);
     free(move_y);
+    free(cluster);
     return 1;
 }
 

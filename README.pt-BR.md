@@ -477,8 +477,11 @@ embutido, sem JavaScript. O `graph.c` monta e posiciona o grafo; o
   um número fixo de passos, enquanto o movimento permitido esfria até
   zero. Os nós de data ficam fora das forças e são postos ao lado das
   suas páginas no fim, pois começam ocultos e raramente ligam duas
-  páginas. Caixas de seleção antes do desenho ocultam cada tipo de nó
-  pelo CSS (`:checked`).
+  páginas. Os nós só se repelem dentro do seu grupo (parte conexa, sem
+  contar as datas); depois os grupos são arrumados em linhas, do maior
+  para o menor, então uma página que não divide nenhuma chave fica ao
+  lado das outras, e não longe. Caixas de seleção antes do desenho
+  ocultam cada tipo de nó pelo CSS (`:checked`).
 - **Vistas locais (`graph_local.html`, `local_*.html`).** Uma página por
   nó: o nó no centro, os vizinhos num primeiro anel e os vizinhos deles
   num segundo anel, cada anel com espaçamento igual na ordem dos ids. O

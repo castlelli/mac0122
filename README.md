@@ -461,8 +461,11 @@ SVG, with no JavaScript. `graph.c` builds and lays out the graph;
   outer one, then every pair repels and every edge pulls for a fixed
   number of steps while the allowed movement cools to zero. Date nodes
   stay out of the forces and are placed beside their pages at the end,
-  since they start hidden and seldom join two pages. Checkboxes before
-  the drawing hide each node type through CSS (`:checked`).
+  since they start hidden and seldom join two pages. Nodes repel only
+  within their cluster (connected part, ignoring dates); the clusters
+  are then packed in rows, largest first, so a page that shares no key
+  sits beside the rest instead of far away. Checkboxes before the
+  drawing hide each node type through CSS (`:checked`).
 - **Local views (`graph_local.html`, `local_*.html`).** One page per
   node: the node in the centre, its neighbours on a first ring, and
   their neighbours on a second ring, each ring evenly spaced in id
