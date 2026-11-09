@@ -1,0 +1,3 @@
+Algoritmo: Nome reservado
+---
+Texto.

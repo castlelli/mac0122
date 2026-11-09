@@ -1,0 +1,11 @@
+Tecnica: Método guloso
+Algoritmo: Prim
+Autores: Robert Prim, Vojtěch Jarník
+Data: 12/03/1957
+Conceitos: grafo, arvore, heap
+Problema: Dado um grafo conexo com pesos, encontrar uma árvore espalhada de peso mínimo.
+---
+# Ideia
+Cresce uma árvore a partir de um vértice, sempre pela aresta mais leve.
+
+[ref] Sedgewick, Algorithms in C, parte 5

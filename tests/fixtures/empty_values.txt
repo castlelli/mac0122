@@ -1,0 +1,7 @@
+Tecnica: X
+Algoritmo:
+Autores: , ,
+Conceitos: a, , b
+Chave desconhecida: valor
+---
+Problema: depois do separador, nao pode ser lido

@@ -1,0 +1,3 @@
+Tecnica: Sem separador
+Algoritmo: X
+# Corpo sem o separador

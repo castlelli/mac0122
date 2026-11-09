@@ -1,0 +1,5 @@
+Conceitos: grafo
+Autores: Autor Único
+---
+# Só o corpo
+Sem algoritmo, técnica, data ou problema no cabeçalho.

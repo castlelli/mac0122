@@ -1,0 +1,21 @@
+Tecnica: Método guloso
+Algoritmo: Kruskal
+Autores: Joseph Kruskal
+Data: 1956
+Conceitos: Grafo, Árvore, union-find
+Problema: Dado um grafo conexo com pesos, encontrar uma árvore espalhada de peso mínimo.
+---
+# Ideia
+Ordena as arestas por peso e usa union-find para evitar ciclos.
+
+[ref] Cormen et al., Introduction to Algorithms, cap. 23
+
+# Código
+[code]
+int find(int parent[], int vertex)
+{
+    while (parent[vertex] != vertex && vertex < 100)
+        vertex = parent[vertex];
+    return vertex;
+}
+[/code]

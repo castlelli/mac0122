@@ -1,0 +1,3 @@
+Algoritmo: Outro Kruskal
+---
+Texto.

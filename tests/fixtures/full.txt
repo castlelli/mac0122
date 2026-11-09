@@ -1,0 +1,26 @@
+Tecnica: Método guloso
+Algoritmo: Kruskal
+Autores: Joseph Kruskal, Outro Autor
+Data: 1956
+Conceitos: grafo, árvore
+Problema: Dado um grafo
+---
+# Ideia
+Texto um.
+[code]
+int main(void)
+{
+
+    return 0;
+}
+[/code]
+Texto entre.
+[code]
+[/code]
+[code]
+x = 1;
+[/code]
+
+[ref] Livro
+[code]
+sem fim;
