@@ -14,6 +14,7 @@ From the repository root, with the TXTs given as arguments:
 ```
 gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
 ./ep1 input/*.txt
+open output/index.html
 ```
 
 The site is written to `output/`, which must exist and is not committed.
@@ -21,6 +22,10 @@ The site is written to `output/`, which must exist and is not committed.
 program reports a TXT that does not fit the format (it cannot be opened,
 has no `---` line, or has an invalid `Data`) or whose page name is taken,
 and then stops with status 1 before writing any page.
+The last command opens the home page in the default browser on macOS. On
+Linux use `xdg-open output/index.html`; on Windows, `start output/index.html`.
+The site is static and uses no JavaScript, so it also opens straight from
+disk, as long as the files stay together in `output/`.
 
 ## Visual design
 

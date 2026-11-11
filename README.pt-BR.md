@@ -15,6 +15,7 @@ Na raiz do repositório, com os TXTs como argumentos:
 ```
 gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
 ./ep1 input/*.txt
+open output/index.html
 ```
 
 O site é escrito em `output/`, que precisa existir e não vai para o
@@ -22,6 +23,10 @@ repositório. `template.txt` mostra o formato e nunca vira página, esteja
 onde estiver. O programa informa um TXT que não segue o formato (não abre,
 não tem a linha `---` ou tem um `Data` inválido) ou cujo nome de página já
 está em uso, e então termina com status 1 antes de escrever qualquer página.
+O último comando abre a página inicial no navegador padrão, no macOS. No
+Linux, use `xdg-open output/index.html`; no Windows, `start output/index.html`.
+O site é estático e não usa JavaScript, então também abre direto do disco,
+desde que os arquivos continuem juntos em `output/`.
 
 ## Design visual
 
