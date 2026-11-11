@@ -1,0 +1,99 @@
+Tecnica:
+Algoritmo: Árvore binária de busca
+Autores: P. F. Windley
+Data: 1960
+Conceitos: árvore binária de busca, árvore binária, busca, recursão
+Problema: Manter um conjunto de chaves sob busca, inserção e remoção, com tempo proporcional à altura da árvore.
+---
+# Ideia do algoritmo
+Uma árvore binária de busca tem uma chave em cada nó e satisfaz a seguinte propriedade: a chave de cada nó é maior ou igual à chave de cada nó da sua subárvore esquerda e menor ou igual à chave de cada nó da sua subárvore direita. Dito de outra forma, a varredura e-r-d das chaves é crescente.
+
+A busca compara a chave k procurada com a chave da raiz: se são iguais, achou; se a raiz é maior, a busca continua na subárvore esquerda; senão, na direita. A inserção segue o mesmo caminho até chegar a uma subárvore vazia, onde o novo nó entra como folha.
+
+A remoção é mais complicada. Para remover a raiz, se ela não tem filho esquerdo basta que o filho direito assuma o seu papel. Senão, o nó que antecede a raiz na ordem e-r-d, o mais à direita da subárvore esquerda, assume o papel da raiz. Para remover um nó que não é a raiz, aplica-se a mesma função ao filho que se quer remover.
+
+Nenhum desses algoritmos mantém a árvore balanceada. Uma sequência azarada de inserções pode deixar a árvore com altura próxima de n-1, o que motiva as árvores AVL e as rubro-negras.
+
+# Implementação em C
+O código abaixo é de Paulo Feofiloff (página sobre árvores binárias de busca): a busca recursiva, a inserção de uma folha avulsa e a remoção da raiz; a definição do tipo arvore vem da página sobre árvores binárias.
+[code]
+typedef struct reg {
+   int         chave;
+   int         conteudo;
+   struct reg *esq, *dir;
+} noh; // nó
+
+typedef noh *arvore; // árvore
+
+// Recebe uma árvore de busca r e
+// um número k. Devolve um nó
+// cuja chave é k; se tal nó não existe,
+// devolve NULL.
+
+noh *
+busca (arvore r, int k) {
+    if (r == NULL || r->chave == k)
+       return r;
+    if (r->chave > k)
+       return busca (r->esq, k);
+    else
+       return busca (r->dir, k);
+}
+
+// A função recebe uma árvore de busca r
+// e uma folha avulsa novo e insere a folha
+// na árvore de modo que a árvore continue
+// sendo de busca. A função devolve a raiz
+// da árvore resultante.
+
+arvore
+insere (arvore r, noh *novo) {
+    if (r == NULL) return novo;
+    if (r->chave > novo->chave)
+       r->esq = insere (r->esq, novo);
+    else
+       r->dir = insere (r->dir, novo);
+    return r;
+}
+
+// Recebe uma árvore de busca não vazia r.
+// Remove a raiz da árvore e rearranja a
+// árvore de modo que ela continue sendo
+// de busca. Devolve o endereço da nova
+// raiz.
+
+arvore
+removeraiz (arvore r) {
+    noh *p, *q;
+    if (r->esq == NULL) {
+       q = r->dir;
+       free (r);
+       return q;
+    }
+    p = r; q = r->esq;
+    while (q->dir != NULL) {
+       p = q; q = q->dir;
+    }
+    // q é nó anterior a r na ordem e-r-d
+    // p é o pai de q
+    if (p != r) {
+       p->dir = q->esq;
+       q->esq = r->esq;
+    }
+    q->dir = r->dir;
+    free (r);
+    return q;
+}
+[/code]
+Observe que a função insere recebe um nó novo já alocado, que a página cria assim: novo = malloc (sizeof (noh)); novo->chave = k; novo->esq = novo->dir = NULL;. Para remover um filho de x, faça x->esq = removeraiz (x->esq) ou x->dir = removeraiz (x->dir).
+
+# Complexidade
+A busca, a inserção e a remoção gastam, no pior caso, tempo proporcional à altura da árvore (Cormen et al. escrevem O(h) para a inserção e para a remoção, pp. 295 e 298). Se a árvore é balanceada, a altura é próxima de log n e o tempo é da mesma ordem que o da busca binária num vetor ordenado. Em geral, porém, as operações descritas não mantêm a árvore balanceada. Para uma árvore construída por inserções em ordem aleatória, a altura esperada é O(lg n) (Cormen et al.).
+
+# Histórico
+A árvore binária de busca foi descoberta de forma independente por várias pessoas no fim dos anos 1950 (Cormen et al., p. 307). P. F. Windley está entre as primeiras publicações: "Trees, forests and rearranging", The Computer Journal 3(2):84-88, 1960.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Árvores binárias de busca", https://www.ime.usp.br/~pf/algoritmos/aulas/binst.html
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Árvores binárias", https://www.ime.usp.br/~pf/algoritmos/aulas/bint.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, cap. 12, seções 12.2 e 12.3, pp. 295, 298 e 307
+[ref] P. F. Windley, "Trees, forests and rearranging", The Computer Journal 3(2):84-88, 1960 (DOI 10.1093/comjnl/3.2.84)

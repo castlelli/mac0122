@@ -1,0 +1,61 @@
+Tecnica:
+Algoritmo: Fila de prioridade em heap
+Autores: J. W. J. Williams
+Data: 1964
+Conceitos: fila de prioridade, heap, árvore binária, vetor
+Problema: Manter um conjunto de elementos sob inserções e remoções do elemento de maior prioridade.
+---
+# Ideia do algoritmo
+Uma fila de prioridade é uma estrutura de dados de itens com chaves que admite duas operações básicas: inserir um novo item e remover o item de maior chave (Sedgewick, definição 9.1, p. 361). Aqui a fila é mantida num heap: uma árvore binária completa ordenada como heap, guardada num vetor, em que os filhos da posição k estão nas posições 2k e 2k+1.
+
+Para inserir, o item novo é posto no fim do vetor, que é uma folha, e sobe na árvore enquanto for maior que o pai; essa é a função fixUp. Para remover o máximo, o item da raiz é trocado com o último, o último sai do heap, e o item que foi parar na raiz desce na árvore, trocando com o maior dos filhos enquanto for menor que ele; essa é a função fixDown. Depois a posição N do vetor guarda o máximo, que é devolvido.
+
+O vetor pq é alocado com maxN+1 posições porque o heap usa os índices de 1 a N. A fila está vazia se N vale 0. As operações de comparação e troca, less e exch, são fornecidas pelo tipo Item do livro, que não faz parte do trecho.
+
+# Implementação em C
+O código é o dos programas 9.3, 9.4 e 9.5 do livro de Sedgewick, transcritos como impressos: fixUp, fixDown e a interface da fila de prioridade em heap, com PQinit, PQempty, PQinsert e PQdelmax.
+[code]
+fixUp(Item a[], int k)
+  {
+    while (k > 1 && less(a[k/2], a[k]))
+      { exch(a[k], a[k/2]); k = k/2; }
+  }
+
+fixDown(Item a[], int k, int N)
+  { int j;
+    while (2*k <= N)
+      { j = 2*k;
+        if (j < N && less(a[j], a[j+1])) j++;
+        if (!less(a[k], a[j])) break;
+        exch(a[k], a[j]); k = j;
+      }
+  }
+
+#include <stdlib.h>
+#include "Item.h"
+static Item *pq;
+static int N;
+void PQinit(int maxN)
+  { pq = malloc((maxN+1)*sizeof(Item)); N = 0; }
+ int PQempty()
+  { return N == 0; }
+void PQinsert(Item v)
+  { pq[++N] = v; fixUp(pq, N); }
+Item PQdelmax()
+  {
+    exch(pq[1], pq[N]);
+    fixDown(pq, 1, N-1);
+    return pq[N--];
+  }
+[/code]
+O trecho não compila sozinho: depende de Item.h, que define o tipo Item e as operações less e exch, e as funções não têm tipo de retorno declarado, como no livro.
+
+# Complexidade
+Sedgewick mostra que a inserção usa no máximo lg N comparações e a remoção do máximo no máximo 2 lg N (propriedade 9.2, p. 373-374). Cormen et al. afirmam que um heap suporta qualquer operação de fila de prioridade sobre um conjunto de tamanho n em tempo O(lg n) (p. 164).
+
+# Histórico
+Williams inventou o heapsort e, no mesmo artigo, descreveu como implementar uma fila de prioridade com um heap: J. W. J. Williams, "Algorithm 232: Heapsort", Communications of the ACM 7(6):347-348, junho de 1964 (Cormen et al., p. 168).
+
+[ref] Robert Sedgewick, Algorithms in C, 3ª ed., partes 1-4, Addison-Wesley, 1998, programas 9.3, 9.4 e 9.5, p. 372-374
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 6.5, p. 162-164 e notas, p. 168
+[ref] J. W. J. Williams, "Algorithm 232: Heapsort", Communications of the ACM 7(6):347-348, 1964

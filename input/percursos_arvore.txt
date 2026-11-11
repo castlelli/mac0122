@@ -1,0 +1,82 @@
+Tecnica:
+Algoritmo: Percursos em árvore binária
+Autores: Alan J. Perlis, Charles Thornton
+Data: 1960
+Conceitos: árvore binária, recursão, altura
+Problema: Visitar todos os nós de uma árvore binária, cada um uma vez, em uma ordem definida.
+---
+# Ideia do algoritmo
+Uma árvore binária é vazia ou é um nó com uma subárvore esquerda e uma subárvore direita. Como a definição é recursiva, os percursos também são: visitar a árvore é visitar a raiz e as duas subárvores, e as três tarefas podem ser feitas em ordens diferentes.
+
+Na varredura esquerda-raiz-direita (e-r-d, infixa ou inorder), visita-se a subárvore esquerda, depois a raiz, depois a subárvore direita. Na varredura raiz-esquerda-direita (r-e-d, prefixa ou preorder), a raiz vem primeiro. Na varredura esquerda-direita-raiz (e-d-r, posfixa ou postorder), a raiz vem por último. Os nomes vêm da posição da raiz em relação às subárvores. Se a árvore representa uma expressão aritmética, as varreduras e-r-d, e-d-r e r-e-d dão as notações infixa, posfixa e prefixa da expressão.
+
+A versão recursiva é a mais simples. A versão iterativa troca a pilha de execução por uma pilha de nós: cada nó x na pilha lembra que ainda é preciso imprimir x e a subárvore direita de x. A altura de uma árvore, o número de passos no mais longo caminho da raiz a uma folha, é calculada por uma função recursiva do mesmo estilo; a árvore vazia tem altura -1, e uma árvore com n nós tem altura h com lg n ≤ h ≤ n-1.
+
+# Implementação em C
+O código abaixo é de Paulo Feofiloff (página sobre varreduras de árvores binárias): a varredura e-r-d recursiva, a iterativa e o cálculo da altura. A função erd_i usa as funções de pilha criapilha, empilha, desempilha, pilhavazia e liberapilha, que são supostas definidas à parte.
+[code]
+typedef struct reg {
+   int  conteudo; // conteúdo
+   noh *esq;
+   noh *dir;
+} noh; // nó
+
+typedef noh *arvore; // árvore
+
+// Recebe a raiz r de uma árvore binária e
+// imprime os conteúdos dos seus nós
+// em ordem e-r-d.
+
+void erd (arvore r) {
+   if (r != NULL) {
+      erd (r->esq);
+      printf ("%d\n", r->conteudo);
+      erd (r->dir);
+   }
+}
+
+void erd_i (arvore r) {
+   criapilha ();  // pilha de nós
+   empilha (r);
+   while (true) {
+      x = desempilha ();
+      if (x != NULL) {
+         empilha (x);
+         empilha (x->esq);
+      }
+      else {
+         if (pilhavazia ()) break;
+         x = desempilha ();
+         printf ("%d\n", x->conteudo);
+         empilha (x->dir);
+      }
+   }
+   liberapilha ();
+}
+
+// Devolve a altura da árvore binária
+// cuja raiz é r.
+
+int altura (arvore r) {
+   if (r == NULL)
+      return -1; // altura da árvore vazia
+   else {
+      int he = altura (r->esq);
+      int hd = altura (r->dir);
+      if (he < hd) return hd + 1;
+      else return he + 1;
+   }
+}
+[/code]
+Observe que, na página original, a definição de noh usa o tipo noh antes de defini-lo (o correto seria struct reg *esq, *dir;) e a função erd_i usa a variável x sem declará-la; o código copiado só compila depois dessas correções.
+
+# Complexidade
+Cada nó é visitado uma vez e, em cada nó, o trabalho é constante; o tempo é, portanto, proporcional ao número n de nós. Cormen et al. observam que, depois da chamada inicial, o procedimento recursivo chama a si mesmo exatamente duas vezes por nó da árvore. A pilha de execução da versão recursiva e a pilha da versão iterativa podem chegar a ter tamanho proporcional à altura da árvore.
+
+# Histórico
+Alan J. Perlis e Charles Thornton introduziram a ideia de percorrer árvores em várias ordens em "Symbol manipulation by threaded lists", Communications of the ACM 3(4):195-204, 1960, onde também apresentaram as árvores costuradas (threaded). Os nomes preorder, inorder e postorder vêm da posição da raiz em relação às suas subárvores (Knuth, vol. 1, p. 319); a ordem r-e-d foi chamada de subtree order por Iverson e Johnson.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Árvores binárias", https://www.ime.usp.br/~pf/algoritmos/aulas/bint.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 12.1, p. 288
+[ref] Donald E. Knuth, The Art of Computer Programming, vol. 1, 3ª ed., Addison-Wesley, 1997, seção 2.3.1, p. 319, e seção 2.6, pp. 459-460
+[ref] A. J. Perlis, C. Thornton, "Symbol manipulation by threaded lists", Communications of the ACM 3(4):195-204, 1960 (DOI 10.1145/367177.367202)

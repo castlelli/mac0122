@@ -1,0 +1,51 @@
+Tecnica:
+Algoritmo: Avaliação de expressão pós-fixa
+Autores: Charles L. Hamblin
+Data: 1957
+Conceitos: pilha, expressão aritmética, notação pós-fixa
+Problema: Dada uma expressão aritmética em notação pós-fixa, calcular o seu valor.
+---
+# Ideia do algoritmo
+Numa expressão pós-fixa, cada operador vem depois dos seus dois operandos. Por isso a expressão pode ser avaliada com uma só leitura da esquerda para a direita, guardando os operandos numa pilha.
+
+Ao encontrar um operando, o algoritmo o empilha. Ao encontrar um operador, desempilha os dois operandos do topo, aplica o operador a eles e empilha o resultado. O primeiro operando a sair da pilha é o da direita, o que importa para - e /. Quando a leitura termina, a pilha contém um só elemento, o valor da expressão.
+
+A página de Feofiloff propõe o problema como exercício, para expressões com os operadores +, -, * e /, sem constantes, e com variáveis de uma letra maiúscula cujos valores estão num vetor (valor[0] é o valor de A, valor[1] o de B, e assim por diante), e pede cuidado com divisões por zero.
+
+# Implementação em C
+O código é o Programa 4.2 de Sedgewick (Algorithms in C, seção 4.3, p. 140), transcrito da página impressa. O programa recebe a expressão pós-fixa como argumento da linha de comando, com somas e multiplicações de inteiros e pelo menos um espaço depois de cada inteiro. Ele usa a pilha de inteiros da interface STACK.h e supõe que Item.h define Item como int.
+[code]
+#include <stdio.h>
+#include <string.h>
+#include "Item.h"
+#include "STACK.h"
+main(int argc, char *argv[])
+  { char *a = argv[1]; int i, N = strlen(a);
+    STACKinit(N);
+    for (i = 0; i < N; i++)
+      {
+        if (a[i] == '+')
+          STACKpush(STACKpop()+STACKpop());
+        if (a[i] == '*')
+          STACKpush(STACKpop()*STACKpop());
+        if ((a[i] >= '0') && (a[i] <= '9'))
+          STACKpush(0);
+        while ((a[i] >= '0') && (a[i] <= '9'))
+          STACKpush(10*STACKpop() + (a[i++]-'0'));
+      }
+    printf("%d \n", STACKpop());
+  }
+[/code]
+
+Como observa Sedgewick, a ordem em que as duas chamadas de STACKpop são feitas numa mesma expressão não é definida em C; por isso o programa trata só + e *, que são comutativos. As duas últimas instruções do laço fazem a conversão de dígitos ASCII para inteiro, como a função atoi.
+
+# Complexidade
+Há uma só leitura da expressão e, para cada símbolo, uma operação de empilhar ou duas de desempilhar e uma de empilhar. O tempo é, portanto, proporcional ao número de símbolos da expressão.
+
+# Histórico
+Charles L. Hamblin publicou o cálculo de expressões em notação polonesa reversa com uma pilha ("zero-address store") em "Computer languages", The Australian Journal of Science 20:135-139, 1957, reimpresso em The Australian Computer Journal 17(4):195-198, 1985. É a primeira publicação conhecida da avaliação de expressões pós-fixas com pilha. A notação é de Jan Łukasiewicz.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Pilhas", https://www.ime.usp.br/~pf/algoritmos/aulas/pilha.html
+[ref] Robert Sedgewick, Algorithms in C, 3ª ed., partes 1–4, Addison-Wesley, 1998, seção 4.3, Programa 4.2, p. 140
+[ref] Ellis Horowitz, Sartaj Sahni, Fundamentals of Data Structures, Computer Science Press, 1976, seção 3.3
+[ref] C. L. Hamblin, "Computer languages", The Australian Journal of Science 20:135-139, 1957

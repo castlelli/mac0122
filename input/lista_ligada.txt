@@ -1,0 +1,101 @@
+Tecnica:
+Algoritmo: Lista ligada
+Autores: Allen Newell, Herbert A. Simon
+Data: 1956
+Conceitos: lista ligada, apontador, struct, alocação dinâmica
+Problema: Guardar uma sequência de elementos de modo que inserir e remover em qualquer ponto não exija deslocar os demais.
+---
+# Ideia do algoritmo
+Uma lista ligada é uma sequência de células; cada célula contém um objeto e o endereço da célula seguinte. Todos os objetos têm o mesmo tipo. O endereço da lista é o endereço da sua primeira célula, e a última célula tem prox igual a NULL. A lista está vazia se e somente se o seu endereço é NULL. As células não ocupam posições consecutivas da memória: ficam espalhadas, e é o campo prox que as encadeia.
+
+Para inserir uma nova célula entre a célula apontada por p e a seguinte, basta alocar a célula e mudar dois ponteiros. Para remover a célula que vem depois de p, basta mudar um ponteiro e liberar a célula. Não é preciso copiar nem deslocar nenhuma outra célula, ao contrário do que acontece com a inserção e a remoção em um vetor.
+
+Convém apontar para a célula anterior à que se quer remover, e é por isso que remove recebe p e não a célula a ser removida. Com essa convenção não se consegue remover a primeira célula nem inserir antes dela. Uma célula-cabeça, que é só um marcador de início e cujo conteúdo é ignorado, resolve os dois casos: a lista com cabeça está vazia quando le->prox é NULL. A busca percorre as células enquanto o conteúdo for diferente de x, sem precisar de variável de sinalização.
+
+# Implementação em C
+O código vem da página de Feofiloff sobre listas encadeadas: o tipo celula, a busca, a inserção depois de uma célula, a remoção da célula seguinte e a combinação busca_e_remove, que supõe lista com cabeça.
+[code]
+struct reg {
+   int         conteudo;
+   struct reg *prox;
+};
+
+typedef struct reg celula;  // célula
+
+// Esta função recebe um inteiro x e uma
+// lista encadeada le de inteiros e devolve
+// o endereço de uma celula que contém x.
+// Se tal celula não existe, devolve NULL.
+
+celula *
+busca (int x, celula *le)
+{
+   celula *p;
+   p = le;
+   while (p != NULL && p->conteudo != x)
+      p = p->prox;
+   return p;
+}
+
+// Esta função insere uma nova celula
+// em uma lista encadeada. A nova celula
+// tem conteudo x e é inserida entre a
+// celula p e a celula seguinte.
+// (Supõe-se que p != NULL.)
+
+void
+insere (int x, celula *p)
+{
+   celula *nova;
+   nova = malloc (sizeof (celula));
+   nova->conteudo = x;
+   nova->prox = p->prox;
+   p->prox = nova;
+}
+
+// Esta função recebe o endereço p de uma
+// celula de uma lista encadeada e remove
+// da lista a celula p->prox. A função supõe
+// que p != NULL e p->prox != NULL.
+
+void
+remove (celula *p)
+{
+   celula *lixo;
+   lixo = p->prox;
+   p->prox = lixo->prox;
+   free (lixo);
+}
+
+// Esta função recebe uma lista encadeada le
+// com cabeça e remove da lista a primeira
+// celula que contiver y, se tal celula existir.
+
+void
+busca_e_remove (int y, celula *le)
+{
+   celula *p, *q;
+   p = le;
+   q = le->prox;
+   while (q != NULL && q->conteudo != y) {
+      p = q;
+      q = q->prox;
+   }
+   if (q != NULL) {
+      p->prox = q->prox;
+      free (q);
+   }
+}
+[/code]
+O código é o da página, sem as declarações de include. As funções usam malloc e free, que exigem stdlib.h.
+
+# Complexidade
+Segundo Feofiloff, o tempo que insere consome não depende do ponto da lista em que a inserção é feita, e remove consome sempre o mesmo tempo, quer a célula esteja perto do início, quer esteja perto do fim. A busca percorre as células uma a uma; para uma lista de n objetos, Cormen et al. dão tempo Θ(n) no pior caso (p. 237).
+
+# Histórico
+Não há um inventor único das listas ligadas. A primeira publicação conhecida é a da linguagem IPL-II, projetada na primavera de 1956 por Allen Newell, J. C. Shaw e Herbert A. Simon para o Logic Theory Machine; o artigo de 1956 na IRE Transactions on Information Theory tem como autores Newell e Simon, e Shaw, que escreveu a programação em IPL, assina os artigos de 1957. Knuth afirma que as técnicas de memória ligada nasceram com esse trabalho e registra precursores embrionários, como o "endereçamento um-mais-um" discutido por Mauchly em 1946 e o memorando de Luhn de 1953 (vol. 1, p. 457).
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Listas encadeadas", https://www.ime.usp.br/~pf/algoritmos/aulas/lista.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 10.2, p. 236-240
+[ref] Donald E. Knuth, The Art of Computer Programming, vol. 1, 3ª ed., Addison-Wesley, 1997, seção 2.6, p. 457-458
+[ref] A. Newell, H. A. Simon, "The Logic Theory Machine: A Complex Information Processing System", IRE Transactions on Information Theory IT-2(3):61-79, 1956

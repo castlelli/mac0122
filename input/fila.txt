@@ -1,0 +1,48 @@
+Tecnica:
+Algoritmo: Fila
+Autores: C. F. Schlatter, W. J. Schlatter
+Data: 1957
+Conceitos: fila, vetor, lista ligada, vetor circular
+Problema: Guardar elementos de modo que o primeiro a entrar seja o primeiro a sair.
+---
+# Ideia do algoritmo
+Uma fila é uma estrutura sujeita a uma regra: cada remoção remove o elemento mais antigo, isto é, o que está na estrutura há mais tempo. O primeiro objeto inserido é também o primeiro a ser removido. Essa política é conhecida pela sigla FIFO (first-in-first-out).
+
+Num vetor fila[0..N-1], a fila ocupa fila[p..u-1]: o primeiro elemento está em p e o último em u-1. A fila está vazia se p == u e cheia se u == N. Tirar um elemento é fazer x = fila[p++] e colocar y na fila é fazer fila[u++] = y. Nessa versão a fila anda para a direita dentro do vetor, o que torna difícil prever o valor de N que evita o transbordamento.
+
+Na implementação circular, os elementos ficam em fila[p..u-1] ou em fila[p..N-1] seguido de fila[0..u-1], e os índices voltam a 0 ao chegar em N. A fila está vazia se u == p e cheia se (u+1) % N == p; a posição anterior a p fica sempre desocupada, para distinguir fila cheia de fila vazia. A fila também pode morar numa lista ligada circular com célula-cabeça. Uma aplicação clássica é o cálculo de distâncias em um grafo, em que a fila guarda os vértices cujas distâncias já foram calculadas mas cujos vizinhos ainda não foram explorados.
+
+# Implementação em C
+O código vem da página de Feofiloff sobre filas, na implementação em vetor: o vetor fila com os índices p e u e as funções de criação, teste de fila vazia, remoção e inserção. Foi omitida a declaração do vetor dist, que serve só ao cálculo de distâncias.
+[code]
+#define N 100
+int fila[N], int p, u;
+
+void criafila (void) {
+   p = u = 0;
+}
+
+int filavazia (void) {
+   return p >= u;
+}
+
+int tiradafila (void) {
+   return fila[p++];
+}
+
+void colocanafila (int y) {
+   fila[u++] = y;
+}
+[/code]
+A declaração int fila[N], int p, u; está assim na página e não é C válido: o segundo int não pode aparecer ali. Deve ser int fila[N], p, u;.
+
+# Complexidade
+Cormen et al. afirmam que cada operação da fila (inserir e remover) consome tempo O(1) (p. 235). Isso vale também para as versões em vetor da página de Feofiloff, que fazem uma atribuição e uma mudança de índice por operação.
+
+# Histórico
+Não se conhece o inventor da fila em computação. A referência mais antiga que Knuth cita é a de contadores, que trataram os métodos FIFO e LIFO de avaliação de estoques como objeto de estudo: C. F. Schlatter e W. J. Schlatter, Cost Accounting, 1957, cap. 7 (Knuth, vol. 1, p. 459). Não conhecemos a primeira publicação de uma fila como estrutura de dados em computação; Cormen et al. também dizem que a origem de pilhas e filas é obscura (p. 252).
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Filas", https://www.ime.usp.br/~pf/algoritmos/aulas/fila.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 10.1, p. 234-235 e notas, p. 252
+[ref] Donald E. Knuth, The Art of Computer Programming, vol. 1, 3ª ed., Addison-Wesley, 1997, seção 2.6, p. 459
+[ref] C. F. Schlatter, W. J. Schlatter, Cost Accounting, Wiley, 1957, cap. 7

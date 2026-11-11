@@ -1,0 +1,145 @@
+Tecnica:
+Algoritmo: Árvore AVL
+Autores: Georgy M. Adelson-Velsky, Evgenii M. Landis
+Data: 1962
+Conceitos: árvore binária de busca, balanceamento, rotação, altura
+Problema: Manter uma árvore binária de busca com altura O(log n) sob inserções.
+---
+# Ideia do algoritmo
+Uma árvore AVL é uma árvore binária de busca balanceada no seguinte sentido: para cada nó, as alturas das suas duas subárvores diferem de no máximo 1. Esse critério é simples e leva a um procedimento de rebalanceamento manejável, e a altura da árvore fica próxima da de uma árvore perfeitamente balanceada.
+
+Cada nó guarda um fator de balanceamento bal, igual à altura da subárvore direita menos a da esquerda, que vale -1, 0 ou +1. A inserção é a de uma árvore binária de busca comum, em forma recursiva, e a função informa a quem a chamou se a altura da subárvore aumentou. Ao voltar da recursão por um ramo que cresceu, há três casos: se o outro ramo era mais alto, o desequilíbrio anterior desaparece; se os dois ramos tinham a mesma altura, o nó passa a pender para o lado que cresceu; se o ramo que cresceu já era o mais alto, o critério é violado e a árvore precisa ser reestruturada.
+
+A reestruturação usa rotações, escritas como trocas de ponteiros. Há quatro casos, dois a dois simétricos: as rotações simples LL e RR, quando o filho do lado pesado pende para o mesmo lado, e as rotações duplas LR e RL, quando ele pende para o lado oposto. Depois da rotação a subárvore volta à altura que tinha antes da inserção, e nenhum ancestral precisa ser corrigido.
+
+# Implementação em C
+O código abaixo é a tradução para C do procedimento search da seção 4.5.1 do livro de Wirth, que insere uma chave numa árvore AVL; os parâmetros VAR do Oberon viram ponteiros.
+[code]
+/* Traduzido do Oberon (N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 4.5.1) com Claude Sonnet 5.5 */
+#include <stdio.h>
+#include <stdlib.h>
+
+/* bal é a altura da subárvore direita menos a da esquerda: -1, 0 ou +1.
+   contagem conta as ocorrências da chave. */
+typedef struct no No;
+struct no {
+    int chave;
+    int contagem;
+    int bal;
+    No *esq;
+    No *dir;
+};
+
+/* Insere a chave x na árvore AVL cuja raiz está em *p. Ao voltar da
+   recursão, *cresceu vale 1 se a altura da subárvore aumentou. O chamador
+   deve inicializar *cresceu com 0. */
+void insere(int x, No **p, int *cresceu)
+{
+    No *p1, *p2;
+
+    if (*p == NULL) {
+        /* a chave não está na árvore: cria a folha */
+        *p = malloc(sizeof(No));
+        if (*p == NULL) {
+            fprintf(stderr, "Sem memória\n");
+            exit(EXIT_FAILURE);
+        }
+        (*p)->chave = x;
+        (*p)->contagem = 1;
+        (*p)->esq = NULL;
+        (*p)->dir = NULL;
+        (*p)->bal = 0;
+        *cresceu = 1;
+    } else if ((*p)->chave > x) {
+        insere(x, &(*p)->esq, cresceu);
+        if (*cresceu) {
+            /* o ramo esquerdo cresceu */
+            if ((*p)->bal == 1) {
+                (*p)->bal = 0;
+                *cresceu = 0;
+            } else if ((*p)->bal == 0) {
+                (*p)->bal = -1;
+            } else {
+                /* bal == -1: é preciso rebalancear */
+                p1 = (*p)->esq;
+                if (p1->bal == -1) {
+                    /* rotação simples LL */
+                    (*p)->esq = p1->dir;
+                    p1->dir = *p;
+                    (*p)->bal = 0;
+                    *p = p1;
+                } else {
+                    /* rotação dupla LR */
+                    p2 = p1->dir;
+                    p1->dir = p2->esq;
+                    p2->esq = p1;
+                    (*p)->esq = p2->dir;
+                    p2->dir = *p;
+                    if (p2->bal == -1)
+                        (*p)->bal = 1;
+                    else
+                        (*p)->bal = 0;
+                    if (p2->bal == 1)
+                        p1->bal = -1;
+                    else
+                        p1->bal = 0;
+                    *p = p2;
+                }
+                (*p)->bal = 0;
+                *cresceu = 0;
+            }
+        }
+    } else if ((*p)->chave < x) {
+        insere(x, &(*p)->dir, cresceu);
+        if (*cresceu) {
+            /* o ramo direito cresceu */
+            if ((*p)->bal == -1) {
+                (*p)->bal = 0;
+                *cresceu = 0;
+            } else if ((*p)->bal == 0) {
+                (*p)->bal = 1;
+            } else {
+                /* bal == +1: é preciso rebalancear */
+                p1 = (*p)->dir;
+                if (p1->bal == 1) {
+                    /* rotação simples RR */
+                    (*p)->dir = p1->esq;
+                    p1->esq = *p;
+                    (*p)->bal = 0;
+                    *p = p1;
+                } else {
+                    /* rotação dupla RL */
+                    p2 = p1->esq;
+                    p1->esq = p2->dir;
+                    p2->dir = p1;
+                    (*p)->dir = p2->esq;
+                    p2->esq = *p;
+                    if (p2->bal == 1)
+                        (*p)->bal = -1;
+                    else
+                        (*p)->bal = 0;
+                    if (p2->bal == -1)
+                        p1->bal = 1;
+                    else
+                        p1->bal = 0;
+                    *p = p2;
+                }
+                (*p)->bal = 0;
+                *cresceu = 0;
+            }
+        }
+    } else {
+        (*p)->contagem++;
+    }
+}
+[/code]
+
+# Complexidade
+Wirth afirma que a busca, a inserção e a remoção numa árvore balanceada podem ser feitas em tempo O(log n), mesmo no pior caso. Segundo um teorema de Adelson-Velsky e Landis, uma árvore balanceada nunca tem altura mais de 45% maior que a da árvore perfeitamente balanceada correspondente: a altura h de uma árvore com n nós satisfaz log(n+1) < h < 1,4404 log(n+2) - 0,328. Testes empíricos indicam que a altura esperada é log n + c, com c próximo de 0,25, e que é preciso rebalancear em aproximadamente uma de cada duas inserções, com rotações simples e duplas igualmente prováveis.
+
+# Histórico
+Georgy M. Adelson-Velsky e Evgenii M. Landis introduziram essa classe de árvores balanceadas em "Um algoritmo para a organização de informação" (em russo, "Ob odnom algoritme organizatsii informatsii"), Doklady Akademii Nauk SSSR 146(2):263-266, 1962; a tradução para o inglês saiu em Soviet Mathematics Doklady 3:1259-1263, 1962. O nome AVL vem das iniciais dos inventores. A ideia de balancear uma árvore de busca é deles (Cormen et al., p. 337).
+
+[ref] N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 4.5.1, pp. 164-168
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, notas do cap. 13, p. 337
+[ref] G. M. Adel'son-Vel'skii, E. M. Landis, "An algorithm for the organization of information", Doklady Akademii Nauk SSSR 146(2):263-266, 1962

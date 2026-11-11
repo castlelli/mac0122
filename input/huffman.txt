@@ -1,0 +1,136 @@
+Tecnica: Método guloso
+Algoritmo: Código de Huffman
+Autores: David A. Huffman
+Data: 1952
+Conceitos: código de prefixo, árvore binária, frequência, fila de prioridade
+Problema: Dadas as frequências dos caracteres de um texto, encontrar um código de prefixo que minimize o comprimento total do texto codificado.
+---
+# Ideia do algoritmo
+Um código de prefixo associa a cada caractere uma cadeia de bits de tal forma que nenhuma é prefixo de outra; assim o texto codificado pode ser decodificado sem ambiguidade. Um código desse tipo corresponde a uma árvore binária em que os caracteres são folhas e o código de um caractere é o caminho da raiz até a sua folha (0 para esquerda, 1 para direita). O comprimento do texto codificado é a soma, sobre os caracteres, de frequência vezes profundidade da folha.
+
+O algoritmo de Huffman é guloso. Mantém uma fila de prioridades de árvores, inicialmente com uma árvore de um só nó para cada caractere, com peso igual à frequência. Em cada passo, retira da fila as duas árvores de menor peso, junta-as como filhas de um novo nó cujo peso é a soma dos pesos e devolve a nova árvore à fila. Depois de n-1 fusões, resta uma árvore, que dá um código ótimo.
+
+Caracteres frequentes ficam perto da raiz e ganham códigos curtos; os raros ficam fundo e ganham códigos longos. Por exemplo, com frequências 45, 13, 12, 16, 9 e 5 para a, b, c, d, e, f, o código abaixo produz a = 0, c = 100, b = 101, f = 1100, e = 1101 e d = 111. O pseudocódigo do professor tem a mesma estrutura: repete retirar os dois menores valores, criar um nó com a soma e reinseri-lo ordenadamente no conjunto, que pode ser um heap.
+
+# Implementação em C
+O código abaixo foi escrito para este material a partir do procedimento HUFFMAN de Cormen et al. e do algoritmo do professor; a fila de prioridades é um heap de mínimo e a função imprimeCodigos mostra o código de cada caractere.
+[code]
+/* Código gerado por Claude Sonnet 5.5 com base em Cormen et al., Introduction to Algorithms, 3ª ed., seção 16.3 (procedimento HUFFMAN), e no algoritmo_huffman.txt do professor */
+#include <stdio.h>
+
+#define MAX_SIMBOLOS 256
+
+/* Nó da árvore de codificação. Folhas têm esq == dir == -1 e o índice
+   da folha é o índice do símbolo. */
+typedef struct {
+    long freq;
+    int esq;
+    int dir;
+} No;
+
+static No no[2 * MAX_SIMBOLOS - 1];
+
+/* Fila de prioridades: heap de mínimo com índices de nós, ordenado
+   por frequência. Empates se resolvem pelo índice, para que a saída
+   seja sempre a mesma. */
+static int fila[MAX_SIMBOLOS];
+static int tamanho;
+
+static int menor(int a, int b)
+{
+    if (no[a].freq != no[b].freq)
+        return no[a].freq < no[b].freq;
+    return a < b;
+}
+
+static void insereNaFila(int indice)
+{
+    int filho, pai;
+
+    filho = tamanho++;
+    while (filho > 0) {
+        pai = (filho - 1) / 2;
+        if (!menor(indice, fila[pai]))
+            break;
+        fila[filho] = fila[pai];
+        filho = pai;
+    }
+    fila[filho] = indice;
+}
+
+static int extraiMin(void)
+{
+    int resultado, ultimo, pai, filho;
+
+    resultado = fila[0];
+    ultimo = fila[--tamanho];
+    pai = 0;
+    while (2 * pai + 1 < tamanho) {
+        filho = 2 * pai + 1;
+        if (filho + 1 < tamanho && menor(fila[filho + 1], fila[filho]))
+            ++filho;
+        if (!menor(fila[filho], ultimo))
+            break;
+        fila[pai] = fila[filho];
+        pai = filho;
+    }
+    fila[pai] = ultimo;
+    return resultado;
+}
+
+/* Recebe as frequências freq[0..n-1], com 1 <= n <= MAX_SIMBOLOS, e
+   constrói a árvore de codificação de custo mínimo. Devolve o índice
+   da raiz. As folhas são os nós 0..n-1 e os nós internos são n..2n-2. */
+int huffman(const long freq[], int n)
+{
+    int i, u, v;
+
+    tamanho = 0;
+    for (i = 0; i < n; ++i) {
+        no[i].freq = freq[i];
+        no[i].esq = -1;
+        no[i].dir = -1;
+        insereNaFila(i);
+    }
+    /* cada fusão troca dois nós da fila por um: n-1 fusões */
+    for (i = 0; i < n - 1; ++i) {
+        u = extraiMin();
+        v = extraiMin();
+        no[n + i].freq = no[u].freq + no[v].freq;
+        no[n + i].esq = u;
+        no[n + i].dir = v;
+        insereNaFila(n + i);
+    }
+    return extraiMin();
+}
+
+/* Imprime o código de cada símbolo da árvore de raiz r: 0 para o filho
+   esquerdo e 1 para o filho direito. O buffer codigo guarda o caminho
+   da raiz até o nó atual e tem espaço para MAX_SIMBOLOS + 1 caracteres. */
+void imprimeCodigos(int r, const char simbolos[], char codigo[], int profundidade)
+{
+    if (no[r].esq == -1) {
+        if (profundidade == 0)
+            codigo[profundidade++] = '0'; /* alfabeto de um só símbolo */
+        codigo[profundidade] = '\0';
+        printf("%c %s\n", simbolos[r], codigo);
+        return;
+    }
+    codigo[profundidade] = '0';
+    imprimeCodigos(no[r].esq, simbolos, codigo, profundidade + 1);
+    codigo[profundidade] = '1';
+    imprimeCodigos(no[r].dir, simbolos, codigo, profundidade + 1);
+}
+[/code]
+
+# Complexidade
+Com a fila de prioridades implementada por um heap de mínimo, o tempo total do algoritmo para um alfabeto de n caracteres é O(n lg n): o laço principal executa n-1 vezes, e cada retirada do mínimo e cada inserção custa O(lg n) (Cormen et al., p. 433; Horowitz e Sahni, seção 9.1).
+
+# Histórico
+David A. Huffman publicou o método em "A method for the construction of minimum-redundancy codes", Proceedings of the IRE 40(9):1098-1101, setembro de 1952, no contexto do projeto de códigos que minimizam o comprimento das mensagens. Segundo Knuth, a mesma ideia foi publicada de forma independente por Seth Zimmerman em 1959.
+
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 16.3, pp. 428–436
+[ref] Leônidas de Oliveira Brandão, MAC0122 (2026), arquivo algoritmo_huffman.txt, e-Disciplinas USP
+[ref] Ellis Horowitz, Sartaj Sahni, Fundamentals of Data Structures, Computer Science Press, 1976, seção 9.1
+[ref] Donald E. Knuth, The Art of Computer Programming, vol. 1, 3ª ed., Addison-Wesley, 1997, seção 2.3.4.5, p. 407
+[ref] D. A. Huffman, "A method for the construction of minimum-redundancy codes", Proceedings of the IRE 40(9):1098-1101, 1952 (DOI 10.1109/JRPROC.1952.273898)
