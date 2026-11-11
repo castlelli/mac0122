@@ -139,6 +139,10 @@ only. Nothing is downloaded; the site works offline.
 
 - One centred container, 66rem wide with 1.5rem gutters (1rem under 40rem).
 - Every page: skip link, masthead, nav bar, `main`, footer.
+- Graph drawings (home and local graph pages) span the whole window: `main`
+  gets the class `largo`, a container whose children keep the 66rem column's
+  left edge through `--margem`, while the drawing's frame cancels that margin
+  and loses its side borders.
 - Footer: on the left, "MAC0122 · IME-USP" and "Construído por Alunos da
   Escola Politécnica da Universidade de São Paulo"; on the right, a "GitHub"
   link to the repository. On phones the link wraps below the credits.
@@ -150,7 +154,8 @@ only. Nothing is downloaded; the site works offline.
 - Under 40rem, index tables stack: each row becomes a block with the algorithm
   in semibold and the other fields below it, each labelled from its cell's
   `data-label`; empty fields are hidden. The page never scrolls sideways.
-- Under 40rem: smaller masthead and `h1`, tighter nav rows.
+- Under 40rem: smaller masthead and `h1`, tighter nav rows, 1rem graph
+  margins.
 - Print: nav, skip link, order control, sort and key lists hidden; links
   printed as text.
 
@@ -212,8 +217,9 @@ shows them whole.
 - Global: a one-line hint, then one checkbox per node type, drawn as a
   square (navy and filled when on) followed by the type's symbol and
   name, so the filters are also the legend. Data starts off. The drawing
-  sits in a hairline frame, at most 80vh tall, that scrolls when it
-  overflows; on phones it keeps a 44rem minimum width.
+  sits in a frame as wide as the window, with hairlines above and below,
+  at most 80vh tall, that scrolls when it overflows; on phones it keeps a
+  44rem minimum width.
 - Zoom, on global and local pages, on its own line under the filters:
   "Zoom:" in the secondary colour, then Ajustar, 100%, 150%, 200% as
   text options. The chosen one is ink, semibold, with a navy underline;
@@ -226,8 +232,9 @@ shows them whole.
 - Hover or focus fades every other node to 30% and every other edge to
   15%, keeping the node and its neighbours sharp.
 - Local: the centre node's name as an `h2`, its type and a link to the
-  real page, a legend of the types present, then the ring drawing with
-  every label written, pointing away from the centre.
+  real page, a legend of the types present, then the ring drawing, as
+  wide as the window, with every label written, pointing away from the
+  centre.
 - Chooser: one `h2` per type and a wrapped list of links; problems are
   one per line.
 

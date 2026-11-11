@@ -181,6 +181,12 @@ static const char *const SITE_CSS_LINES[] = {
     ".legenda { display:flex; flex-wrap:wrap; gap:0.4rem 1.25rem; list-style:none;\n",
     "        padding:0; margin:0 0 0.75rem; font-size:0.9375rem; max-width:none; }\n",
     ".simbolo { width:14px; height:14px; flex:none; }\n",
+    "main.largo { --margem:max(1.5rem, calc(50cqw - 31.5rem)); container-type:inline-size;\n",
+    "        max-width:none; padding-left:0; padding-right:0; }\n",
+    "main.largo > * { margin-left:var(--margem); margin-right:var(--margem); }\n",
+    "main.largo .tela { flex-basis:calc(100% + 2 * var(--margem));\n",
+    "        margin-left:calc(-1 * var(--margem)); margin-right:calc(-1 * var(--margem));\n",
+    "        border-left:0; border-right:0; }\n",
     ".tela { flex-basis:100%; overflow:auto; border:1px solid var(--linha); margin-top:0.5rem;\n",
     "        padding:0.5rem; box-sizing:border-box; max-height:80vh; }\n",
     ".grafo { display:block; width:100%; max-width:none; height:auto; }\n",
@@ -232,6 +238,7 @@ static const char *const SITE_CSS_LINES[] = {
     "  .abertura { font-size:1.0625rem; }\n",
     "  .indices { grid-template-columns:minmax(0, 1fr); }\n",
     "  .ficha th { width:6.5rem; }\n",
+    "  main.largo { --margem:1rem; }\n",
     "  .grafo.global { min-width:44rem; }\n",
     "  .tabela table, .tabela tbody, .tabela tr, .tabela td { display:block; }\n",
     "  .tabela table { border-top:2px solid var(--marinho); }\n",
@@ -294,9 +301,10 @@ static void write_tab_file_name(char *file_name, enum site_tab tab)
 /* Closes the head and opens the body with the skip link, the masthead and the
    tab bar. On the home page the course name is the page's h1. current_tab is
    marked with aria-current: "page" when is_tab_target says this page is the
-   file the tab opens, "true" when it is another page of that tab. */
+   file the tab opens, "true" when it is another page of that tab.
+   is_wide_main lets the graph span the whole window. */
 static void write_site_header(FILE *html_file, int is_home_page, enum site_tab current_tab,
-                              int is_tab_target)
+                              int is_tab_target, int is_wide_main)
 {
     char file_name[MAX_FILE_NAME_LEN];
     const char *heading_tag = is_home_page ? "h1" : "p";
@@ -321,7 +329,8 @@ static void write_site_header(FILE *html_file, int is_home_page, enum site_tab c
                   html_file);
         fprintf(html_file, ">%s</a></li>\n", TAB_TITLES[tab]);
     }
-    fputs("</ul>\n</nav>\n</header>\n<main id=\"conteudo\">\n", html_file);
+    fprintf(html_file, "</ul>\n</nav>\n</header>\n<main id=\"conteudo\"%s>\n",
+            is_wide_main ? " class=\"largo\"" : "");
 }
 
 static void write_site_footer(FILE *html_file)
@@ -524,7 +533,7 @@ int html_write_index_page(FILE *html_file, const site_indexes *indexes,
     fprintf(html_file, "Algoritmos por %s · " SITE_TITLE, INDEX_TITLES[index]);
     write_site_header(html_file, 0, TAB_ALGORITHMS,
                       index == INDEX_ALGORITHM
-                      && attribute == indexes_get_default_attribute(INDEX_ALGORITHM));
+                      && attribute == indexes_get_default_attribute(INDEX_ALGORITHM), 0);
     fputs("<h1>Algoritmos</h1>\n", html_file);
     write_order_options(html_file, index, attribute);
     write_sort_links(html_file, index, attribute);
@@ -547,7 +556,7 @@ void html_write_about_page(FILE *html_file)
 {
     write_head_start(html_file);
     fputs("Sobre · " SITE_TITLE, html_file);
-    write_site_header(html_file, 0, TAB_ABOUT, 1);
+    write_site_header(html_file, 0, TAB_ABOUT, 1, 0);
     fputs("<h1>Sobre</h1>\n", html_file);
     write_site_footer(html_file);
 }
@@ -646,7 +655,7 @@ int html_write_content_page(FILE *html_file, const page *page_header, const page
     write_head_start(html_file);
     write_page_title(html_file, page_header);
     fputs(" · " SITE_TITLE, html_file);
-    write_site_header(html_file, 0, TAB_NONE, 0);
+    write_site_header(html_file, 0, TAB_NONE, 0, 0);
     fputs("<h1>", html_file);
     write_page_title(html_file, page_header);
     fputs("</h1>\n", html_file);
@@ -963,7 +972,7 @@ void html_write_home_page(FILE *html_file, const graph *site_graph)
 
     write_head_start(html_file);
     fputs(SITE_TITLE " · " COURSE_NAME, html_file);
-    write_site_header(html_file, 1, TAB_HOME, 1);
+    write_site_header(html_file, 1, TAB_HOME, 1, 1);
     fputs("<p class=\"abertura\">" COURSE_OBJECTIVES "</p>\n"
           "<p class=\"fonte\">" OBJECTIVES_SOURCE "</p>\n<h2>Grafo</h2>\n", html_file);
     write_view_links(html_file, 1, 0);
@@ -993,7 +1002,7 @@ void html_write_graph_chooser_page(FILE *html_file, const graph *site_graph)
 
     write_head_start(html_file);
     fputs("Grafo local · " SITE_TITLE, html_file);
-    write_site_header(html_file, 0, TAB_HOME, 0);
+    write_site_header(html_file, 0, TAB_HOME, 0, 0);
     fputs("<h1>Grafo</h1>\n", html_file);
     write_view_links(html_file, 0, 1);
     fputs("<p>Escolha uma página ou chave para ver o seu grafo local: ela no centro, as "
@@ -1031,7 +1040,7 @@ void html_write_local_graph_page(FILE *html_file, const graph *local_graph)
     write_head_start(html_file);
     write_node_name(html_file, centre);
     fputs(" · Grafo · " SITE_TITLE, html_file);
-    write_site_header(html_file, 0, TAB_HOME, 0);
+    write_site_header(html_file, 0, TAB_HOME, 0, 1);
     fputs("<h1>Grafo</h1>\n", html_file);
     write_view_links(html_file, 0, 0);
     fprintf(html_file, "<h2 class=\"foco%s\">", centre->type == GRAPH_NODE_PAGE ? "" : " chave");

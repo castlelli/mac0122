@@ -103,6 +103,8 @@ static void test_home_page(void)
     check_contains("home: institute and professor", output,
                    "IME-USP \xC2\xB7 Prof. Dr. Le\xC3\xB4nidas de Oliveira Brand\xC3\xA3o");
     check_contains("home: skip link", output, "<a class=\"pular\" href=\"#conteudo\">");
+    check_contains("home: wide main for the graph", output,
+                   "<main id=\"conteudo\" class=\"largo\">");
     check_contains("home: three tabs, Inicio current", output,
                    "<li><a href=\"index.html\" aria-current=\"page\">In\xC3\xAD" "cio</a></li>\n"
                    "<li><a href=\"algorithms_by_technique.html\">Algoritmos</a></li>\n"
@@ -136,6 +138,7 @@ static void test_about_page(void)
     check_contains("about: title", output, "<h1>Sobre</h1>");
     check_contains("about: tab is current", output,
                    "<a href=\"sobre.html\" aria-current=\"page\">Sobre</a>");
+    check_contains("about: narrow main", output, "<main id=\"conteudo\">");
 }
 
 static void test_index_page(void)
@@ -457,6 +460,7 @@ static void test_graph_chooser_page(void)
                    "<a href=\"index.html\">Global</a> <strong aria-current=\"page\">Local</strong>");
     check_contains("chooser: Inicio marked as section", output,
                    "<a href=\"index.html\" aria-current=\"true\">In\xC3\xAD" "cio</a>");
+    check_contains("chooser: narrow main", output, "<main id=\"conteudo\">");
     check_contains("chooser: page link", output,
                    "<li><a href=\"local_page_kruskal.html\">Kruskal</a></li>");
     check_contains("chooser: key link", output,
@@ -486,6 +490,8 @@ static void test_local_graph_page(void)
     check_contains("local: local view marked", output,
                    "<a href=\"graph_local.html\" aria-current=\"true\">Local</a>");
     check_contains("local: legend", output, "<ul class=\"legenda\">");
+    check_contains("local: wide main for the graph", output,
+                   "<main id=\"conteudo\" class=\"largo\">");
     check_contains("local: local drawing", output, "<svg class=\"grafo local\"");
     check_contains("local: centre is node 0", output, "<a id=\"n0\" class=\"no t-pagina\" href=\"kruskal.html\">");
     check_contains("local: dates shown", output, "(Data)</title>");

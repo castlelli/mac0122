@@ -38,7 +38,8 @@ int html_write_index_page(FILE *html_file, const site_indexes *indexes,
 int html_write_content_page(FILE *html_file, const page *page_header, const page_body *body);
 
 /* Writes index.html: the course objectives, then the whole graph, with a
-   checkbox per node type. The graph must have been laid out. */
+   checkbox per node type, across the full window width. The graph must have
+   been laid out. */
 void html_write_home_page(FILE *html_file, const graph *site_graph);
 
 /* Writes graph_local.html: every node's local graph page, listed by type. */

@@ -463,7 +463,8 @@ Aceitos para manter a máquina pequena:
 ## Visualização em grafo
 
 A página inicial (aba "Início") desenha o grafo bipartido do modelo de
-dados como SVG embutido, sem JavaScript. O site tem três abas: Início, Algoritmos (as páginas de índice,
+dados como SVG embutido, sem JavaScript, ocupando toda a largura da
+janela. O site tem três abas: Início, Algoritmos (as páginas de índice,
 com um controle "Ordenar por" que escolhe o índice, então escolher
 Autores agrupa e ordena as páginas por autor) e Sobre. O `graph.c` monta e posiciona o grafo; o
 `html.c` o escreve.

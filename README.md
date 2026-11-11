@@ -449,7 +449,7 @@ Accepted to keep the machine small:
 ## Graph view
 
 The home page (the "Início" tab) draws the bipartite graph of the data
-model as inline SVG, with no JavaScript.
+model as inline SVG, with no JavaScript, across the whole window width.
 The site has three tabs: Início, Algoritmos (the index pages, with an
 "Ordenar por" control that picks the index, so choosing Autores groups
 and orders the pages by author) and Sobre. `graph.c` builds and lays out the graph;
