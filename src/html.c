@@ -12,9 +12,9 @@
 #define INSTITUTION_LINE "IME-USP · Prof. Dr. Leônidas de Oliveira Brandão"
 #define AUTHORS_LINE "Construído por Alunos da Escola Politécnica da Universidade de São Paulo"
 #define REPOSITORY_URL "https://github.com/castlelli/mac0122"
-/* The "Objetivos" of MAC0122 in the JupiterWeb catalogue, quoted verbatim. */
 #define LINKEDIN_RODRIGO_URL "https://www.linkedin.com/in/rodrigo-mikaro/"
 #define LINKEDIN_VINICIUS_URL "https://www.linkedin.com/in/viniciuscastelli"
+/* The "Objetivos" of MAC0122 in the JupiterWeb catalogue, quoted verbatim. */
 #define PORTFOLIO_VINICIUS_URL "https://castlelli.github.io/"
 #define COURSE_OBJECTIVES "Estudo, através de exemplos, da correção, da análise de " \
     "eficiência e do desenvolvimento de algoritmos e de suas estruturas de dados básicas."
@@ -603,16 +603,9 @@ void html_write_about_page(FILE *html_file)
           "complementado com livros; as referências aparecem ao fim de cada "
           "página.</p>\n", html_file);
 
-    fputs("<h2>Como trabalhamos</h2>\n", html_file);
-    fputs("<p>Somos quatro estudantes de Engenharia de Computação da Escola Politécnica "
-          "da USP. O grupo começou com três integrantes. No dia 5 de novembro, Vinícius "
-          "Lima entrou: ele estava sem grupo e o professor pediu que os grupos de três "
-          "fossem completados para quatro. Coube a ele elaborar os arquivos TXT, que "
-          "ainda não tinham sido feitos.</p>\n", html_file);
-    fputs("<p>Ao longo do projeto, todos assumiram tarefas além das divisões iniciais. "
-          "Documentamos tudo em relatórios e no <a href=\"" REPOSITORY_URL "\">repositório "
-          "do projeto no GitHub</a>, que guarda o código, os testes e o histórico de "
-          "mudanças.</p>\n", html_file);
+    fputs("<p>O funcionamento dos programas está detalhado em diagramas de blocos no "
+          "<a href=\"" REPOSITORY_URL "\">repositório do projeto no GitHub</a>, junto "
+          "com o código, os testes e o histórico de mudanças.</p>\n", html_file);
 
     fputs("<h2>Uso de inteligência artificial</h2>\n", html_file);
     fputs("<p>O uso de ferramentas de IA foi liberado neste EP, e nós as usamos como "
