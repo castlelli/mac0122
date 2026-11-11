@@ -1,0 +1,56 @@
+Tecnica: Método guloso
+Algoritmo: Números de Fibonacci (recursivo e iterativo)
+Autores: Leonardo Fibonacci (Leonardo de Pisa)
+Data: 1202
+Conceitos: recursão, complexidade exponencial, árvore de recursão
+Problema: Dado um inteiro n, calcular o n-ésimo número de Fibonacci.
+---
+# Ideia do algoritmo
+Cada número de Fibonacci é a soma dos dois anteriores. Na convenção do código do professor, F(0) = F(1) = 1 e F(n) = F(n-1) + F(n-2) para n > 1; Cormen et al. usam F(0) = 0 e F(1) = 1, e então o valor do código para n é o F(n+1) deles.
+
+A versão recursiva copia a definição: fig_rec(n) chama fig_rec(n-1) e fig_rec(n-2). As duas chamadas recalculam os mesmos valores muitas vezes, e a árvore de recursão cresce exponencialmente, de modo que o algoritmo é, nas palavras do professor, estupidamente ineficiente.
+
+A versão iterativa calcula os valores a partir dos menores índices, guardando só os dois últimos (f0 e f1) e nunca repetindo uma conta. O professor a descreve como guloso, e é por isso que a técnica do cabeçalho é essa.
+
+# Implementação em C
+O código vem do arquivo aula_01_tempo_fibonacci_it_rec.c do professor Leônidas, sem o programa principal, que mede o tempo das duas funções. fig_it é a versão iterativa e fig_rec a recursiva.
+[code]
+// Aula 01 (2025/08/05)
+
+// Complexidade de algoritmo
+// Algoritmo intrinsecamente ineficiente: ineficaz mesmo sob supercomputador
+// Exemplo Fibonacci estupidamente ineficiente
+
+#include <stdio.h>
+#include <time.h> // clock_t, clock()
+
+int fig_it (int n) {
+  int f  = 1;
+  int f0 = 1;
+  int f1 = 1;
+  for (int i=2; i<n+1; i++) {
+    f = f0 + f1;
+    f0 = f1;
+    f1 = f;
+    }
+  return f;
+  }
+
+int fig_rec (int n) {
+  if (n==0 || n==1) return 1;
+  return fig_rec(n-1) + fig_rec(n-2);
+  }
+[/code]
+A declaração int i dentro do for de fig_it é da linguagem C99; em C89 ela deve ir para o início da função.
+
+# Complexidade
+A versão iterativa faz um número de operações proporcional a n, isto é, O(n). A recursiva é O(2^n), segundo o professor. O comentário do arquivo mostra a diferença: para n = 45 a versão recursiva levou cerca de 7,5 segundos em C, enquanto a iterativa levou um tempo desprezível. Cormen et al. (p. 60) observam que os números de Fibonacci crescem exponencialmente.
+
+# Histórico
+Os números foram estudados por Leonardo Pisano (Fibonacci) no Liber Abaci, de 1202, no problema dos pares de coelhos. Segundo Knuth, a sequência já era conhecida na Índia antes, com Gopala antes de 1135 e Hemachandra por volta de 1150.
+
+[ref] Leônidas de Oliveira Brandão, MAC0122 (2026), arquivo aula_01_tempo_fibonacci_it_rec.c, e-Disciplinas USP
+[ref] Leônidas de Oliveira Brandão, Material didático de MAC0122, "Questao de eficiência e recursividade: um exemplo de recursividade muito ineficiênte", https://www.ime.usp.br/~leo/mac/mac122/introducao_recursividade_fibonacci_gettime.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 3.2, p. 59-60, e notas do capítulo 4, p. 112
+[ref] Donald E. Knuth, The Art of Computer Programming, vol. 1, 3ª ed., Addison-Wesley, 1997, seção 1.2.8, p. 79-80
+[ref] Leonardo Pisano (Fibonacci), Liber Abaci, 1202; edição latina de B. Boncompagni, Scritti di Leonardo Pisano, vol. 1, Roma, 1857, p. 283-284

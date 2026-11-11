@@ -1,0 +1,37 @@
+Tecnica:
+Algoritmo: Busca sequencial
+Autores: Donald E. Knuth
+Data: 1973
+Conceitos: vetor, busca, comparação
+Problema: Dado um vetor de n números e um número x, encontrar uma posição do vetor que contém x ou dizer que x não está no vetor.
+---
+# Ideia do algoritmo
+Percorre o vetor da esquerda para a direita, comparando x com cada elemento. Se encontra um elemento igual a x, devolve a posição dele; se chega ao fim sem encontrar, devolve -1.
+
+O invariante do laço é que x não pertence a vet[0] até vet[j-1]. Por isso, quando o laço devolve j, a posição é a da primeira ocorrência de x. O vetor pode estar em qualquer ordem.
+
+# Implementação em C
+O código vem da página "Busca em vetor não ordenado" do professor Leônidas, sem o programa principal, que lê o vetor e as consultas da entrada padrão.
+[code]
+// Vetor nao ordenado
+// Param:   'vet[]' vetor com dados, 'int n' numero de elementos no vetor, 'int x' elemento buscado
+// Devolve: j entre 0 e n-1 se encontrou na posicao j; -1 se x nao pertence a 'vet[]'
+int busca (int vet[], int n, int x) {
+  int j;
+  for (j=0; j<n; j++) { // invariante: x NAO pertence a 'vet[0]' ate 'vet[j-1]'
+    if (vet[j]==x)
+      return j;         // se executar essa linha => 'vet[j]' contem x e e' a primeira ocorrencia
+    }
+  return -1;
+  }
+[/code]
+
+# Complexidade
+No pior caso, quando x está na última posição ou não está no vetor, x é comparado com cada um dos n elementos; o consumo de tempo é proporcional a n. Feofiloff observa o mesmo para a busca sequencial em vetor ordenado: no pior caso o número de comparações é n.
+
+# Histórico
+A busca sequencial é folclórica e não se conhece quem a publicou primeiro; a descrição publicada mais antiga que confirmamos é a de Knuth. O método é tão elementar que não tem autor conhecido, e por isso o campo Autores cita Knuth, que o descreve na seção 6.1 do volume 3 de The Art of Computer Programming, de 1973.
+
+[ref] Leônidas de Oliveira Brandão, Material didático de MAC0122, "Busca em vetor não ordenado: O(n)", https://www.ime.usp.br/~leo/mac/mac122/busca_nao_ordenado.html
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Busca em vetor ordenado", https://www.ime.usp.br/~pf/algoritmos/aulas/bubi.html
+[ref] Donald E. Knuth, The Art of Computer Programming, vol. 3: Sorting and Searching, Addison-Wesley, 1973, seção 6.1, "Sequential Searching"

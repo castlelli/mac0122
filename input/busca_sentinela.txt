@@ -1,0 +1,40 @@
+Tecnica:
+Algoritmo: Busca sequencial com sentinela
+Autores: Donald E. Knuth
+Data: 1973
+Conceitos: vetor, busca, sentinela
+Problema: Dado um vetor de n números e um número x, encontrar uma posição do vetor que contém x ou dizer que x não está no vetor.
+---
+# Ideia do algoritmo
+É a busca sequencial com uma melhoria: antes de varrer, grava-se x na posição n do vetor, logo depois do último elemento útil. Esse elemento extra é a sentinela e garante que o laço encontra x, no mais tardar nela.
+
+Com isso o laço testa só vet[j] != x a cada passo, em vez de testar também se j chegou a n. É uma comparação a menos por passo. Ao sair do laço, se j < n o laço parou antes da sentinela e x foi encontrado em j; se j == n, x não está no vetor.
+
+O custo é pedir uma posição a mais no vetor: ele não pode estar cheio, e a posição n é sobrescrita.
+
+# Implementação em C
+O código vem da página do professor Leônidas sobre busca com sentinela em vetor não ordenado, sem o programa principal. O vetor do programa dele tem espaço para a posição n.
+[code]
+// Vetor nao ordenado: melhoria incremental (uma comparacao a menos por passo)
+// Param:   'vet[]' vetor com dados, 'int n' numero de elementos no vetor, 'int x' elemento buscado
+// Devolve: j entre 0 e n-1 se encontrou na posicao j; -1 se x nao pertence a 'vet[]'
+int buscaSentinela (int vet[], int n, int x) {
+  int j = 0;
+  vet[n] = x;            // necessario uma posicao adicional para o sentinela
+  while (vet[j]!=x) j++; // invariante: x NAO pertence a 'vet[0]' ate 'vet[j-1]'
+  if (j<n)               // parou antes do sentinela => encontrou!
+    return j;
+  return -1;
+  }
+[/code]
+
+# Complexidade
+O tempo continua proporcional a n no pior caso, como na busca sequencial. O ganho é só na constante: uma comparação a menos por passo, segundo o comentário do código. Feofiloff observa que a sentinela evita as repetidas comparações de k com n, sob a hipótese de que o vetor não está cheio.
+
+# Histórico
+A busca sequencial é folclórica e não se conhece quem a publicou primeiro; a descrição publicada mais antiga que confirmamos é a de Knuth. A técnica da sentinela, um registro extra no fim da tabela, também é folclórica; Knuth a apresenta no algoritmo Q da seção 6.1 do volume 3 de The Art of Computer Programming, de 1973. Wirth a descreve em Algorithms and Data Structures, seção 1.8.1.
+
+[ref] Leônidas de Oliveira Brandão, Material didático de MAC0122, "Busca em vetor não ordenado com pequena melhoria (busca com sentinela): O(n)", https://www.ime.usp.br/~leo/mac/mac122/busca_nao_ordenado_sentinela.html
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Vetores", https://www.ime.usp.br/~pf/algoritmos/aulas/array.html
+[ref] Donald E. Knuth, The Art of Computer Programming, vol. 3: Sorting and Searching, Addison-Wesley, 1973, seção 6.1, algoritmo Q
+[ref] N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 1.8.1, p. 35-36
