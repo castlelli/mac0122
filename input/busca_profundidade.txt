@@ -1,0 +1,75 @@
+Tecnica:
+Algoritmo: Busca em profundidade (DFS)
+Autores: Charles Pierre Trémaux
+Data: 1882
+Conceitos: grafo, recursão, pilha
+Problema: Dado um grafo, visitar todos os seus vértices seguindo cada caminho até o fim antes de retroceder.
+---
+# Ideia do algoritmo
+A busca em profundidade visita todos os vértices e todos os arcos do grafo numa determinada ordem e atribui um número a cada vértice: o k-ésimo vértice descoberto recebe o número k. Os números ficam em um vetor pre[] indexado pelos vértices, que também serve para saber se um vértice já foi descoberto (pre[v] diferente de -1).
+
+A busca se divide em etapas. Cada etapa escolhe um vértice não descoberto v e visita todos os vértices que estão ao alcance de v e ainda não foram visitados, sempre seguindo um caminho até o fim antes de retroceder. A função GRAPHdfs() escolhe os vértices na ordem 0, 1, 2 e assim por diante, mas poderia usar outra ordem; a função recursiva dfsR() faz a busca propriamente dita.
+
+A pilha dos vértices ainda em exploração não aparece no código: ela é administrada pelo mecanismo de recursão. Segundo Feofiloff, a busca em profundidade não resolve um problema específico; é um arcabouço, ou pré-processamento, para a resolução eficiente de vários problemas concretos. A ordem em que os vértices são descobertos é chamada pré-ordem.
+
+A diferença mais marcante em relação à busca em largura é a estrutura auxiliar: a BFS usa uma fila e a DFS usa uma pilha. Além disso, na BFS o usuário escolhe o vértice inicial, enquanto na DFS o próprio algoritmo escolhe o vértice inicial de cada etapa.
+
+# Implementação em C
+O código é o de Feofiloff, copiado como está: as variáveis globais cnt e pre[], a função GRAPHdfs() e a função recursiva dfsR(), na ordem em que aparecem na página (a página declara dfsR() depois de GRAPHdfs(), então um compilador precisa de um protótipo). Ele está em C99 (declarações dentro do for e comentário com //) e supõe o grafo em listas de adjacência (os tipos Graph, vertex e link). Feofiloff diz que o código é inspirado no programa 18.3 de Sedgewick.
+[code]
+static int cnt;
+int pre[1000];
+
+/* A função GRAPHdfs() faz uma busca em profundidade
+   no grafo G.
+
+   Ela atribui um número de ordem pre[x] a
+   cada vértice x
+   de modo que
+   o k-ésimo vértice descoberto receba o número de ordem k.
+   (Código inspirado no programa 18.3
+   de Sedgewick.) */
+
+void GRAPHdfs( Graph G)
+{
+   cnt = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      pre[v] = -1;
+   for (vertex v = 0; v < G->V; ++v)
+      if (pre[v] == -1)
+         dfsR( G, v); // começa nova etapa
+}
+
+/* A função dfsR() visita
+   todos os vértices de G
+   que podem ser alcançados a partir do vértice v
+   sem passar por vértices já descobertos.
+
+   A função atribui cnt+k a pre[x]
+   se x é o k-ésimo vértice descoberto.
+   (O código supõe que G
+   é representado por listas de adjacência.) */
+
+static void dfsR( Graph G, vertex v)
+{
+   pre[v] = cnt++;
+   for (link a = G->adj[v]; a != NULL; a = a->next) {
+      vertex w = a->w;
+      if (pre[w] == -1)
+         dfsR( G, w);
+   }
+}
+[/code]
+
+# Complexidade
+A função GRAPHdfs() examina o leque de saída de cada vértice uma só vez, e portanto cada arco uma só vez. Com o grafo em listas de adjacência, o consumo de tempo é proporcional a V + A, o tempo necessário para ler todas as listas.
+
+Com o grafo em matriz de adjacências, usando a versão apropriada de dfsR(), o consumo é proporcional a V2, o tempo necessário para ler a matriz. Para grafos esparsos essa versão é mais lenta que a de listas de adjacência.
+
+# Histórico
+Trémaux nunca publicou o método. A primeira publicação conhecida é o relato de Édouard Lucas, de 1882, do algoritmo de Trémaux para percorrer labirintos. Como algoritmo de grafos, a busca em profundidade foi reconhecida por Hopcroft e Tarjan, em 1973: segundo Cormen et al. (p. 623), eles foram os primeiros a reconhecer a importância algorítmica da busca em profundidade.
+
+[ref] Paulo Feofiloff, Algoritmos para Grafos em C via Sedgewick, "Busca em profundidade (DFS)", https://www.ime.usp.br/~pf/algoritmos_para_grafos/aulas/dfs.html
+[ref] Édouard Lucas, "Le jeu des labyrinthes" (descreve o método de Trémaux), Récréations mathématiques, vol. I, 2ª ed., Gauthier-Villars, Paris, 1882, cap. 3, p. 41-55
+[ref] J. Hopcroft, R. Tarjan, "Algorithm 447: Efficient Algorithms for Graph Manipulation", Communications of the ACM 16(6):372-378, 1973
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, notas do capítulo 22, p. 623

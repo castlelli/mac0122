@@ -1,0 +1,48 @@
+Tecnica:
+Algoritmo: Ordenação topológica
+Autores: Arthur B. Kahn
+Data: 1962
+Conceitos: grafo dirigido, fila, ordem parcial
+Problema: Dado um grafo dirigido sem ciclos, listar os vértices de modo que toda aresta vá de um vértice para outro que aparece depois.
+---
+# Ideia do algoritmo
+O objetivo da ordenação topológica é poder processar os vértices de um grafo dirigido sem ciclos (um DAG) de modo que cada vértice seja processado antes de todos os vértices para os quais ele aponta. Isso pede uma permutação dos inteiros de 0 a V-1, guardada em um vetor indexado pelos vértices: dar novos nomes aos vértices de modo que todo arco vá de um número menor para um maior, ou, equivalentemente, dispor os vértices em uma linha com todos os arcos apontando para a direita.
+
+A versão de Sedgewick usa uma fila de fontes (vértices de grau de entrada 0) e uma tabela com o grau de entrada de cada vértice no subgrafo induzido pelos vértices que ainda não saíram da fila. Primeiro calcula-se o grau de entrada de todos os vértices e colocam-se na fila os de grau 0. Depois, enquanto a fila não estiver vazia, retira-se um vértice da fila, anota-se o vértice na posição seguinte do vetor ts[], diminui-se de 1 o grau de entrada de cada vizinho dele e colocam-se na fila os vizinhos cujo grau chega a 0. Os vértices saem da fila em ordem topológica.
+
+A fila só esvazia depois que todos os vértices foram rotulados, pois o subgrafo induzido pelos vértices ainda não rotulados é sempre um DAG, e todo DAG tem pelo menos uma fonte. Por isso o algoritmo também testa se um grafo é um DAG: se a fila esvazia antes de todos os vértices serem rotulados, há um ciclo no subgrafo dos vértices não rotulados.
+
+# Implementação em C
+O código é o programa 19.8 de Sedgewick (ordenação topológica baseada em uma fila de fontes), como impresso, com a indentação do livro. Ele não compila sozinho: depende do tipo Dag, da constante maxV, do tipo link das listas de adjacência e do módulo QUEUE.h (QUEUEinit(), QUEUEput(), QUEUEget() e QUEUEempty()), que o livro define em outro capítulo.
+[code]
+#include "QUEUE.h"
+static int in[maxV];
+void DAGts(Dag D, int ts[])
+  { int i, v; link t;
+    for (v = 0; v < D->V; v++)
+      { in[v] = 0; ts[v] = -1; }
+    for (v = 0; v < D->V; v++)
+      for (t = D->adj[v]; t != NULL; t = t->next)
+        in[t->v]++;
+    QUEUEinit(D->V);
+    for (v = 0; v < D->V; v++)
+      if (in[v] == 0) QUEUEput(v);
+    for (i = 0; !QUEUEempty(); i++)
+      {
+        ts[i] = (v = QUEUEget());
+        for (t = D->adj[v]; t != NULL; t = t->next)
+          if (--in[t->v] == 0) QUEUEput(t->v);
+      }
+  }
+[/code]
+
+# Complexidade
+Sedgewick não enuncia o consumo de tempo desta versão na seção 19.6. Pelo código, o vetor de graus é preenchido percorrendo todas as listas de adjacência uma vez; depois cada vértice entra na fila no máximo uma vez e, ao sair, tem sua lista percorrida uma vez. Cada vértice e cada arco são portanto tratados um número constante de vezes, e o consumo de tempo é proporcional a V + A, sendo V o número de vértices e A o de arcos.
+
+# Histórico
+Segundo Knuth (vol. 1, p. 268), uma técnica de ordenação topológica semelhante ao seu algoritmo T, mas sem a característica importante dos elos da fila, foi publicada pela primeira vez por Arthur B. Kahn, em 1962, em Communications of the ACM. Sedgewick diz que a implementação com fila de fontes vem do livro de Knuth. O conceito de ordenação topológica é mais antigo: Szpilrajn provou em 1930 que toda ordem parcial tem uma extensão linear.
+
+[ref] Robert Sedgewick, Algorithms in C, 3ª ed., parte 5: Graph Algorithms, Addison-Wesley, 2002, seção 19.6, programa 19.8, p. 190
+[ref] Donald E. Knuth, The Art of Computer Programming, vol. 1, 3ª ed., Addison-Wesley, 1997, seção 2.2.3, p. 268
+[ref] Arthur B. Kahn, "Topological sorting of large networks", Communications of the ACM 5(11):558-562, 1962
+[ref] Szpilrajn, Fundamenta Mathematicae 16:386-389, 1930 (prova de que toda ordem parcial tem extensão linear)
