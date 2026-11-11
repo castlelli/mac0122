@@ -175,7 +175,8 @@ highlighter's 4px radius.
 
 Three tabs between two hairlines: Início (`index.html`, the course objectives
 and the global graph), Algoritmos (the algorithm index in its default order)
-and Sobre (`sobre.html`, only its title for now). The current item is navy,
+and Sobre (`sobre.html`: what the site is, how the group worked, the use of AI
+and the authors). The current item is navy,
 semibold, with a 3px navy underline, and carries `aria-current`: `page` when
 the page is exactly that link's target, `true` when it is another page of the
 tab (another index or sort order under Algoritmos; the chooser and local graph
@@ -208,6 +209,13 @@ borders. The first column is always the algorithm, linked to its page.
 The keys of an index page as a wrapped run of anchor links. Long keys (problem
 sentences) are cut with an ellipsis at 24ch in this list only; the heading below
 shows them whole.
+
+### Author list (`.equipe`)
+
+The authors of the About page: one row per person, with a hairline above
+each row and below the last. The name is semibold ink, the LinkedIn and
+Portfólio links sit beside it in navy, and the role is secondary ink on its
+own line (`.meta` and `.descricao`, shared with the index pages).
 
 ### Graph pages
 

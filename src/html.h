@@ -26,7 +26,8 @@
 /* Writes the highlighter's CSS followed by the site's layout rules. */
 void html_write_style_sheet(FILE *css_file);
 
-/* Writes sobre.html, the About tab, which holds only its title for now. */
+/* Writes sobre.html, the About tab: what the site is, how the group worked,
+   the use of AI and the authors. */
 void html_write_about_page(FILE *html_file);
 
 /* Writes the page of index sorted by attribute, which the index must offer. */

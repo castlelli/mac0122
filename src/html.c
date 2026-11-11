@@ -13,6 +13,9 @@
 #define AUTHORS_LINE "Construído por Alunos da Escola Politécnica da Universidade de São Paulo"
 #define REPOSITORY_URL "https://github.com/castlelli/mac0122"
 /* The "Objetivos" of MAC0122 in the JupiterWeb catalogue, quoted verbatim. */
+#define LINKEDIN_RODRIGO_URL "https://www.linkedin.com/in/rodrigo-mikaro/"
+#define LINKEDIN_VINICIUS_URL "https://www.linkedin.com/in/viniciuscastelli"
+#define PORTFOLIO_VINICIUS_URL "https://castlelli.github.io/"
 #define COURSE_OBJECTIVES "Estudo, através de exemplos, da correção, da análise de " \
     "eficiência e do desenvolvimento de algoritmos e de suas estruturas de dados básicas."
 #define OBJECTIVES_SOURCE "Fonte: JupiterWeb, catálogo de disciplinas da USP."
@@ -116,6 +119,9 @@ static const char *const SITE_CSS_LINES[] = {
     ".descricao, .meta { color:var(--secundaria); font-size:0.9375rem; }\n",
     ".descricao { display:block; margin-top:0.15rem; }\n",
     ".meta { margin-left:0.6em; }\n",
+    ".equipe { list-style:none; padding:0; margin:0; }\n",
+    ".equipe li { border-top:1px solid var(--linha); padding:0.7rem 0; }\n",
+    ".equipe li:last-child { border-bottom:1px solid var(--linha); }\n",
     ".ordem { display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem 1rem;\n",
     "         margin:0 0 0.75rem; font-size:0.9375rem; }\n",
     ".ordem ul { display:flex; flex-wrap:wrap; list-style:none; margin:0; padding:0;\n",
@@ -552,12 +558,84 @@ int html_write_index_page(FILE *html_file, const site_indexes *indexes,
     return 1;
 }
 
+/* Writes one author of the About page. The links are optional (NULL) and sit
+   beside the name; the role goes below it. Every argument is a fixed string
+   of this file, so none needs the HTML escape. */
+static void write_team_member(FILE *html_file, const char *name, const char *linkedin_url,
+                              const char *portfolio_url, const char *role)
+{
+    fprintf(html_file, "<li><strong>%s</strong>", name);
+    if (linkedin_url != NULL || portfolio_url != NULL) {
+        fputs("<span class=\"meta\">", html_file);
+        if (linkedin_url != NULL)
+            fprintf(html_file, "<a href=\"%s\">LinkedIn</a>", linkedin_url);
+        if (linkedin_url != NULL && portfolio_url != NULL)
+            fputs(" · ", html_file);
+        if (portfolio_url != NULL)
+            fprintf(html_file, "<a href=\"%s\">Portfólio</a>", portfolio_url);
+        fputs("</span>", html_file);
+    }
+    fprintf(html_file, "<span class=\"descricao\">%s</span></li>\n", role);
+}
+
+/* One fputs per paragraph keeps every string literal under 509 characters. */
 void html_write_about_page(FILE *html_file)
 {
     write_head_start(html_file);
     fputs("Sobre · " SITE_TITLE, html_file);
     write_site_header(html_file, 0, TAB_ABOUT, 1, 0);
     fputs("<h1>Sobre</h1>\n", html_file);
+    fputs("<p class=\"abertura\">Este site é o resultado da fase 1 do Exercício Programa "
+          "de MAC0122, Princípios de Desenvolvimento de Algoritmos, do IME-USP. Ele reúne "
+          "o conteúdo da primeira avaliação em páginas de algoritmos, que podem ser "
+          "percorridas por técnica, algoritmo, autores, data, conceitos e problema.</p>\n",
+          html_file);
+
+    fputs("<h2>O projeto</h2>\n", html_file);
+    fputs("<p>Todas as páginas foram geradas por um programa em C89 escrito pelo grupo. "
+          "Ele lê arquivos de texto (TXT) com o conteúdo do curso e produz o site em HTML "
+          "e CSS, sem JavaScript. O cabeçalho de cada TXT alimenta os seis índices e o "
+          "grafo da página inicial, que mostra como páginas e conceitos se "
+          "relacionam.</p>\n", html_file);
+    fputs("<p>Os trechos de código C passam por um colorizador de sintaxe, também escrito "
+          "por nós, que separa diretivas, tipos, comandos, comentários e cadeias de "
+          "caracteres. O conteúdo parte do material didático da disciplina, "
+          "complementado com livros; as referências aparecem ao fim de cada "
+          "página.</p>\n", html_file);
+
+    fputs("<h2>Como trabalhamos</h2>\n", html_file);
+    fputs("<p>Somos quatro estudantes de Engenharia de Computação da Escola Politécnica "
+          "da USP. O grupo começou com três integrantes. No dia 5 de novembro, Vinícius "
+          "Lima entrou: ele estava sem grupo e o professor pediu que os grupos de três "
+          "fossem completados para quatro. Coube a ele elaborar os arquivos TXT, que "
+          "ainda não tinham sido feitos.</p>\n", html_file);
+    fputs("<p>Ao longo do projeto, todos assumiram tarefas além das divisões iniciais. "
+          "Documentamos tudo em relatórios e no <a href=\"" REPOSITORY_URL "\">repositório "
+          "do projeto no GitHub</a>, que guarda o código, os testes e o histórico de "
+          "mudanças.</p>\n", html_file);
+
+    fputs("<h2>Uso de inteligência artificial</h2>\n", html_file);
+    fputs("<p>O uso de ferramentas de IA foi liberado neste EP, e nós as usamos como "
+          "apoio: na escrita e na revisão do código, na elaboração de prompts para os "
+          "rascunhos dos TXT e na busca de PDFs e páginas de referência. O código passou "
+          "por revisão de integrantes do grupo e por testes. Os diálogos com cada "
+          "ferramenta e as dificuldades que encontramos estão descritos nos relatórios "
+          "entregues.</p>\n", html_file);
+
+    fputs("<h2>Autores</h2>\n<ul class=\"equipe\">\n", html_file);
+    write_team_member(html_file, "João Pedro Dantas Oliveira", NULL, NULL,
+                      "Processador que transforma os TXT em páginas HTML.");
+    write_team_member(html_file, "Rodrigo Francisco Pettinati Mikaro",
+                      LINKEDIN_RODRIGO_URL, NULL,
+                      "Colorizador de sintaxe, casos de teste e comparador, relatórios, "
+                      "prompts para os TXT e coleta das referências.");
+    write_team_member(html_file, "Vinícius Lima Xalega", NULL, NULL,
+                      "Conteúdo dos arquivos TXT.");
+    write_team_member(html_file, "Vinícius Sampaio Castelli de Deus",
+                      LINKEDIN_VINICIUS_URL, PORTFOLIO_VINICIUS_URL,
+                      "Repositório no GitHub, revisão e correção do código dos colegas, "
+                      "contribuições no código, calendário de entregas e apoio nos TXT.");
+    fputs("</ul>\n", html_file);
     write_site_footer(html_file);
 }
 
