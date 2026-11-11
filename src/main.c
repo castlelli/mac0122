@@ -152,7 +152,7 @@ int main(int argument_count, char *arguments[])
         return 1;
     }
 
-    has_succeeded = html_write_index_files(OUTPUT_DIRECTORY, indexes, pages, page_count)
+    has_succeeded = html_write_index_files(OUTPUT_DIRECTORY, indexes)
                     && html_write_graph_files(OUTPUT_DIRECTORY, site_graph)
                     && write_content_files(pages, page_count);
 

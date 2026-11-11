@@ -54,9 +54,9 @@ flowchart TD
     txt[/"Arquivos TXT<br/>input/"/] -- "passada 1: só o cabeçalho" --> parser["Parser"]
     parser --> headers["Structs de cabeçalho<br/>(uma por TXT)"]
     headers --> indexes["Índices<br/>(BST de chaves)"]
-    indexes --> index_pages[/"index.html e<br/>páginas de índice"/]
+    indexes --> index_pages[/"páginas de índice<br/>e sobre.html"/]
     indexes --> graph["Grafo<br/>(páginas e chaves)"]
-    graph --> graph_pages[/"páginas do grafo"/]
+    graph --> graph_pages[/"index.html e<br/>grafos locais"/]
     headers -. "nome do TXT" .-> txt
     txt -- "passada 2: corpo, um TXT por vez" --> body["Corpo<br/>(seções, texto, código)"]
     body -- "bloco de código C" --> highlighter["Colorizador"]
@@ -70,10 +70,11 @@ flowchart TD
    seu TXT.
 2. **Índices.** As structs de cabeçalho montam os seis índices. Cada
    índice aponta para structs de cabeçalho; nunca as copia.
-3. **Páginas de índice.** `index.html` e as páginas de índice (uma por
-   índice e ordenação) são geradas a partir dos índices. O grafo de
-   páginas e chaves é montado a partir dos índices, posicionado e escrito
-   nas páginas do grafo (veja [Visualização em grafo](#visualização-em-grafo)).
+3. **Páginas de índice.** As páginas de índice (uma por índice e
+   ordenação) são geradas a partir dos índices, junto com `sobre.html`.
+   O grafo de páginas e chaves é montado a partir dos índices,
+   posicionado e escrito em `index.html` (a página inicial) e nas páginas
+   de grafo local (veja [Visualização em grafo](#visualização-em-grafo)).
 4. **Passada 2.** Para cada struct de cabeçalho, o processador reabre o
    seu TXT, pula o cabeçalho e lê o corpo. Os blocos de código passam
    pelo colorizador. A página de conteúdo é gerada a partir da struct
@@ -461,8 +462,10 @@ Aceitos para manter a máquina pequena:
 
 ## Visualização em grafo
 
-A aba "Grafo" desenha o grafo bipartido do modelo de dados como SVG
-embutido, sem JavaScript. O `graph.c` monta e posiciona o grafo; o
+A página inicial (aba "Início") desenha o grafo bipartido do modelo de
+dados como SVG embutido, sem JavaScript. O site tem três abas: Início, Algoritmos (as páginas de índice,
+com um controle "Ordenar por" que escolhe o índice, então escolher
+Autores agrupa e ordena as páginas por autor) e Sobre. O `graph.c` monta e posiciona o grafo; o
 `html.c` o escreve.
 
 - **Nós e arestas.** Toda página e toda chave de cinco índices; uma
@@ -471,7 +474,7 @@ embutido, sem JavaScript. O `graph.c` monta e posiciona o grafo; o
   página, então desenharia cada página duas vezes. Os ids dos nós põem as
   páginas primeiro, na ordem dos nomes dos TXTs, e depois as chaves de
   cada índice em ordem, então nunca dependem da ordem dos argumentos.
-- **Vista global (`graph.html`).** Um layout dirigido por forças
+- **Vista global (`index.html`).** Um layout dirigido por forças
   (Fruchterman–Reingold): as páginas começam num círculo interno e as
   chaves num externo; depois todo par se repele e toda aresta atrai, por
   um número fixo de passos, enquanto o movimento permitido esfria até

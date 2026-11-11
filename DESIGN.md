@@ -96,7 +96,7 @@ decoration that does not help a reader find or read something.
 
 - **Ink** (`#16191d`): all running text and headings.
 - **Secondary ink** (`#545b64`): the institute line, nav items, labels
-  ("Ordenar por:", "Chaves:"), the fact table's field names, page meta, the
+  ("Ordenar por", "Ordenar dentro do grupo:", "Chaves:"), the fact table's field names, page meta, the
   footer. About 6.9:1 on white.
 - **Hairline** (`#d4d9df`): 1px rules between rows, around the nav and the key
   list, above the footer.
@@ -142,16 +142,17 @@ only. Nothing is downloaded; the site works offline.
 - Footer: on the left, "MAC0122 · IME-USP" and "Construído por Alunos da
   Escola Politécnica da Universidade de São Paulo"; on the right, a "GitHub"
   link to the repository. On phones the link wraps below the credits.
-- Index pages: title, "Ordenar por:" line, "Chaves:" anchor list between two
+- Index pages: the title "Algoritmos", the "Ordenar por" control, the
+  "Ordenar dentro do grupo:" line, the "Chaves:" anchor list between two
   hairlines, then one `h2` and table per key.
 - Column widths are fixed per role (algorithm 22%, technique 20%, date 7.5rem,
   problem the rest) so tables line up down the page.
 - Under 40rem, index tables stack: each row becomes a block with the algorithm
   in semibold and the other fields below it, each labelled from its cell's
   `data-label`; empty fields are hidden. The page never scrolls sideways.
-- Under 40rem: smaller masthead and `h1`, single-column index list on the home
-  page, tighter nav rows.
-- Print: nav, skip link, sort and key lists hidden; links printed as text.
+- Under 40rem: smaller masthead and `h1`, tighter nav rows.
+- Print: nav, skip link, order control, sort and key lists hidden; links
+  printed as text.
 
 ## Elevation & Depth
 
@@ -167,10 +168,23 @@ highlighter's 4px radius.
 
 ### Navigation
 
-A row of Início and the six indexes between two hairlines. The current item is
-navy, semibold, with a 3px navy underline, and carries `aria-current`: `page`
-when the page is exactly that link's target, `true` when it is another sort
-order of the same index. Content pages mark no item.
+Three tabs between two hairlines: Início (`index.html`, the course objectives
+and the global graph), Algoritmos (the algorithm index in its default order)
+and Sobre (`sobre.html`, only its title for now). The current item is navy,
+semibold, with a 3px navy underline, and carries `aria-current`: `page` when
+the page is exactly that link's target, `true` when it is another page of the
+tab (another index or sort order under Algoritmos; the chooser and local graph
+pages under Início). Content pages mark no item.
+
+### Order control (`.ordem`)
+
+"Ordenar por" in secondary ink, then a segmented row of the six indexes
+(Algoritmo, Técnica, Autores, Data, Conceitos, Problema): square cells with
+hairline borders that share their edges, ink text; hover turns the border and
+text navy; the current index is filled navy with white semibold text. Each
+option opens its index in the default order, so it both groups and orders.
+Below it, "Ordenar dentro do grupo:" keeps the text-style sort options for the
+order of the pages inside each key.
 
 ### Fact table (`.ficha`)
 
@@ -192,8 +206,9 @@ shows them whole.
 
 ### Graph pages
 
-- The "Grafo" tab follows Problema in the nav. "Vista:" switches between
-  Global and Local, styled like the sort options.
+- The global graph lives on the home page under an `h2` "Grafo", after
+  the course objectives. "Vista:" switches between Global (`index.html`)
+  and Local, styled like the sort options.
 - Global: a one-line hint, then one checkbox per node type, drawn as a
   square (navy and filled when on) followed by the type's symbol and
   name, so the filters are also the legend. Data starts off. The drawing

@@ -52,9 +52,9 @@ flowchart TD
     txt[/"TXT files<br/>input/"/] -- "pass 1: header only" --> parser["Parser"]
     parser --> headers["Header structs<br/>(one per TXT)"]
     headers --> indexes["Indexes<br/>(BST of keys)"]
-    indexes --> index_pages[/"index.html and<br/>index pages"/]
+    indexes --> index_pages[/"index pages<br/>and sobre.html"/]
     indexes --> graph["Graph<br/>(pages and keys)"]
-    graph --> graph_pages[/"graph pages"/]
+    graph --> graph_pages[/"index.html and<br/>local graph pages"/]
     headers -. "TXT file name" .-> txt
     txt -- "pass 2: body, one TXT at a time" --> body["Body<br/>(sections, text, code)"]
     body -- "C code block" --> highlighter["Highlighter"]
@@ -67,10 +67,11 @@ flowchart TD
    one header struct per file. Each struct keeps the name of its TXT.
 2. **Indexes.** The header structs build the six indexes. Each index
    points to header structs; it never copies them.
-3. **Index pages.** `index.html` and the index pages (one per index
-   and sort order) are written from the indexes. The graph of pages and
-   keys is built from the indexes, laid out, and written as the graph
-   pages (see [Graph view](#graph-view)).
+3. **Index pages.** The index pages (one per index and sort order) are
+   written from the indexes, with `sobre.html`. The graph of pages and
+   keys is built from the indexes, laid out, and written as `index.html`
+   (the home page) and the local graph pages (see
+   [Graph view](#graph-view)).
 4. **Pass 2.** For each header struct, the processor re-opens its TXT,
    skips the header, and reads the body. Code blocks go through the
    highlighter. The content page is written from the header struct (top
@@ -447,8 +448,11 @@ Accepted to keep the machine small:
 
 ## Graph view
 
-The "Grafo" tab draws the bipartite graph of the data model as inline
-SVG, with no JavaScript. `graph.c` builds and lays out the graph;
+The home page (the "Início" tab) draws the bipartite graph of the data
+model as inline SVG, with no JavaScript.
+The site has three tabs: Início, Algoritmos (the index pages, with an
+"Ordenar por" control that picks the index, so choosing Autores groups
+and orders the pages by author) and Sobre. `graph.c` builds and lays out the graph;
 `html.c` writes it.
 
 - **Nodes and edges.** Every page, and every key of five indexes; an edge
@@ -456,7 +460,7 @@ SVG, with no JavaScript. `graph.c` builds and lays out the graph;
   algorithm key names its own page, so it would draw every page twice.
   Node ids put pages first, in TXT file-name order, then each index's
   keys in key order, so ids never depend on the order of the arguments.
-- **Global view (`graph.html`).** A force-directed layout
+- **Global view (`index.html`).** A force-directed layout
   (Fruchterman–Reingold): pages start on an inner circle and keys on an
   outer one, then every pair repels and every edge pulls for a fixed
   number of steps while the allowed movement cools to zero. Date nodes
