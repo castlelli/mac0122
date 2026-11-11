@@ -1,0 +1,95 @@
+Tecnica:
+Algoritmo: Boyer-Moore
+Autores: Robert S. Boyer, J Strother Moore
+Data: 1977
+Conceitos: cadeia de caracteres, casamento de padrões
+Problema: Dadas uma palavra e um texto, encontrar as ocorrências da palavra no texto.
+---
+# Ideia do algoritmo
+Boyer e Moore tiveram a ideia de usar uma tabela auxiliar, indexada pelo alfabeto, para acelerar o algoritmo ingênuo. Depois de comparar a[1..m] com um sufixo de b[1..k], o algoritmo pode saltar algumas iterações e passar a comparar a palavra com um sufixo de b[1..k+d], para um certo d positivo. A comparação elemento a elemento é feita da direita para a esquerda, contra o sentido da varredura do texto.
+
+No primeiro algoritmo de Boyer-Moore, o deslocamento d é escolhido de modo que a posição k+1 do texto fique emparelhada com a última ocorrência (contando da esquerda para a direita) do byte b[k+1] na palavra. Para isso, o pré-processamento guarda, para cada byte f do alfabeto, a posição ult[f] da última ocorrência de f em a, ou 0 se f não ocorre em a.
+
+No segundo algoritmo, o deslocamento vem de uma tabela jump, que depende do sufixo da palavra que já casou com o texto. O terceiro algoritmo é a fusão dos dois: a cada passo escolhe o maior dos dois deslocamentos, o da tabela ult e o da tabela jump. Esse é o algoritmo de Boyer-Moore propriamente dito; a distinção entre primeiro e segundo algoritmos é apenas didática, e a página de Feofiloff não traz o código do terceiro, que fica como exercício.
+
+# Implementação em C
+O código é de Paulo Feofiloff: boyermoore1 é o primeiro algoritmo (tabela ult) e boyermoore2 é o segundo (tabela jump). Ambos contam as ocorrências da palavra a[1..m] no texto b[1..n], indexados a partir de 1. O código usa malloc, que exige a inclusão de stdlib.h; a página não mostra essa inclusão.
+[code]
+
+typedef unsigned char byte;
+
+// Recebe vetores a[1..m] e b[1..n] de bytes,
+// com m >= 1 e n >= 0, e devolve o número
+// de ocorrências de a em b.
+
+int
+boyermoore1 (byte a[], int m,
+             byte b[], int n)
+{
+   int ult[256]; // o alfabeto é 0..255
+
+   // pré-processamento da palavra a
+   for (int f = 0; f < 256; ++f) ult[f] = 0;
+   for (int i = 1; i <=  m; ++i) ult[a[i]] = i;
+
+   // busca da palavra a no texto b
+   int ocorrs = 0;
+   int k = m;
+   while (k <= n) {
+      // a[1..m] casa com b[k-m+1..k]?
+      int i = m, j = k;
+      while (i >= 1 && a[i] == b[j])
+         --i, --j;
+      if (i < 1) ++ocorrs;
+      if (k == n) k += 1;
+      else k += m - ult[b[k+1]] + 1;
+   }
+   return ocorrs;
+}
+
+// Recebe uma palavra a[1..m] com 1 <= m e
+// um texto b[1..n]. Devolve o número de
+// ocorrências de a em b.
+
+int
+boyermoore2 (byte a[], int m,
+             byte b[], int n)
+{
+   int *jump = malloc ((m+1) * sizeof (int));
+   // usaremos jump[1..m]
+
+   // pré-processamento da palavra a
+   int h = m, k = m-1;
+   while (h >= 1 && k >= 1) {
+      int i = m, j = k;
+      while (i >= h && j >= 1)
+         if (a[i] == a[j]) --i, --j;
+         else i = m, j = --k;
+      jump[h--] = k;
+   }
+   while (h >= 1)
+      jump[h--] = k;
+
+   // busca da palavra a no texto b
+   int ocorrs = 0;
+   k = m;
+   while (k <= n) {
+      int i = m, j = k;
+      while (i >= 1 && a[i] == b[j])
+         --i, --j;
+      if (i < 1) ++ocorrs;
+      if (i == m) k += 1;
+      else k += m - jump[i+1];
+   }
+   return ocorrs;
+}
+[/code]
+
+# Complexidade
+Segundo Feofiloff, no terceiro algoritmo o pré-processamento consome tempo proporcional a m^2, e a fase de busca consome m n no pior caso, tal como o algoritmo ingênuo. O pior caso é tão raro que, no caso médio, típico das aplicações práticas, o terceiro algoritmo consome tempo proporcional a n e independente de m: cada elemento do texto é comparado, em média, com poucos elementos da palavra. A definição da tabela jump pode ser aperfeiçoada de modo que, mesmo no pior caso, a busca consuma apenas 6n unidades de tempo.
+
+# Histórico
+Robert S. Boyer e J Strother Moore publicaram o algoritmo em "A fast string searching algorithm", Communications of the ACM 20(10):762–772, outubro de 1977. Uma versão anterior do trabalho circulou como relatório do Xerox PARC, CSL-76-1, de 1976.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Busca de palavras em um texto", https://www.ime.usp.br/~pf/algoritmos/aulas/strma.html
+[ref] Robert S. Boyer, J Strother Moore, "A fast string searching algorithm", Communications of the ACM 20(10):762–772, 1977, DOI 10.1145/359842.359859
