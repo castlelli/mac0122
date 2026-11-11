@@ -12,3 +12,4 @@ tests/comparator
 # Generated site: rebuild it with ./ep1 input/*.txt
 /output/*
 !/output/.gitkeep
+/sources
