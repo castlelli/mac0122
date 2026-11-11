@@ -622,9 +622,9 @@ void html_write_about_page(FILE *html_file)
                       LINKEDIN_RODRIGO_URL, NULL,
                       "Colorizador de sintaxe, casos de teste e comparador, relatórios, "
                       "prompts para os TXT e coleta das referências.");
-    write_team_member(html_file, "Vinícius Lima Xalega", NULL, NULL,
+    write_team_member(html_file, "Vinicius Lima Xalega", NULL, NULL,
                       "Conteúdo dos arquivos TXT.");
-    write_team_member(html_file, "Vinícius Sampaio Castelli de Deus",
+    write_team_member(html_file, "Vinicius Sampaio Castelli de Deus",
                       LINKEDIN_VINICIUS_URL, PORTFOLIO_VINICIUS_URL,
                       "Repositório no GitHub, revisão e correção do código dos colegas, "
                       "contribuições no código, calendário de entregas e apoio nos TXT.");
