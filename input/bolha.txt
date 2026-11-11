@@ -1,0 +1,42 @@
+Tecnica: Método guloso
+Algoritmo: Método da bolha (Bubble sort)
+Autores: Edward H. Friend
+Data: 1956
+Conceitos: vetor, ordenação, comparação, troca
+Problema: Dado um vetor de n números, rearranjar seus elementos em ordem crescente.
+---
+# Ideia do algoritmo
+O método percorre o vetor comparando pares de elementos vizinhos e trocando-os quando estão fora de ordem. A cada passada, o menor elemento restante sobe, como uma bolha, até a sua posição definitiva no início do vetor.
+
+No código do professor Leônidas, o laço externo fixa a posição ii e o laço interno percorre o vetor do fim até ii, trocando vet[jj-1] com vet[jj] quando vet[jj-1] > vet[jj]. Os invariantes estão nos comentários do código: no laço externo, vet[0] ≤ ... ≤ vet[ii-1] ≤ vet[j] para todo j em ii..n-1; no laço interno, vet[jj] ≤ vet[j] para todo j em jj+1..n-1.
+
+# Implementação em C
+O código abaixo é o da função ordenaBolha do professor Leônidas de Oliveira Brandão, copiado sem alterações; o programa de teste que o acompanha foi omitido.
+[code]
+// Ordena vet[0..n-1] usando metodo da Bolha
+void ordenaBolha (int vet[], int n) {
+  int ii, jj, aux;
+  for (ii=0; ii<n-1; ii++) // invariante: vet[0]<=vet[1]<=...<=vet[ii-1] <= vet[j], j em { ii, ii+1, ..., n-1 }
+    for (jj=n-1; jj>ii; jj--)  // invariante: vet[jj] <= vet[j], j em { jj+1, jj+2, ..., n-1 }
+      if (vet[jj-1]>vet[jj]) { // troque-os
+        aux = vet[jj-1];
+        vet[jj-1] = vet[jj];
+        vet[jj] = aux;
+        }
+  }
+[/code]
+
+# Complexidade
+O professor Leônidas indica, no próprio código, complexidade O(n²).
+
+Wirth dá o número de comparações C = (n² - n)/2 e o número médio de movimentações Mmed = 3(n² - n)/2, e conclui que a ordenação por bolha tem pouco a recomendar além do nome popular.
+
+# Histórico
+Friend descreveu em 1956 a ordenação por troca (sorting by exchange), a primeira descrição publicada conhecida do método. O nome bubble sort aparece impresso depois, em K. E. Iverson, A Programming Language, Wiley, 1962.
+
+Wirth observa que a subida do elemento mais leve até o seu nível, como uma bolha, deu ao método o nome Bubblesort.
+
+[ref] Leônidas de Oliveira Brandão, Material didático de MAC0122, "Ordena vetor via Metodo da Bolha: O(n2)", https://www.ime.usp.br/~leo/mac/mac122/ordena_bolha.html
+[ref] N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 2.2.3, p. 56–58
+[ref] E. H. Friend, "Sorting on electronic computer systems", Journal of the ACM 3(3):134–168, 1956, DOI 10.1145/320831.320833
+[ref] K. E. Iverson, A Programming Language, Wiley, 1962

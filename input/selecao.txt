@@ -1,0 +1,43 @@
+Tecnica: Método guloso
+Algoritmo: Ordenação por seleção (Selection sort)
+Autores: Edward H. Friend
+Data: 1956
+Conceitos: vetor, ordenação, comparação, troca
+Problema: Dado um vetor de n números, rearranjar seus elementos em ordem crescente.
+---
+# Ideia do algoritmo
+A estratégia é selecionar o menor elemento do vetor, depois o segundo menor, depois o terceiro menor, e assim por diante. A cada iteração, o menor elemento ainda não posicionado é trocado com o elemento da posição corrente.
+
+Para entender por que o algoritmo está correto, basta observar que no início de cada repetição do for externo valem três invariantes: o vetor v[0..n-1] é uma permutação do vetor original, v[0..i-1] está em ordem crescente e v[i-1] ≤ v[i..n-1]. Assim, v[0..i-1] contém todos os elementos pequenos do vetor original e v[i..n-1] contém todos os elementos grandes, e v[0], ..., v[i-1] já estão em suas posições definitivas.
+
+# Implementação em C
+O código abaixo é o de Paulo Feofiloff, copiado sem alterações.
+[code]
+// Esta função rearranja o vetor v[0..n-1]
+// em ordem crescente.
+
+void
+selectionsort (int n, int v[])
+{
+   for (int i = 0; i < n-1; ++i) {
+      int min = i;
+      for (int j = i+1; j < n; ++j)
+         if (v[j] < v[min])  min = j;
+      int x = v[i]; v[i] = v[min]; v[min] = x;
+   }
+}
+[/code]
+
+# Complexidade
+Segundo Feofiloff, o algoritmo faz cerca de n²/2 comparações entre elementos do vetor no pior caso, como a ordenação por inserção. Diferentemente da inserção, também faz cerca de n²/2 comparações no melhor caso, por exemplo quando o vetor já está quase ordenado. Assim, o consumo de tempo é sempre proporcional a n², e por isso Feofiloff considera a ordenação por inserção preferível.
+
+Wirth dá o número exato de comparações, C = (n² - n)/2, que não depende da ordem inicial dos elementos, e o número mínimo de movimentações, Mmin = 3(n - 1).
+
+# Histórico
+A ordenação por seleção não tem inventor conhecido. A primeira descrição publicada conhecida do método é de Edward H. Friend, em 1956, no artigo em que estuda a ordenação em computadores eletrônicos.
+
+Wirth classifica os métodos de ordenação in situ em três categorias, conforme o método subjacente: inserção, seleção e troca.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Ordenação: algoritmos elementares", https://www.ime.usp.br/~pf/algoritmos/aulas/ordena.html
+[ref] N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 2.2.2, p. 55–56
+[ref] E. H. Friend, "Sorting on electronic computer systems", Journal of the ACM 3(3):134–168, 1956, DOI 10.1145/320831.320833

@@ -1,0 +1,43 @@
+Tecnica:
+Algoritmo: Shellsort
+Autores: D. L. Shell
+Data: 1959
+Conceitos: vetor, ordenação, inserção, sequência de incrementos
+Problema: Dado um vetor de n números, rearranjar seus elementos em ordem crescente.
+---
+# Ideia do algoritmo
+Shellsort refina a ordenação por inserção. Nas primeiras etapas, comparam-se elementos distantes entre si, o que elimina rapidamente a desordem; a distância (incremento) diminui a cada etapa até chegar a 1, quando o método vira uma troca de elementos adjacentes.
+
+Na versão de Kernighan e Ritchie, a distância inicial é n/2 e é dividida por 2 a cada etapa. Em cada etapa, o vetor é ordenado por inserção entre elementos separados pela distância corrente; Wirth descreve a mesma ideia com uma sequência decrescente de incrementos terminada em 1, de modo que cada etapa aproveita o trabalho das anteriores.
+
+A escolha da sequência de incrementos é o ponto em aberto do método.
+
+# Implementação em C
+O código abaixo é o da função shellsort de Kernighan e Ritchie, copiado sem alterações.
+[code]
+/* shellsort:  sort v[0]...v[n-1] into increasing order */
+void shellsort(int v[], int n)
+{
+    int gap, i, j, temp;
+
+    for (gap = n/2; gap > 0; gap /= 2)
+        for (i = gap; i < n; i++)
+            for (j=i-gap; j>=0 && v[j]>v[j+gap]; j-=gap) {
+                temp = v[j];
+                v[j] = v[j+gap];
+                v[j+gap] = temp;
+            }
+}
+[/code]
+
+# Complexidade
+Kernighan e Ritchie não dão a complexidade. Wirth, que usa outra sequência de incrementos, relata um esforço proporcional a n^1,2 para ordenar n itens, e afirma que não se sabe qual escolha de incrementos dá o melhor resultado.
+
+Como o algoritmo é uma sequência de ordenações por inserção, a análise do seu desempenho depende da sequência de incrementos escolhida.
+
+# Histórico
+Segundo Wirth, o método foi inventado em 1959 por D. L. Shell, que publicou o artigo A High-Speed Sorting Procedure na Communications of the ACM.
+
+[ref] Brian W. Kernighan, Dennis M. Ritchie, The C Programming Language, 2ª ed., Prentice Hall, 1988, seção 3.5, p. 55
+[ref] N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 2.3.1, p. 59–60
+[ref] D. L. Shell, "A High-Speed Sorting Procedure", Communications of the ACM 2(7):30–32, 1959, DOI 10.1145/368370.368387

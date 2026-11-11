@@ -1,0 +1,66 @@
+Tecnica: Divisão e conquista
+Algoritmo: Ordenação por intercalação (Mergesort)
+Autores: John von Neumann
+Data: 1945
+Conceitos: vetor, ordenação, recursão, intercalação, estabilidade
+Problema: Dado um vetor de n números, rearranjar seus elementos em ordem crescente.
+---
+# Ideia do algoritmo
+O algoritmo usa a estratégia da divisão e conquista. A fase da divisão é simples: basta quebrar o vetor em duas metades. Cada metade é ordenada recursivamente, e a fase da conquista junta as duas metades já ordenadas pela operação de intercalação (merge).
+
+A intercalação recebe vetores crescentes v[p..q-1] e v[q..r-1] e rearranja v[p..r-1] em ordem crescente, usando uma área de trabalho w de mesmo tamanho. A função mergesort rearranja v[p..r-1]: a base da recursão são as instâncias com p ≥ r-1, que têm no máximo um elemento e não exigem trabalho.
+
+Se p < r-1, a instância é reduzida às instâncias v[p..q-1] e v[q..r-1], estritamente menores. Por hipótese de indução, ao fim das duas chamadas recursivas as metades estão em ordem crescente e, graças à intercalação, v[p..r-1] fica em ordem crescente. Feofiloff deixa como exercício a pergunta se a ordenação produzida é estável.
+
+# Implementação em C
+O código abaixo é o de Paulo Feofiloff, copiado sem alterações; a declaração de variáveis depois de comandos em intercala é válida em C99, não em C89.
+[code]
+// A função recebe vetores crescentes v[p..q-1]
+// e v[q..r-1] e rearranja v[p..r-1] em ordem
+// crescente.
+
+static void
+intercala (int p, int q, int r, int v[])
+{
+   int *w;  // 1
+   w = malloc ((r-p) * sizeof (int));  // 2
+   int i = p, j = q;  // 3
+   int k = 0;  // 4
+
+   while (i < q && j < r) {  // 5
+      if (v[i] <= v[j])  w[k++] = v[i++];  // 6
+      else  w[k++] = v[j++];  // 7
+   }  // 8
+   while (i < q)  w[k++] = v[i++];  // 9
+   while (j < r)  w[k++] = v[j++];  // 10
+   for (i = p; i < r; ++i)  v[i] = w[i-p];  // 11
+   free (w);  // 12
+}
+
+// A função mergesort rearranja o vetor
+// v[p..r-1] em ordem crescente.
+
+void
+mergesort (int p, int r, int v[])
+{
+   if (p < r-1) {                 // 1
+      int q = (p + r)/2;          // 2
+      mergesort (p, q, v);        // 3
+      mergesort (q, r, v);        // 4
+      intercala (p, q, r, v);     // 5
+   }
+}
+[/code]
+Para ordenar um vetor v[0..n-1] basta chamar mergesort (0, n, v).
+
+# Complexidade
+A função intercala executa 2n movimentações de elementos, sendo n o tamanho de v[p..r-1]; o tempo é proporcional a n.
+
+Em cada rodada da recursão o tamanho das instâncias cai à metade, e o número de rodadas é aproximadamente log n. Como cada rodada executa 2n movimentações, o total é aproximadamente 2n log n, e o consumo de tempo do Mergesort é proporcional a n log n; Feofiloff diz que o algoritmo é linearítmico. O fator de proporcionalidade é maior que o dos algoritmos elementares, pois o código é mais complexo, e por isso o Mergesort só se torna realmente mais rápido quando n é suficientemente grande.
+
+# Histórico
+Não existe artigo de von Neumann sobre o método: ele escreveu, em 1945, um programa de ordenação por intercalação para o computador EDVAC, em um manuscrito de 23 páginas, que só foi impresso e analisado por Donald Knuth em 1970. Segundo Cormen et al., von Neumann aparentemente escreveu esse programa em 1945.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Mergesort", https://www.ime.usp.br/~pf/algoritmos/aulas/mrgsrt.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, p. 42
+[ref] D. E. Knuth, "Von Neumann's First Computer Program", ACM Computing Surveys 2(4):247–260, 1970
