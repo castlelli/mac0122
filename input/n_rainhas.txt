@@ -1,0 +1,95 @@
+Tecnica: Tentativa e erro
+Algoritmo: Problema das oito rainhas
+Autores: Niklaus Wirth
+Data: 1971
+Conceitos: tabuleiro, recursão, retrocesso
+Problema: Colocar oito rainhas num tabuleiro de xadrez de modo que nenhuma ataque outra.
+---
+# Ideia do algoritmo
+Uma rainha ataca todas as casas da sua linha, da sua coluna e das suas duas diagonais. Queremos colocar oito rainhas num tabuleiro 8×8 sem que nenhuma ataque outra. Como duas rainhas na mesma coluna se atacam, cada coluna recebe exatamente uma rainha, e o programa escolhe a linha de cada uma.
+
+A função tenta(i) coloca a rainha da coluna i. Ela experimenta as linhas j de 0 a 7; uma linha serve se a linha j e as duas diagonais da casa (i, j) estão livres. Todas as casas de uma diagonal têm a mesma soma i+j, e todas as casas da outra diagonal têm a mesma diferença i-j; por isso três vetores de valores lógicos, indexados por j, por i+j e por i-j+7, dizem em tempo constante se a casa está segura.
+
+Depois de colocar a rainha, o programa tenta colocar as das colunas seguintes. Se isso falha, ele retira a rainha, libera a linha e as diagonais, e experimenta a linha seguinte (retrocesso). Se nenhuma linha serve, a função devolve fracasso para a coluna anterior, que muda de linha.
+
+# Implementação em C
+O código foi traduzido por Claude Sonnet 5.5 do programa Queens de Wirth (procedimentos Try e CanBeDone); os procedimentos aninhados First e Next, que percorrem as linhas candidatas, viraram um laço for.
+[code]
+/* Traduzido do Oberon (N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 3.5) com Claude Sonnet 5.5 */
+#include <stdio.h>
+
+/* Uma rainha por coluna: posicao[i] é a linha da rainha da coluna i,
+   ou -1 se ela ainda não foi colocada. Os vetores abaixo dizem se a
+   linha j, a diagonal i+j e a diagonal i-j+7 estão livres. */
+static int posicao[8];
+static int linha_livre[8];
+static int diagonal_a_livre[15];
+static int diagonal_b_livre[15];
+
+static int tenta(int i);
+
+/* Coloca a rainha da coluna i na linha j e vê se as demais cabem;
+   se não cabem, desfaz a jogada. */
+static int pode_completar(int i, int j)
+{
+    int feito;
+
+    posicao[i] = j;
+    linha_livre[j] = 0;
+    diagonal_a_livre[i + j] = 0;
+    diagonal_b_livre[i - j + 7] = 0;
+    feito = tenta(i + 1);
+    if (!feito) {
+        posicao[i] = -1;
+        linha_livre[j] = 1;
+        diagonal_a_livre[i + j] = 1;
+        diagonal_b_livre[i - j + 7] = 1;
+    }
+    return feito;
+}
+
+/* Tenta colocar as rainhas das colunas i a 7; devolve 1 se conseguiu. */
+static int tenta(int i)
+{
+    int j;
+
+    if (i >= 8)
+        return 1;
+    for (j = 0; j < 8; j++)
+        if (linha_livre[j] && diagonal_a_livre[i + j]
+            && diagonal_b_livre[i - j + 7] && pode_completar(i, j))
+            return 1;
+    return 0;
+}
+
+/* Procura uma solução e imprime a linha de cada coluna. */
+void oito_rainhas(void)
+{
+    int i;
+
+    for (i = 0; i < 8; i++) {
+        linha_livre[i] = 1;
+        posicao[i] = -1;
+    }
+    for (i = 0; i < 15; i++) {
+        diagonal_a_livre[i] = 1;
+        diagonal_b_livre[i] = 1;
+    }
+    if (tenta(0)) {
+        for (i = 0; i < 8; i++)
+            printf("%4d", posicao[i]);
+        printf("\n");
+    }
+}
+[/code]
+
+# Complexidade
+Wirth não dá uma fórmula de tempo para o programa. Ele mede o programa que encontra todas as soluções: o teste de casa segura é executado, em média, 161 vezes por solução, sobre as 92 soluções (p. 117).
+
+O tabuleiro 8×8 tem 92 soluções, das quais só 12 são essencialmente diferentes; as outras saem delas por reflexões e rotações (exercício 3.4, p. 127).
+
+# Histórico
+O problema foi proposto por Max Bezzel em 1848. Wirth lembra que Gauss o investigou em 1850, sem resolvê-lo por completo (p. 114). Wirth publicou em 1971, no artigo "Program development by stepwise refinement", a solução por tentativa e erro que este texto segue, usando o problema como exemplo de refinamentos sucessivos.
+
+[ref] N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 3.5, p. 114–118
+[ref] N. Wirth, "Program development by stepwise refinement", Communications of the ACM 14(4):221–227, 1971

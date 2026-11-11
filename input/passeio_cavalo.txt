@@ -1,0 +1,142 @@
+Tecnica: Tentativa e erro
+Algoritmo: Passeio do cavalo
+Autores: Leonhard Euler
+Data: 1759
+Conceitos: tabuleiro, recursão, retrocesso
+Problema: Mover um cavalo num tabuleiro n×n de modo que ele visite cada casa exatamente uma vez.
+---
+# Ideia do algoritmo
+Um cavalo de xadrez parte de uma casa de um tabuleiro n×n e deve visitar todas as casas exatamente uma vez. O cavalo tem no máximo oito movimentos possíveis a partir de cada casa, numerados de 0 a 7 no código.
+
+O método é o de tentativa e erro, também chamado de retrocesso (backtracking): a busca é em profundidade. A casa inicial recebe o número 1. Em cada passo, o programa tenta cada um dos oito movimentos que levam a uma casa dentro do tabuleiro e ainda não visitada, escreve nessa casa o número do passo e tenta completar o passeio a partir dela.
+
+Se a chamada recursiva devolve sucesso, o passeio está completo. Se devolve fracasso, o programa desfaz a marca da casa (volta a zero) e tenta o movimento seguinte. Se nenhum dos oito movimentos serve, devolve fracasso para quem o chamou. O programa também conta as tentativas feitas. Segundo o cabeçalho do arquivo, com a casa (0,0) como início o primeiro tabuleiro que admite um passeio é o 5×5.
+
+# Implementação em C
+O código é o do arquivo te_passeio_cavalo.c do professor Leônidas de Oliveira Brandão, copiado sem alterações, sem a função main, que lê n e a casa inicial na linha de comando e imprime o resultado.
+[code]
+// Prof. Leo^nidas - http://www.matematica.br http://line.ime.usp.br
+// MAC0122 - 2017/11/13
+// https://www.ime.usp.br/~leo/mac/mac122/tentativaerro/passeio_cavalo.html
+//
+// Passeio do Cavalo: encontrar um passeio em tabuleiro de xadrez para
+// um cavalo de modo a visitar todas as casas uma unica vez.
+//
+// Descricao: definir o tamanho da tabuleiro n; definir uma posicao inicial de (0,0) ate (n-1,n-1);
+// por tentativa e erro (backtracking) testar, todas as possibilidades (em busca em profundidade).
+//
+// Inicia em (x,y) e faz Tenta(Tab, n, lin, col, 1)
+// int Tenta(Tab, n, lin, col, conta)
+//   if (conta==n*n) return 1; // conseguiu fazer n*n passos do cavalo => cobriu o tab. todo => sucesso!
+//   for "para cada movimento Mx, My (0 a 7)"
+//     if "Tab[Mx][My] movimento possivel"
+//       "registra movimento Tab[lin+Mx][col+My] <- conta"
+//       if (Tenta(Tab, n, lin+Mx, col+My, conta++)) // se devolver 1 => obteve sucesso!
+//          return 1; // "devolva sucesso"
+//       else "desmarcar movimento Tab[Mx][My] <- 0"
+//   return 0; // "devolva fracasso"
+
+// Fixando (0,0) para iniciar, primeiro tabuleiro factivel e' o 5x5
+
+// Compilar com (principalmente enquanto testando)   : gcc -fsanitize=address -g -o te_passeio_cavalo.o te_passeio_cavalo.c
+// Sendo N o tamanho do tabuleiro desejado, rodar com: ./te_passeio_cavalo.o N
+
+
+#include <stdio.h>
+#include <stdlib.h> // 'atoi(...)' - string para inteiro
+
+// Movimentos do cavalo numerados de 0 ate 7
+//     0+1
+//   7  |  2
+//   +--+--+
+//   6  |  3
+//     5+4
+signed char M[][2] = { // movimentos considerando uma matriz desde (0,0) ate' (n-1,n-1)
+  // (x,y) posicao inicial
+  -2, -1,  // 0 : x <- x-2 e y <- y-1
+  -2,  1,  // 1 : x <- x-2 e y <- y+1
+  -1,  2,  // 2 : x <- x-1 e y <- y+2
+   1,  2,  // 3 : x <- x+1 e y <- y+2
+   2,  1,  // 4 : x <- x+2 e y <- y+1
+   2, -1,  // 5 : x <- x+2 e y <- y-1
+   1, -2,  // 6 : x <- x+1 e y <- y-2
+  -1, -2   // 7 : x <- x-1 e y <- y-2
+  };
+
+long numeroTentativas = 0; // contabiliza numero de tentativas
+
+// Inicia tabuleiro. Usar 'unsigned char' para inteiros entre 0 e 256. Primeira posicao sera 1.
+// Truque para tratar vetor como matriz
+// O codigo ficaria mais "legivel" se usasse matriz: iniciaTabuleiro (unsigned char Tab[][MAXC], int n)
+// mas precisaria usar um maximo fixo de colunas (#define MAXC)
+void iniciaTabuleiro (unsigned char *Tab, int n) {
+  int i, j;
+  for (i=0; i<n; i++)
+    for (j=0; j<n; j++)
+      *(Tab + i*n +j) = 0; // Tab[i][j] = 0;
+  }
+
+// Auxiliar: imprime tabuleiro
+void imprimeTabuleiro (unsigned char *Tab, int n) {
+  int i, j;
+  printf("Veja a configuracao do passeio no tabuleiro de dimensao %d\n     ", n);
+  for (i=0; i<n; i++)
+    printf("+----");
+  printf("+\n");
+  for (i=0; i<n; i++) {
+    printf("     |");
+    for (j=0; j<n; j++)
+      printf("%4d|", *(Tab + i*n +j));
+    printf("\n     ");
+    for (j=0; j<n; j++)
+      printf("+----");
+    printf("+\n");
+    }
+  }
+
+//
+// Testa movimento para matriz Tab[lin][col] e' valido
+int movimentoPossivel (unsigned char *Tab, int n, int lin, int col) { // movimento e' valido?
+  if (lin<0 || lin>=n) return 0; // fora do tabuleiro
+  if (col<0 || col>=n) return 0; // fora do tabuleiro
+  if (*(Tab + lin*n + col)>0) return 0; // posicao ja ocupada
+  return 1;
+  }
+
+//
+// Metodo do tipo "Tentativa e Erro" para varificar se existe passei completo do
+// cavalo em um tabuleiro n x n, comecando na posicao [lin,col]
+int tentarEncontrarPasseio (unsigned char *Tab, int n, int lin, int col, int conta) {
+  int i, mx, my;
+  //D1 printf("\nconta=%d: (%d,%d)", conta-1, lin, col); // ultimo colocado na posicao (lin,col)
+  if (conta>n*n) { // ja' alocou todos os passeios => sucesso!
+    return 1;
+    }
+  for (i=0; i<8; i++) { // tenta com cada um dos 8 possiveis movimento
+    mx = lin+M[i][0];
+    my = col+M[i][1];
+    if (movimentoPossivel(Tab, n, mx, my)) { // se movimento valido, registre o movimento "conta" na pos. (mx,my)
+      *(Tab + mx*n + my) = conta;
+      numeroTentativas++;
+      if (tentarEncontrarPasseio(Tab, n, mx, my, conta+1)) { // tenta completar o passeio
+        return 1;
+        }
+      else { // nao foi possivel completar o passeio a partir de "Tab[mx][my]==conta" => desfaz
+        //D1 printf("\n i=%d : desfaz (%d,%d)=%d", i, mx, my, *(Tab + mx*n + my));
+        *(Tab + mx*n + my) = 0; // libere posicao
+        }
+      } // if movimento valido
+    } // for i
+  return 0; // fracasso => MAO conseguiu da posicao atual um movimento completo
+  }
+[/code]
+O comentário do cabeçalho resume o esquema com a condição conta==n*n e a chamada Tenta(Tab, n, lin+Mx, col+My, conta++). O código faz diferente: a função tentarEncontrarPasseio testa conta>n*n e chama com conta+1, porque a casa inicial já tem o número 1 e a próxima é a de número 2.
+
+# Complexidade
+O arquivo não analisa o consumo de tempo. O programa conta, na variável numeroTentativas, quantas casas foram marcadas; o consumo de tempo cresce com esse número.
+
+# Histórico
+Euler publicou a primeira análise matemática do problema: apresentou o trabalho à Academia de Berlim em 1759, e ele foi impresso em 1766. A busca com retrocesso aplicada ao problema é posterior; não se conhece a primeira publicação de um programa de tentativa e erro para ele. O arquivo do professor traz a data 13/11/2017.
+
+[ref] Leônidas de Oliveira Brandão, MAC0122 (2026), arquivo te_passeio_cavalo.c, e-Disciplinas USP
+[ref] Leonhard Euler, "Solution d'une question curieuse qui ne paroit soumise à aucune analyse", Mémoires de l'Académie Royale des Sciences et Belles-Lettres de Berlin 15 (volume de 1759, impresso em 1766), p. 310–337

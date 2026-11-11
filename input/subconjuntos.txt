@@ -1,0 +1,54 @@
+Tecnica: Tentativa e erro
+Algoritmo: Enumeração de subconjuntos
+Autores: Solomon W. Golomb, Leonard D. Baumert
+Data: 1965
+Conceitos: enumeração, recursão, retrocesso
+Problema: Dado um conjunto de n elementos, listar todos os seus subconjuntos.
+---
+# Ideia do algoritmo
+Para listar os subconjuntos de {1, ..., n}, pensamos neles como subsequências estritamente crescentes de 1..n: há uma correspondência biunívoca entre uma coisa e outra. A ordem da listagem não importa muito; a solução abaixo usa a ordem lexicográfica, na qual 1 vem antes de 1 2, que vem antes de 1 2 3.
+
+O vetor ss[1..k] guarda o prefixo já escolhido. A função recursiva ssLexComPrefixo recebe um índice m menor ou igual a n+1 e uma subsequência ss[1..k] de 1..m-1, e imprime, em ordem lexicográfica, todas as subsequências não vazias de m..n, cada uma precedida do prefixo ss[1..k].
+
+Para cada m há duas escolhas. No caso 1, o programa inclui m: coloca m no prefixo, imprime o resultado e continua com m+1. No caso 2, o programa não inclui m e continua com m+1 e o mesmo prefixo. Depois do caso 1 o prefixo volta ao que era, pois só a posição ss[k+1] foi escrita; esse retorno é o retrocesso. A função ssLexR é a embalagem que aloca o vetor e chama ssLexComPrefixo com prefixo vazio.
+
+# Implementação em C
+O código é o da versão recursiva da página de Feofiloff, copiado sem alterações. Ele lista as subsequências não vazias de 1..n; o conjunto vazio fica de fora. A função imprime(ss, k), que imprime ss[1..k], não é definida na página, e ssLexComPrefixo precisa ser declarada antes de ssLexR num arquivo C.
+[code]
+// Recebe n >= 1 e imprime todas as
+// subsequências não vazias de 1..n,
+// em ordem lexicográfica.
+
+void
+ssLexR (int n)
+{
+   int* ss;
+   ss = malloc ((n+1) * sizeof (int));
+   ssLexComPrefixo (ss, 0, 1, n);
+   free (ss);
+}
+
+static void
+ssLexComPrefixo (int ss[], int k, int m, int n)
+{
+   if (m <= n) {
+      // caso 1: inclui m
+      ss[k+1] = m;
+      imprime (ss, k+1);
+      ssLexComPrefixo (ss, k+1, m+1, n);
+      // caso 2: não inclui m
+      ssLexComPrefixo (ss, k,   m+1, n);
+   }
+}
+[/code]
+
+# Complexidade
+O número de subsequências de 1..n dobra toda vez que n aumenta em 1, e portanto é 2^n. Qualquer enumeração de todos os subconjuntos leva, no mínimo, tempo proporcional a esse número.
+
+Feofiloff observa que a pilha de execução da versão recursiva consome bem mais memória que a versão iterativa, que só precisa de espaço para ss[0..n+1].
+
+# Histórico
+Golomb e Baumert formalizaram em 1965 a técnica de tentativa e erro (backtracking) usada na enumeração; é a primeira exposição publicada que confirmamos. O termo "backtrack" é atribuído a D. H. Lehmer.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Algoritmos de enumeração", https://www.ime.usp.br/~pf/algoritmos/aulas/enum.html
+[ref] Solomon W. Golomb, Leonard D. Baumert, "Backtrack programming", Journal of the ACM 12(4):516–524, 1965

@@ -1,0 +1,65 @@
+Tecnica: Programação dinâmica
+Algoritmo: Problema da mochila (0/1)
+Autores: George B. Dantzig
+Data: 1957
+Conceitos: tabela, subestrutura ótima, otimização
+Problema: Dados objetos com peso e valor e uma mochila de capacidade c, escolher objetos de peso total no máximo c e valor total máximo.
+---
+# Ideia do algoritmo
+Cada objeto i tem um peso p[i] e um valor v[i], números naturais. Na versão 0/1 (mochila booleana) cada objeto é levado inteiro ou deixado para trás. Escolher os objetos de maior valor por peso nem sempre dá a melhor resposta, porque pode deixar a mochila com espaço sobrando (Cormen et al., p. 426); é preciso comparar a solução que usa o objeto com a que não o usa.
+
+Guardamos numa tabela t o valor de uma solução de cada subinstância: t[i][j] é o valor máximo que se obtém usando só os objetos 1..i numa mochila de capacidade j. Temos t[0][j] = 0 e t[i][0] = 0. Se p[i] > j, o objeto i não cabe e t[i][j] = t[i-1][j]. Caso contrário, t[i][j] é o maior entre t[i-1][j] (sem o objeto) e v[i] + t[i-1][j-p[i]] (com o objeto).
+
+A resposta é t[n][c]. As linhas da tabela são calculadas na ordem de i, pois cada linha depende só da anterior.
+
+# Implementação em C
+O código foi gerado por Claude Sonnet 5.5 a partir da recorrência da página de Feofiloff; os vetores p e v usam índices de 1 a n, e a tabela é um vetor de (n+1)(c+1) posições.
+[code]
+/* Código gerado por Claude Sonnet 5.5 com base em Paulo Feofiloff, Análise de Algoritmos, "Algoritmo para o problema booleano da mochila", seção "Algoritmo de programação dinâmica" */
+#include <stdlib.h>
+
+/* Recebe pesos p[1..n] e valores v[1..n] de números naturais e a
+   capacidade c. Devolve o valor máximo de um subconjunto de 1..n
+   de peso total no máximo c, ou -1 se faltar memória.
+   t[i][j] é o valor de uma solução com os objetos 1..i e capacidade j. */
+long mochila(const int p[], const long v[], int n, int c)
+{
+    long *t;
+    long sem_objeto, com_objeto, resultado;
+    int i, j;
+
+    t = malloc((size_t) (n + 1) * (size_t) (c + 1) * sizeof(long));
+    if (t == NULL)
+        return -1;
+    for (j = 0; j <= c; j++)
+        t[j] = 0;
+    for (i = 1; i <= n; i++) {
+        t[i * (c + 1)] = 0;
+        for (j = 1; j <= c; j++) {
+            sem_objeto = t[(i - 1) * (c + 1) + j];
+            if (p[i] > j) {
+                t[i * (c + 1) + j] = sem_objeto;
+            } else {
+                com_objeto = v[i] + t[(i - 1) * (c + 1) + j - p[i]];
+                t[i * (c + 1) + j] = sem_objeto > com_objeto
+                                     ? sem_objeto : com_objeto;
+            }
+        }
+    }
+    resultado = t[n * (c + 1) + c];
+    free(t);
+    return resultado;
+}
+[/code]
+
+# Complexidade
+A tabela tem (n+1)(c+1) posições e cada uma custa tempo constante, de modo que o algoritmo consome tempo Θ(nc) e espaço Θ(nc). Feofiloff observa que isso não é polinomial no tamanho da entrada, pois c ocupa apenas cerca de lg c bits; por isso é melhor dizer que o consumo é Θ(n 2^(lg c)), o que deixa claro que o algoritmo é exponencial.
+
+A enumeração de todos os subconjuntos de 1..n, por sua vez, consome tempo Ω(2^n) (Feofiloff). Cormen et al. propõem a solução de tempo O(nW) como exercício (exercício 16.2-2, p. 427).
+
+# Histórico
+Dantzig aplicou a programação dinâmica de Bellman ao problema da mochila; é a primeira publicação conhecida dessa solução. O artigo saiu em Operations Research em 1957.
+
+[ref] Paulo Feofiloff, Análise de Algoritmos, "Mochila booleana", https://www.ime.usp.br/~pf/analise_de_algoritmos/aulas/mochila-bool.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 16.2, p. 425–427
+[ref] George B. Dantzig, "Discrete-variable extremum problems", Operations Research 5(2):266–288, 1957 (DOI 10.1287/opre.5.2.266)

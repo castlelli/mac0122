@@ -1,0 +1,73 @@
+Tecnica: Programação dinâmica
+Algoritmo: Multiplicação de cadeia de matrizes
+Autores: Sadashiva S. Godbole
+Data: 1973
+Conceitos: matriz, tabela, subestrutura ótima
+Problema: Dada uma sequência de matrizes, encontrar a ordem de multiplicação que minimiza o número de multiplicações escalares.
+---
+# Ideia do algoritmo
+Dada uma cadeia A1, A2, ..., An de n matrizes, em que a matriz Ai tem p[i-1] linhas e p[i] colunas, queremos colocar parênteses no produto A1 A2 ... An de modo que o número de multiplicações escalares seja o menor possível. O algoritmo não calcula o produto: ele só escolhe a ordem das multiplicações.
+
+A solução ótima de um produto Ai ... Aj parte a cadeia em algum ponto k, entre i e j-1, e usa soluções ótimas para os dois pedaços Ai ... Ak e Ak+1 ... Aj. O custo mínimo custo[i][j] é o menor valor, sobre todos os pontos de corte k, de custo[i][k] + custo[k+1][j] + p[i-1] p[k] p[j], em que o último termo é o custo de multiplicar as duas matrizes resultantes.
+
+A tabela é preenchida de baixo para cima, das cadeias menores para as maiores, para que custo[i][k] e custo[k+1][j] já estejam prontos quando custo[i][j] for calculado. A tabela corte guarda o k escolhido em cada caso e permite reconstruir os parênteses ótimos.
+
+# Implementação em C
+O código foi gerado por Claude Sonnet 5.5 a partir do procedimento MATRIX-CHAIN-ORDER do livro de Cormen et al., com índices a partir de 1 como no livro; a função imprime_parenteses reconstrói a solução a partir da tabela corte.
+[code]
+/* Código gerado por Claude Sonnet 5.5 com base em Cormen et al., Introduction to Algorithms, 3ª ed., seção 15.2 (MATRIX-CHAIN-ORDER) */
+#include <stdio.h>
+
+#define MAX_MATRIZES 20
+
+/* A matriz i (de 1 a n) tem p[i-1] linhas e p[i] colunas.
+   Preenche custo[i][j] com o menor número de multiplicações escalares
+   para calcular o produto das matrizes i..j, e corte[i][j] com o
+   índice k onde esse produto é partido. */
+void ordem_cadeia(const int p[], int n,
+                  long custo[][MAX_MATRIZES + 1],
+                  int corte[][MAX_MATRIZES + 1])
+{
+    int i, j, k, tamanho;
+    long candidato;
+
+    for (i = 1; i <= n; i++)
+        custo[i][i] = 0;
+    for (tamanho = 2; tamanho <= n; tamanho++) {
+        for (i = 1; i <= n - tamanho + 1; i++) {
+            j = i + tamanho - 1;
+            custo[i][j] = -1;
+            for (k = i; k < j; k++) {
+                candidato = custo[i][k] + custo[k + 1][j]
+                            + (long) p[i - 1] * p[k] * p[j];
+                if (custo[i][j] < 0 || candidato < custo[i][j]) {
+                    custo[i][j] = candidato;
+                    corte[i][j] = k;
+                }
+            }
+        }
+    }
+}
+
+/* Imprime a parentetização ótima do produto das matrizes i..j. */
+void imprime_parenteses(int corte[][MAX_MATRIZES + 1], int i, int j)
+{
+    if (i == j) {
+        printf("A%d", i);
+    } else {
+        printf("(");
+        imprime_parenteses(corte, i, corte[i][j]);
+        imprime_parenteses(corte, corte[i][j] + 1, j);
+        printf(")");
+    }
+}
+[/code]
+
+# Complexidade
+O algoritmo tem três laços aninhados, cada um com no máximo n iterações, e portanto consome tempo O(n^3). Ele precisa de espaço Θ(n^2) para as tabelas custo e corte (Cormen et al., seção 15.2, p. 377).
+
+# Histórico
+Godbole publicou em 1973 o algoritmo de programação dinâmica de tempo O(n^3) para a ordem do produto de uma cadeia de matrizes; o problema vinha sendo estudado no contexto da programação dinâmica de Bellman, cujo estudo sistemático começou em 1955. Cormen et al. citam ainda um algoritmo de tempo O(n lg n) de Hu e Shing (p. 412).
+
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 15.2, p. 370–378, e notas do capítulo 15, p. 412
+[ref] Sadashiva S. Godbole, "On efficient computation of matrix chain products", IEEE Transactions on Computers C-22(9):864–866, 1973 (DOI 10.1109/TC.1973.5009182)

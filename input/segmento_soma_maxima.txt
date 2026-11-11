@@ -1,0 +1,93 @@
+Tecnica: Divisão e conquista
+Algoritmo: Segmento de soma máxima
+Autores: Jon Bentley
+Data: 1984
+Conceitos: vetor, recursão, otimização
+Problema: Dado um vetor de números, encontrar um segmento de elementos consecutivos com soma máxima.
+---
+# Ideia do algoritmo
+Dado um vetor v de números, que podem ser negativos, queremos um segmento não vazio v[i..j] de elementos consecutivos cuja soma seja a maior possível. A solução por força bruta examina todos os segmentos e consome tempo Θ(n^2).
+
+Na solução por divisão e conquista, partimos o vetor ao meio. Um segmento de soma máxima está inteiramente na metade esquerda, inteiramente na metade direita, ou cruza o ponto médio. Os dois primeiros casos são subproblemas menores, resolvidos recursivamente. O terceiro se resolve em tempo linear: o melhor segmento que cruza o meio é a união do melhor sufixo da metade esquerda com o melhor prefixo da metade direita.
+
+A resposta é o melhor dos três segmentos. A recursão para quando o vetor tem um só elemento, que é o único segmento possível.
+
+# Implementação em C
+O código foi gerado por Claude Sonnet 5.5 a partir do procedimento FIND-MAXIMUM-SUBARRAY do livro de Cormen et al., com vetor indexado a partir de 0 e o resultado devolvido numa struct com início, fim e soma.
+[code]
+/* Código gerado por Claude Sonnet 5.5 com base em Cormen et al., Introduction to Algorithms, 3ª ed., seção 4.1 (FIND-MAXIMUM-SUBARRAY) */
+
+struct segmento {
+    int inicio;
+    int fim;
+    long soma;
+};
+
+/* Segmento de soma máxima que cruza o ponto médio: começa em
+   v[inicio..meio] e termina em v[meio+1..fim]. */
+static struct segmento segmento_cruzando(const int v[], int inicio,
+                                         int meio, int fim)
+{
+    struct segmento resultado;
+    long soma, melhor_esquerda, melhor_direita;
+    int i, j;
+
+    melhor_esquerda = v[meio];
+    resultado.inicio = meio;
+    soma = 0;
+    for (i = meio; i >= inicio; i--) {
+        soma += v[i];
+        if (soma > melhor_esquerda) {
+            melhor_esquerda = soma;
+            resultado.inicio = i;
+        }
+    }
+    melhor_direita = v[meio + 1];
+    resultado.fim = meio + 1;
+    soma = 0;
+    for (j = meio + 1; j <= fim; j++) {
+        soma += v[j];
+        if (soma > melhor_direita) {
+            melhor_direita = soma;
+            resultado.fim = j;
+        }
+    }
+    resultado.soma = melhor_esquerda + melhor_direita;
+    return resultado;
+}
+
+/* Devolve um segmento não vazio de v[inicio..fim] com soma máxima.
+   Recebe inicio <= fim. */
+struct segmento segmento_maximo(const int v[], int inicio, int fim)
+{
+    struct segmento esquerda, direita, meio_cruzando;
+    int meio;
+
+    if (inicio == fim) {
+        esquerda.inicio = inicio;
+        esquerda.fim = fim;
+        esquerda.soma = v[inicio];
+        return esquerda;
+    }
+    meio = (inicio + fim) / 2;
+    esquerda = segmento_maximo(v, inicio, meio);
+    direita = segmento_maximo(v, meio + 1, fim);
+    meio_cruzando = segmento_cruzando(v, inicio, meio, fim);
+    if (esquerda.soma >= direita.soma && esquerda.soma >= meio_cruzando.soma)
+        return esquerda;
+    if (direita.soma >= esquerda.soma && direita.soma >= meio_cruzando.soma)
+        return direita;
+    return meio_cruzando;
+}
+[/code]
+
+# Complexidade
+A recorrência é T(n) = 2T(n/2) + Θ(n), com solução T(n) = Θ(n lg n) (Cormen et al., p. 74). Isso é melhor que o consumo Θ(n^2) da força bruta (p. 70).
+
+Cormen et al. observam que existe um algoritmo de tempo linear, que não usa divisão e conquista: ele percorre o vetor guardando o melhor segmento visto até aqui e o melhor segmento que termina na posição atual (exercício 4.1-5, p. 75).
+
+# Histórico
+O problema foi proposto por Ulf Grenander em 1977, e o algoritmo de divisão e conquista, de Michael Shamos, foi publicado primeiro por Bentley, na coluna "Programming pearls" de Communications of the ACM em 1984. Cormen et al. descrevem o problema como uma pequena variação de um problema estudado por Bentley (p. 111).
+
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 4.1, p. 68–75, e notas do capítulo 4, p. 111
+[ref] Jon Bentley, "Programming pearls: algorithm design techniques", Communications of the ACM 27(9):865–873, 1984 (DOI 10.1145/358234.381162)
