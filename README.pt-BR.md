@@ -101,8 +101,8 @@ flowchart TD
     parser --> headers["Structs de cabeçalho<br/>(uma por TXT)"]
     headers --> indexes["Índices<br/>(BST de chaves)"]
     indexes --> index_pages[/"páginas de índice<br/>e sobre.html"/]
-    indexes --> graph["Grafo<br/>(páginas e chaves)"]
-    graph --> graph_pages[/"index.html e<br/>grafos locais"/]
+    indexes --> page_graph["Grafo<br/>(páginas e chaves)"]
+    page_graph --> graph_pages[/"index.html e<br/>grafos locais"/]
     headers -. "nome do TXT" .-> txt
     txt -- "passada 2: corpo, um TXT por vez" --> body["Corpo<br/>(seções, texto, código)"]
     body -- "bloco de código C" --> highlighter["Colorizador"]
