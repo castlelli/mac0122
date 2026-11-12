@@ -1,0 +1,41 @@
+Tecnica: Programação dinâmica
+Algoritmo: Maior subsequência comum
+Autores: Robert A. Wagner, Michael J. Fischer
+Data: 1974
+Conceitos: cadeia de caracteres, tabela, subestrutura ótima
+Problema: Dadas duas sequências, encontrar uma subsequência comum às duas de comprimento máximo.
+---
+# Ideia do algoritmo
+Uma subsequência de uma sequência é obtida apagando zero ou mais elementos, sem mudar a ordem dos que ficam. Dadas duas sequências a[1..m] e b[1..n], queremos uma subsequência comum às duas, de comprimento máximo. Um programa recursivo direto, baseado na indução abaixo, consome tempo exponencial no menor entre m e n.
+
+Seja L[i][j] o comprimento de uma maior subsequência comum dos primeiros i elementos de a e dos primeiros j elementos de b. Se a[i] e b[j] são iguais, L[i][j] = 1 + L[i-1][j-1]. Se são diferentes, L[i][j] é o maior entre L[i-1][j] e L[i][j-1], o que equivale a descartar o último elemento de uma das duas sequências. Quando i ou j é zero, L[i][j] é zero.
+
+Preenchendo a tabela linha por linha, cada posição custa tempo constante. Uma subsequência comum de comprimento máximo pode ser recuperada depois, percorrendo a tabela a partir de L[m][n].
+
+# Implementação em C
+O código é a Figura 6.31 de Aho e Ullman (seção 6.9, p. 324), copiado como no livro. É um trecho, sem função: as variáveis a, b, L, m, n, i e j devem ser declaradas antes dele, com a[1..m] e b[1..n] guardando as duas sequências.
+[code]
+for (j = 0; j <= n; j++)
+    L[0][j] = 0;
+for (i = 1; i <= m; i++) {
+    L[i][0] = 0;
+    for (j = 1; j <= n; j++)
+        if (a[i] != b[j])
+            if (L[i-1][j] >= L[i][j-1])
+                L[i][j] = L[i-1][j];
+            else
+                L[i][j] = L[i][j-1];
+        else /* a[i] == b[j] */
+            L[i][j] = 1 + L[i-1][j-1];
+}
+[/code]
+
+# Complexidade
+A tabela tem (m+1)(n+1) posições, cada uma preenchida em tempo constante, de modo que a tabela é construída em tempo O(mn) (Aho e Ullman, p. 323). Cormen et al. escrevem que o algoritmo é Θ(mn) (p. 394) e que ele parece ser um algoritmo folclórico (p. 413).
+
+# Histórico
+O algoritmo é anterior ao artigo de Wagner e Fischer em formas próximas (alinhamento de sequências); eles o apresentaram em 1974 como o algoritmo de correção de cadeias, que inclui a subsequência comum mais longa.
+
+[ref] Alfred V. Aho, Jeffrey D. Ullman, Foundations of Computer Science, C Edition, Computer Science Press, 1994, seção 6.9, Figura 6.31, p. 321–324
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 15.4, p. 390–397, e notas do capítulo 15, p. 413
+[ref] Robert A. Wagner, Michael J. Fischer, "The string-to-string correction problem", Journal of the ACM 21(1):168–173, 1974 (DOI 10.1145/321796.321811)

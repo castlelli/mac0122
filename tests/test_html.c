@@ -1,6 +1,6 @@
 /* Tests for html. Prints only the failing cases; exits 0 when every case passes.
    Build and run from the repository root, so the fixture paths resolve:
-   gcc -std=c89 -Wall -Wextra -pedantic -Werror tests/test_html.c src/html.c src/indexes.c src/bst.c src/sorted_list.c src/parser.c src/page.c src/text_utils.c src/c_highlighter.c src/c_keywords.c -o test_html */
+   gcc -std=c89 -Wall -Wextra -pedantic -Werror tests/test_html.c src/html.c src/graph.c src/indexes.c src/bst.c src/sorted_list.c src/parser.c src/page.c src/text_utils.c src/c_highlighter.c src/c_keywords.c -o test_html */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +14,7 @@
 static int failure_count = 0;
 static page *site_pages[PAGE_COUNT];
 static site_indexes *indexes;
+static graph *site_graph;
 
 static void check_true(const char *case_name, int condition)
 {
@@ -88,30 +89,32 @@ static void test_home_page(void)
     static char output[MAX_OUTPUT_LEN];
     FILE *output_file = open_output();
 
-    check_true("home page written", html_write_home_page(output_file, site_pages, PAGE_COUNT));
+    html_write_home_page(output_file, site_graph);
     read_output(output_file, output);
 
     check_contains("home: charset", output, "<meta charset=\"utf-8\">");
     check_contains("home: language", output, "<html lang=\"pt-BR\">");
     check_contains("home: shared style", output, "href=\"style.css\"");
-    check_absent("home: no page style block", output, "<style>");
+    check_order("home: graph style after the shared sheet", output, "href=\"style.css\"",
+                "<style>");
     check_contains("home: course name is the h1", output,
                    "<h1 class=\"curso\"><a href=\"index.html\"><span class=\"sigla\">MAC0122</span> "
                    "<span class=\"nome\">Princ\xC3\xADpios de Desenvolvimento de Algoritmos</span></a></h1>");
     check_contains("home: institute and professor", output,
                    "IME-USP \xC2\xB7 Prof. Dr. Le\xC3\xB4nidas de Oliveira Brand\xC3\xA3o");
     check_contains("home: skip link", output, "<a class=\"pular\" href=\"#conteudo\">");
-    check_contains("home: main landmark", output, "<main id=\"conteudo\">");
-    check_contains("home: Inicio is current", output,
-                   "<a href=\"index.html\" aria-current=\"page\">In\xC3\xAD" "cio</a>");
+    check_contains("home: wide main for the graph", output,
+                   "<main id=\"conteudo\" class=\"largo\">");
+    check_contains("home: three tabs, Inicio current", output,
+                   "<li><a href=\"index.html\" aria-current=\"page\">In\xC3\xAD" "cio</a></li>\n"
+                   "<li><a href=\"algorithms_by_technique.html\">Algoritmos</a></li>\n"
+                   "<li><a href=\"sobre.html\">Sobre</a></li>\n</ul>");
     check_contains("home: objectives quoted", output,
                    "<p class=\"abertura\">Estudo, atrav\xC3\xA9s de exemplos,");
     check_contains("home: objectives source under the quote", output,
                    "<p class=\"fonte\">Fonte: JupiterWeb, cat\xC3\xA1logo de disciplinas da USP.</p>");
-    check_contains("home: index description", output,
-                   "<span class=\"descricao\">Algoritmos agrupados por autor.</span>");
-    check_contains("home: technique and date after a page",
-                   output, "<span class=\"meta\">M\xC3\xA9todo guloso \xC2\xB7 1956</span>");
+    check_order("home: objectives before the graph", output, "class=\"abertura\"",
+                "<div class=\"tela\">");
     check_contains("home: footer", output, "<p>MAC0122 \xC2\xB7 IME-USP</p>");
     check_contains("home: footer credits the students", output,
                    "<p>Constru\xC3\xAD" "do por Alunos da Escola Polit\xC3\xA9" "cnica "
@@ -121,16 +124,21 @@ static void test_home_page(void)
     check_order("home: repository link after the credits", output,
                 "class=\"creditos\"", "class=\"repositorio\"");
     check_contains("home: viewport", output, "name=\"viewport\"");
-    check_contains("home: index by algorithm",
-                   output, "<a href=\"concepts_by_algorithm.html\">Conceitos</a>");
-    check_contains("home: algorithm index by technique",
-                   output, "<a href=\"algorithms_by_technique.html\">Algoritmo</a>");
-    check_contains("home: page link", output, "<a href=\"kruskal.html\">Kruskal</a>");
-    check_contains("home: no Algoritmo uses the base name",
-                   output, "<a href=\"sem_campos.html\">sem_campos</a>");
-    check_order("home: pages by file name", output, "dijkstra.html", "kruskal.html");
-    check_order("home: pages by file name", output, "prim.html", "sem_campos.html");
+    check_absent("home: no graph tab", output, "graph.html");
     check_absent("home: no script", output, "<script");
+}
+
+static void test_about_page(void)
+{
+    static char output[MAX_OUTPUT_LEN];
+    FILE *output_file = open_output();
+
+    html_write_about_page(output_file);
+    read_output(output_file, output);
+    check_contains("about: title", output, "<h1>Sobre</h1>");
+    check_contains("about: tab is current", output,
+                   "<a href=\"sobre.html\" aria-current=\"page\">Sobre</a>");
+    check_contains("about: narrow main", output, "<main id=\"conteudo\">");
 }
 
 static void test_index_page(void)
@@ -138,11 +146,22 @@ static void test_index_page(void)
     static char output[MAX_OUTPUT_LEN];
 
     write_index_page(INDEX_CONCEPTS, ATTRIBUTE_DATE, output);
-    check_contains("index: title", output, "<h1>Conceitos</h1>");
+    check_contains("index: title", output, "<h1>Algoritmos</h1>");
+    check_contains("index: tab title names the grouping", output,
+                   "<title>Algoritmos por Conceitos \xC2\xB7 MAC0122</title>");
     check_contains("index: masthead links home", output,
                    "<p class=\"curso\"><a href=\"index.html\">");
-    check_contains("index: not the default order, so the bar marks the index only",
+    check_contains("index: the bar marks the Algoritmos tab only", output,
+                   "<a href=\"algorithms_by_technique.html\" aria-current=\"true\">Algoritmos</a>");
+    check_contains("index: order control lists the groupings", output,
+                   "<span class=\"rotulo\" id=\"ordem-rotulo\">Ordenar por</span>\n<ul>\n"
+                   "<li><a href=\"algorithms_by_technique.html\">Algoritmo</a></li>\n"
+                   "<li><a href=\"techniques_by_algorithm.html\">T\xC3\xA9" "cnica</a></li>\n"
+                   "<li><a href=\"authors_by_algorithm.html\">Autores</a></li>");
+    check_contains("index: not the default order, so the grouping is marked true",
                    output, "<a href=\"concepts_by_algorithm.html\" aria-current=\"true\">Conceitos</a>");
+    check_order("index: grouping before the order inside groups", output,
+                "class=\"ordem\"", "Ordenar dentro do grupo:");
     check_absent("index: home not current", output, "aria-current=\"page\">In\xC3\xAD" "cio");
     check_contains("index: current order is not a link",
                    output, " <strong aria-current=\"page\">Data</strong>");
@@ -186,7 +205,7 @@ static void test_index_page(void)
     write_index_page(INDEX_TECHNIQUE, ATTRIBUTE_DATE, output);
     check_absent("technique index: no sort by technique", output, "techniques_by_technique");
     check_absent("technique index: no technique column", output, "class=\"tecnica\">T\xC3\xA9" "cnica</th>");
-    check_contains("technique index by date: the bar marks the index only",
+    check_contains("technique index by date: the grouping is marked true",
                    output, "<a href=\"techniques_by_algorithm.html\" aria-current=\"true\">T\xC3\xA9" "cnica</a>");
 
     write_index_page(INDEX_ALGORITHM, ATTRIBUTE_TECHNIQUE, output);
@@ -194,7 +213,9 @@ static void test_index_page(void)
                    output, "<th scope=\"col\" class=\"algoritmo\">Algoritmo</th><th scope=\"col\" class=\"tecnica\">T\xC3\xA9" "cnica</th>");
     check_contains("algorithm index: links the page",
                    output, "<td class=\"algoritmo\"><a href=\"prim.html\">Prim</a></td>");
-    check_contains("algorithm index: default order marks the page", output,
+    check_contains("algorithm index: default order marks the tab page", output,
+                   "<a href=\"algorithms_by_technique.html\" aria-current=\"page\">Algoritmos</a>");
+    check_contains("algorithm index: default order marks the grouping page", output,
                    "<a href=\"algorithms_by_technique.html\" aria-current=\"page\">Algoritmo</a>");
 
     write_index_page(INDEX_DATE, ATTRIBUTE_ALGORITHM, output);
@@ -242,6 +263,11 @@ static void test_content_page(void)
     /* In the TXT the reference comes before the code. */
     check_order("content: references at the end", output, "</pre>", "<h2>Refer\xC3\xAAncias</h2>");
     check_contains("content: reference", output, "<li>Cormen et al.");
+    check_contains("content: link to its local graph", output,
+                   "<p class=\"ver-grafo\"><a href=\"local_page_kruskal.html\">Ver no grafo</a></p>");
+    check_contains("content: nav has the three tabs", output,
+                   "<li><a href=\"sobre.html\">Sobre</a></li>");
+    check_absent("content: no graph tab", output, "graph.html");
 }
 
 static void test_content_page_escapes_every_field(void)
@@ -291,15 +317,23 @@ static void test_file_links_are_encoded(void)
     FILE *output_file = open_output();
     page *page_entry = page_create();
     page *pages[1];
+    site_indexes *one_page_indexes;
+    char concepts[] = "x";
 
     if (page_entry == NULL)
         exit(1);
     page_entry->html_name = text_utils_copy_str("a \"b\".html");
+    page_entry->concepts = text_utils_split_comma(concepts, &page_entry->concepts_count);
     pages[0] = page_entry;
-    check_true("encoded home written", html_write_home_page(output_file, pages, 1));
+    one_page_indexes = indexes_build(pages, 1);
+    if (one_page_indexes == NULL)
+        exit(1);
+    check_true("encoded index written", html_write_index_page(output_file, one_page_indexes,
+                                                              INDEX_CONCEPTS, ATTRIBUTE_ALGORITHM));
     read_output(output_file, output);
     check_contains("href is URL-encoded", output, "href=\"a%20%22b%22.html\"");
     check_contains("base name text keeps its spelling", output, ">a \"b\"</a>");
+    indexes_free(one_page_indexes);
     page_free(page_entry);
 }
 
@@ -368,6 +402,101 @@ static void test_generated_names(void)
     check_true("content name is not", !html_is_generated_file_name("kruskal.html"));
     check_true("an order not offered is not generated",
                !html_is_generated_file_name("dates_by_date.html"));
+    check_true("sobre.html is generated", html_is_generated_file_name("sobre.html"));
+    check_true("graph.html is free", !html_is_generated_file_name("graph.html"));
+    check_true("graph_local.html is generated", html_is_generated_file_name("graph_local.html"));
+    check_true("local_ names are reserved", html_is_generated_file_name("local_anything.html"));
+    check_true("graph_x is free", !html_is_generated_file_name("graph_theory.html"));
+}
+
+static void test_graph_page(void)
+{
+    static char output[MAX_OUTPUT_LEN];
+    FILE *output_file = open_output();
+
+    html_write_home_page(output_file, site_graph);
+    read_output(output_file, output);
+    check_contains("graph: global view current", output,
+                   "Vista: <strong aria-current=\"page\">Global</strong> "
+                   "<a href=\"graph_local.html\">Local</a>");
+    check_contains("graph: pages filter on", output,
+                   "<input type=\"checkbox\" id=\"f-pagina\" checked><label for=\"f-pagina\">");
+    check_contains("graph: dates filter off", output,
+                   "<input type=\"checkbox\" id=\"f-data\"><label for=\"f-data\">");
+    check_order("graph: filters before the drawing", output, "id=\"f-problema\"",
+                "<div class=\"tela\">");
+    check_contains("graph: global drawing", output, "<svg class=\"grafo global\" viewBox=\"0 0 ");
+    check_contains("graph: page node links its page", output,
+                   "<a id=\"n1\" class=\"no t-pagina\" href=\"kruskal.html\"><title>Kruskal (P\xC3\xA1gina)</title><circle");
+    check_contains("graph: key node links its index section", output,
+                   "class=\"no t-conceitos no-chave\" href=\"concepts_by_algorithm.html#arvore\">"
+                   "<title>\xC3\x81rvore (Conceito)</title><polygon");
+    check_contains("graph: key label escaped", output,
+                   ">caminho &lt;m\xC3\xADnimo&gt; &amp; custo</text>");
+    check_contains("graph: long label cut", output, "Dado um grafo conexo com pesos, \xE2\x80\xA6</text>");
+    check_contains("graph: whole label in the tooltip", output,
+                   "<title>Dado um grafo conexo com pesos, encontrar uma \xC3\xA1rvore espalhada de peso m\xC3\xADnimo. (Problema)</title>");
+    check_contains("graph: edges carry the key type", output, "<line class=\"aresta t-tecnica a");
+    check_contains("graph: hover rule for kruskal's edges", output,
+                   ".tela:has(#n1:hover, #n1:focus) .a1 { stroke:#1d3557;");
+    check_contains("graph: fit zoom chosen", output,
+                   "<input type=\"radio\" name=\"zoom\" id=\"z-ajustar\" checked>");
+    check_contains("graph: 200% zoom", output, "<label for=\"z-200\" class=\"z\">200%</label>");
+    check_order("graph: zoom before the drawing", output, "id=\"z-200\"", "<div class=\"tela\">");
+    check_contains("graph: 100% zoom is the drawing size", output,
+                   "#z-100:checked ~ .tela .grafo { width:");
+    check_absent("graph: no algorithm keys", output, "(Algoritmo)");
+    check_absent("graph: no script", output, "<script");
+}
+
+static void test_graph_chooser_page(void)
+{
+    static char output[MAX_OUTPUT_LEN];
+    FILE *output_file = open_output();
+
+    html_write_graph_chooser_page(output_file, site_graph);
+    read_output(output_file, output);
+    check_contains("chooser: local view current", output,
+                   "<a href=\"index.html\">Global</a> <strong aria-current=\"page\">Local</strong>");
+    check_contains("chooser: Inicio marked as section", output,
+                   "<a href=\"index.html\" aria-current=\"true\">In\xC3\xAD" "cio</a>");
+    check_contains("chooser: narrow main", output, "<main id=\"conteudo\">");
+    check_contains("chooser: page link", output,
+                   "<li><a href=\"local_page_kruskal.html\">Kruskal</a></li>");
+    check_contains("chooser: key link", output,
+                   "<li><a href=\"local_concepts_2.html\" class=\"chave-nome\">grafo</a></li>");
+    check_order("chooser: types in order", output, "<h2>P\xC3\xA1ginas</h2>", "<h2>Problemas</h2>");
+    check_contains("chooser: long list for problems", output, "<ul class=\"escolha longa\">");
+}
+
+static void test_local_graph_page(void)
+{
+    static char output[MAX_OUTPUT_LEN];
+    FILE *output_file = open_output();
+    graph *local_graph = graph_build_local(site_graph, 1);
+
+    if (local_graph == NULL) {
+        check_true("local graph built", 0);
+        fclose(output_file);
+        return;
+    }
+    html_write_local_graph_page(output_file, local_graph);
+    graph_free(local_graph);
+    read_output(output_file, output);
+    check_contains("local: title names the centre", output, "<title>Kruskal \xC2\xB7 Grafo");
+    check_contains("local: centre heading", output, "<h2 class=\"foco\">Kruskal</h2>");
+    check_contains("local: link to the real page", output,
+                   "P\xC3\xA1gina \xC2\xB7 <a href=\"kruskal.html\">Abrir a p\xC3\xA1gina</a>");
+    check_contains("local: local view marked", output,
+                   "<a href=\"graph_local.html\" aria-current=\"true\">Local</a>");
+    check_contains("local: legend", output, "<ul class=\"legenda\">");
+    check_contains("local: wide main for the graph", output,
+                   "<main id=\"conteudo\" class=\"largo\">");
+    check_contains("local: local drawing", output, "<svg class=\"grafo local\"");
+    check_contains("local: centre is node 0", output, "<a id=\"n0\" class=\"no t-pagina\" href=\"kruskal.html\">");
+    check_contains("local: dates shown", output, "(Data)</title>");
+    check_order("local: zoom before the drawing", output, "id=\"z-ajustar\"",
+                "<div class=\"tela\">");
 }
 
 int main(void)
@@ -388,12 +517,14 @@ int main(void)
         }
     }
     indexes = indexes_build(site_pages, PAGE_COUNT);
-    if (indexes == NULL) {
-        printf("FAIL could not build the indexes\n");
+    site_graph = indexes == NULL ? NULL : graph_build(site_pages, PAGE_COUNT, indexes);
+    if (site_graph == NULL || !graph_layout_global(site_graph)) {
+        printf("FAIL could not build the indexes and the graph\n");
         return 1;
     }
 
     test_home_page();
+    test_about_page();
     test_index_page();
     test_content_page();
     test_content_page_escapes_every_field();
@@ -402,7 +533,11 @@ int main(void)
     test_page_without_fields();
     test_style_sheet();
     test_generated_names();
+    test_graph_page();
+    test_graph_chooser_page();
+    test_local_graph_page();
 
+    graph_free(site_graph);
     indexes_free(indexes);
     for (page_index = 0; page_index < PAGE_COUNT; page_index++)
         page_free(site_pages[page_index]);

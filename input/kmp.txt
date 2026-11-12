@@ -1,0 +1,78 @@
+Tecnica:
+Algoritmo: Knuth-Morris-Pratt
+Autores: Donald E. Knuth, James H. Morris Jr., Vaughan R. Pratt
+Data: 1977
+Conceitos: cadeia de caracteres, casamento de padrões, função de falha
+Problema: Dadas uma palavra e um texto, encontrar as ocorrências da palavra no texto.
+---
+# Ideia do algoritmo
+No algoritmo ingênuo, depois de uma diferença entre a palavra e o texto, a comparação recomeça no início da palavra e descarta informação valiosa: após um casamento parcial, já se conhecem os últimos caracteres lidos do texto. O algoritmo de Knuth-Morris-Pratt (KMP) aproveita essa informação e nunca move para trás o ponto de comparação no texto.
+
+Os índices são i, posição do texto que está sendo comparada, e j, posição correspondente na palavra. Se s[i] e p[j] são iguais, ambos avançam. Se são diferentes, j recebe um valor menor d[j], o que desloca a palavra para a direita de j - d[j] posições. O valor -1 significa deslocar a palavra para além da posição atual do texto.
+
+A tabela d depende só da palavra, não do texto, e é calculada antes da busca. Esse pré-processamento é ele próprio uma busca da palavra nela mesma, feita com o método KMP. Ele só compensa se o texto for bem maior que a palavra.
+
+# Implementação em C
+O código abaixo traduz para C o procedimento Search da seção 1.9.2 de Wirth, escrito em Oberon. A tradução reescreve os laços WHILE ... ELSIF do Oberon como while com if/else, omite o ASSERT, que é só auxiliar de prova, e devolve a posição da primeira ocorrência ou -1.
+[code]
+/* Traduzido do Oberon (N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 1.9.2) com Claude Sonnet 5.5 */
+#define MMAX 100
+
+/* Procura a palavra p[0..m-1] no texto s[0..n-1], com 1 <= m <= MMAX.
+   Se encontra, devolve a posição em s da primeira ocorrência;
+   senão, devolve -1. */
+int busca_kmp(const char p[], int m, const char s[], int n)
+{
+    int i, j, k;
+    int d[MMAX];
+
+    /* calcula d a partir de p */
+    d[0] = -1;
+    if (m > 1) {
+        if (p[0] != p[1])
+            d[1] = 0;
+        else
+            d[1] = -1;
+    }
+    j = 1;
+    k = 0;
+    while (j < m - 1) {
+        if (k >= 0 && p[j] != p[k])
+            k = d[k];
+        else { /* (k < 0) ou (p[j] = p[k]) */
+            j++;
+            k++;
+            if (p[j] != p[k])
+                d[j] = k;
+            else
+                d[j] = d[k];
+        }
+    }
+
+    /* a busca propriamente dita */
+    i = 0;
+    j = 0;
+    while (j < m && i < n) {
+        if (j >= 0 && s[i] != p[j])
+            j = d[j];
+        else { /* (j < 0) ou (s[i] = p[j]) */
+            i++;
+            j++;
+        }
+    }
+    if (j == m)
+        return i - m;
+    else
+        return -1;
+}
+[/code]
+
+# Complexidade
+Wirth afirma que o número de comparações de caracteres é da ordem de M + N, uma melhora substancial sobre o M N da busca direta, e que o ponteiro i do texto nunca recua. Cormen et al. descrevem a versão com a função prefixo: o pré-processamento da palavra toma tempo Θ(m) e a busca toma tempo Θ(n).
+
+# Histórico
+O algoritmo foi publicado por Knuth, Morris e Pratt em "Fast pattern matching in strings", SIAM Journal on Computing 6(2):323–350, junho de 1977. Segundo Cormen et al., Knuth e Pratt o inventaram independentemente de Morris, e os três publicaram o trabalho em conjunto.
+
+[ref] N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 1.9.2, p. 41–45
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 32.4, p. 1002, e notas do capítulo 32, p. 1013
+[ref] Donald E. Knuth, James H. Morris Jr., Vaughan R. Pratt, "Fast pattern matching in strings", SIAM Journal on Computing 6(2):323–350, 1977, DOI 10.1137/0206024

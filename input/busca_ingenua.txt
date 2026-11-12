@@ -1,0 +1,47 @@
+Tecnica:
+Algoritmo: Busca de palavra em texto (algoritmo ingênuo)
+Autores: Donald E. Knuth, James H. Morris Jr., Vaughan R. Pratt
+Data: 1977
+Conceitos: cadeia de caracteres, casamento de padrões
+Problema: Dadas uma palavra e um texto, encontrar as ocorrências da palavra no texto.
+---
+# Ideia do algoritmo
+A palavra a[1..m] é um vetor de bytes e o texto b[1..n] é outro. O algoritmo ingênuo tenta casar a palavra com b[1..m], depois com b[2..m+1], e assim por diante, como se a palavra deslizasse da esquerda para a direita ao longo do texto.
+
+Em cada posição k do texto, a comparação é feita da direita para a esquerda: primeiro a[m] com b[k], depois a[m-1] com b[k-1], até haver uma diferença ou até a palavra inteira casar. Se a palavra inteira casa, conta-se uma ocorrência. Duas ocorrências podem se sobrepor, e a função as conta todas.
+
+O algoritmo desconhece o que as comparações anteriores revelaram: cada nova posição recomeça a comparação do zero. É essa informação desperdiçada que os algoritmos de Knuth-Morris-Pratt e de Boyer-Moore aproveitam.
+
+# Implementação em C
+O código é de Paulo Feofiloff: a função inocente devolve o número de ocorrências de a em b, com os vetores indexados a partir de 1 (a[0] e b[0] não são usados).
+[code]
+typedef unsigned char byte;
+
+// Recebe vetores a[1..m] e b[1..n],
+// com m >= 1 e n >= 0, e devolve
+// o número de ocorrências de a em b.
+
+int
+inocente (byte a[], int m, byte b[], int n)
+{
+   int ocorrs = 0;
+   for (int k = m; k <= n; ++k) {
+      // a[1..m] casa com b[k-m+1..k]?
+      int i = m, j = k;
+      while (i >= 1 && a[i] == b[j])
+         --i, --j;
+      if (i < 1) ++ocorrs;
+   }
+   return ocorrs;
+}
+[/code]
+
+# Complexidade
+No pior caso, a função compara cada elemento de a com cada elemento de b e portanto consome tempo proporcional a m n (Feofiloff). Cormen et al. dão o limite O((n - m + 1) m) e observam que ele é justo no pior caso, por exemplo com o texto a^n e a palavra a^m.
+
+# Histórico
+A busca ingênua é folclórica e não se conhece quem a publicou primeiro. A descrição publicada mais antiga que confirmamos é a do artigo de Knuth, Morris e Pratt, "Fast pattern matching in strings", SIAM Journal on Computing 6(2):323–350, 1977, que a toma como ponto de partida.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Busca de palavras em um texto", https://www.ime.usp.br/~pf/algoritmos/aulas/strma.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 32.1, p. 988
+[ref] Donald E. Knuth, James H. Morris Jr., Vaughan R. Pratt, "Fast pattern matching in strings", SIAM Journal on Computing 6(2):323–350, 1977, DOI 10.1137/0206024

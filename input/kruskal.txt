@@ -1,0 +1,126 @@
+Tecnica: Método guloso
+Algoritmo: Kruskal (árvore espalhada mínima)
+Autores: Joseph B. Kruskal
+Data: 1956
+Conceitos: grafo, árvore espalhada mínima, peso, union-find
+Problema: Dado um grafo não dirigido e conexo com pesos nas arestas, encontrar uma árvore espalhada de peso total mínimo.
+---
+# Ideia do algoritmo
+O algoritmo de Kruskal faz crescer uma floresta geradora até que ela se torne conexa. Cada iteração começa com uma floresta geradora F do grafo G; no início da primeira, cada componente conexa de F tem um só vértice. Uma aresta de G é externa a F se não pertence a F e F mais a aresta continua sem circuitos, isto é, se tem uma ponta em uma componente de F e a outra ponta em outra componente.
+
+O processo iterativo é simples: enquanto existe alguma aresta externa, escolha uma aresta externa de custo mínimo e acrescente-a a F. (A página de Feofiloff chama de custo o que aqui chamamos de peso.) No fim, F é conexa, pois G é conexo e não há arestas externas, e é uma árvore espalhada de peso mínimo.
+
+O algoritmo é guloso: em cada iteração abocanha a aresta que parece mais promissora localmente, sem se preocupar com o efeito global dessa escolha.
+
+Uma implementação ingênua guarda, para cada vértice, o chefe de sua componente e examina todas as arestas a cada iteração; ela consome tempo V (E + V). A implementação eficiente coloca as arestas em ordem crescente de peso, examina cada uma uma só vez e usa a estrutura union-find para decidir se as pontas de uma aresta estão em componentes diferentes.
+
+# Implementação em C
+O código é o de Feofiloff, copiado como está: a struct edge e a função EDGE(), a função UGRAPHmstK1() (que ele diz copiada, com ligeiras modificações, do programa 20.5 de Sedgewick), a função auxiliar UGRAPHedges() e as funções UFinit(), UFfind() e UFunion() do union-find com união pelo tamanho das componentes. Ele está em C99 e supõe o grafo em listas de adjacência (os tipos Graph, vertex e link); a função sort(), que ordena e[0..E-1] por peso, não aparece na página.
+[code]
+typedef struct {
+    vertex v, w;
+    int c;
+} edge;
+
+static edge EDGE( vertex v, vertex w, int c) {
+   edge e;
+   e.v = v, e.w = w; e.c = c;
+   return e;
+}
+
+#define UGraph Graph
+
+/* A função UGRAPHmstK1() recebe
+   um grafo não-dirigido conexo G
+   com custos arbitrários nas arestas
+   e calcula uma MST
+   de G.
+   O grafo é dado por suas
+   listas de adjacência.
+   A função armazena as arestas
+   da MST no vetor mst[0..V-1],
+   alocado pelo usuário.
+   (A função implementa o algoritmo de Kruskal.
+
+   O código foi copiado, com ligeiras modificações,
+   do programa 20.5 de Sedgewick.) */
+
+void UGRAPHmstK1( UGraph G, edge mst[])
+{
+   edge e[500000];
+
+   UGRAPHedges( G, e);
+   int E = G->A/2;
+   sort( e, 0, E-1);
+
+   UFinit( G->V);
+   int k = 0;
+   for (int i = 0; k < G->V-1; ++i) {
+      vertex v0 = UFfind( e[i].v);
+      vertex w0 = UFfind( e[i].w);
+      if (v0 != w0) {
+         UFunion( v0, w0);
+         mst[k++] = e[i];
+      }
+   }
+}
+
+/* Esta função armazena as arestas do grafo não-dirigido G
+   no vetor e[0..E-1]. */
+
+static void UGRAPHedges( UGraph G, edge e[])
+{
+   int i = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      for (link a = G->adj[v]; a != NULL; a = a->next)
+         if (v < a->w)
+            e[i++] = EDGE( v, a->w, a->c);
+}
+
+/* A função UFfind() devolve o chefe de v
+   (ou seja, o chefe da componente conexa que contém v
+   na floresta geradora mst[0..k-1]).
+   A função UFunion() recebe dois chefes distintos
+   v0 e w0
+   e faz a união das correspondentes componentes. */
+
+static vertex ch[1000];
+static int sz[1000];
+
+void UFinit( int V) {
+   for (vertex v = 0; v < V; ++v) {
+      ch[v] = v;
+      sz[v] = 1;
+   }
+}
+
+vertex UFfind( vertex v) {
+   vertex v0 = v;
+   while (v0 != ch[v0])
+      v0 = ch[v0];
+   return v0;
+}
+
+void UFunion( vertex v0, vertex w0) {
+   if (sz[v0] < sz[w0]) {
+      ch[v0] = w0;
+      sz[w0] += sz[v0];
+   }
+   else {
+      ch[w0] = v0;
+      sz[v0] += sz[w0];
+   }
+}
+[/code]
+
+# Complexidade
+Seja V o número de vértices e E o de arestas. A função sort() consome tempo limitado por E log E. O resto de UGRAPHmstK1() consiste em 2V invocações de UFfind() e V de UFunion(), cada uma limitada por log V, e portanto consome tempo limitado por V log V. Como log E < 2 log V, o total é limitado por (E + V) log V; como o grafo é conexo, E é pelo menos V - 1, e o consumo é proporcional a E log V no pior caso. Feofiloff diz que o algoritmo é linearítmico.
+
+A página observa que com compressão de caminhos cada operação do union-find consumiria apenas log* V no pior caso, mas UGRAPHmstK1() não se beneficiaria, pois a ordenação das arestas já consome E log V.
+
+# Histórico
+O algoritmo foi publicado por Joseph B. Kruskal em 1956, no artigo "On the shortest spanning subtree of a graph and the traveling salesman problem", nos Proceedings of the American Mathematical Society (Cormen et al., p. 642). Segundo as mesmas notas, Tarjan atribui a Borůvka (1926) o primeiro algoritmo de árvore espalhada mínima.
+
+[ref] Paulo Feofiloff, Algoritmos para Grafos em C via Sedgewick, "Algoritmo de Kruskal", https://www.ime.usp.br/~pf/algoritmos_para_grafos/aulas/kruskal.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, notas do capítulo 23, p. 641-642
+[ref] Joseph B. Kruskal, "On the shortest spanning subtree of a graph and the traveling salesman problem", Proceedings of the American Mathematical Society 7(1):48-50, 1956

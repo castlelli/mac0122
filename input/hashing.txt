@@ -1,0 +1,85 @@
+Tecnica:
+Algoritmo: Tabela de espalhamento (hashing)
+Autores: Hans Peter Luhn
+Data: 1953
+Conceitos: espalhamento, colisão, lista ligada, busca
+Problema: Guardar um conjunto de chaves de modo que buscar, inserir e remover uma chave leve, em média, tempo constante.
+---
+# Ideia do algoritmo
+A tabela é um vetor de apontadores. Uma função de espalhamento converte a chave, aqui uma cadeia de caracteres, num inteiro pequeno e não negativo, que é usado como índice do vetor. Cada posição do vetor aponta para o início de uma lista ligada com as entradas cujas chaves têm aquele mesmo valor de espalhamento, ou vale NULL se nenhuma chave foi espalhada para lá.
+
+Chaves diferentes podem receber o mesmo índice; isso é uma colisão. Neste código as colisões são resolvidas por encadeamento: a entrada nova é posta no início da lista da sua posição. Na busca, só é preciso percorrer a lista que começa no índice calculado, e não a tabela inteira.
+
+A função hash do livro soma o valor de cada caractere a uma combinação embaralhada dos anteriores (hashval = *s + 31 * hashval) e devolve o resto da divisão pelo tamanho da tabela. Os autores dizem que ela não é a melhor possível, mas é curta e eficaz. A aritmética sem sinal garante que o valor seja não negativo. Em Cormen et al., o desempenho depende do fator de carga alfa = n/m, em que n é o número de chaves e m o número de posições da tabela.
+
+# Implementação em C
+O código é o da seção 6.6 do livro de Kernighan e Ritchie, uma tabela de nomes com texto de substituição, do tipo usado por um pré-processador ou por um compilador: a estrutura da entrada, a tabela, a função hash, a busca lookup e a inserção install.
+[code]
+struct nlist {       /* table entry: */
+    struct nlist *next;   /* next entry in chain */
+    char *name;           /* defined name */
+    char *defn;           /* replacement text */
+};
+
+#define HASHSIZE 101
+
+static struct nlist *hashtab[HASHSIZE];  /* pointer table */
+
+/* hash:  form hash value for string s */
+unsigned hash(char *s)
+{
+    unsigned hashval;
+
+    for (hashval = 0; *s != '\0'; s++)
+        hashval = *s + 31 * hashval;
+    return hashval % HASHSIZE;
+}
+
+/* lookup:  look for s in hashtab */
+struct nlist *lookup(char *s)
+{
+    struct nlist *np;
+
+    for (np = hashtab[hash(s)];  np != NULL; np = np->next)
+        if (strcmp(s, np->name) == 0)
+            return np;     /* found */
+    return NULL;           /* not found */
+}
+
+struct nlist *lookup(char *);
+char *strdup(char *);
+
+/* install:  put (name, defn) in hashtab */
+struct nlist *install(char *name, char *defn)
+{
+    struct nlist *np;
+    unsigned hashval;
+
+    if ((np = lookup(name)) == NULL) { /* not found */
+        np = (struct nlist *) malloc(sizeof(*np));
+        if (np == NULL || (np->name = strdup(name)) == NULL)
+            return NULL;
+        hashval = hash(name);
+        np->next = hashtab[hashval];
+        hashtab[hashval] = np;
+    } else       /* already there */
+        free((void *) np->defn);   /*free previous defn */
+    if ((np->defn = strdup(defn)) == NULL)
+        return NULL;
+    return np;
+}
+[/code]
+O livro não imprime os #include; o código precisa de stdio.h, stdlib.h e string.h. install usa strdup, malloc e free; o livro declara strdup logo antes de install.
+
+# Complexidade
+Segundo Cormen et al., na tabela com encadeamento o pior caso de uma busca é Θ(n) mais o tempo de calcular a função de espalhamento (p. 258), pois todas as chaves podem cair na mesma lista. Com espalhamento uniforme, o tempo esperado de uma busca é Θ(1 + alfa), com alfa = n/m; se o número de posições é proporcional ao número de chaves, a busca consome tempo constante em média (p. 260).
+
+# Histórico
+A ideia é atribuída a Hans Peter Luhn, num memorando interno da IBM de janeiro de 1953 que propunha o encadeamento para busca externa; o memorando não foi publicado. Knuth o menciona no vol. 1 (p. 458) e Cormen et al. também creditam a Luhn, em 1953, as tabelas de espalhamento e o encadeamento (p. 285). Na mesma época, G. M. Amdahl originou o endereçamento aberto (Cormen et al., p. 285). A primeira descrição na literatura aberta é de Arnold I. Dumey, de 1956, e o primeiro artigo importante é o de W. Wesley Peterson, de 1957.
+
+[ref] Brian W. Kernighan, Dennis M. Ritchie, The C Programming Language, 2ª ed., Prentice Hall, 1988, seção 6.6, p. 117-119
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 11.2, p. 256-260 e notas, p. 285
+[ref] Donald E. Knuth, The Art of Computer Programming, vol. 1, 3ª ed., Addison-Wesley, 1997, seção 2.6, p. 458
+[ref] H. P. Luhn, memorando interno da IBM, janeiro de 1953 (não publicado)
+[ref] Arnold I. Dumey, "Indexing for Rapid Random Access Memory Systems", Computers and Automation 5(12):6-9, 1956
+[ref] W. Wesley Peterson, "Addressing for Random-Access Storage", IBM Journal of Research and Development 1(2):130-146, 1957

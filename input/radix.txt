@@ -1,0 +1,69 @@
+Tecnica:
+Algoritmo: Ordenação digital (Radix sort LSD)
+Autores: L. J. Comrie
+Data: 1929
+Conceitos: vetor, ordenação, dígito, estabilidade, frequência
+Problema: Dado um vetor de n números, rearranjar seus elementos em ordem crescente.
+---
+# Ideia do algoritmo
+A ordenação digital rearranja em ordem lexicográfica um vetor de strings de mesmo comprimento W, ordenando as strings dígito a dígito. Também é conhecida como ordenação digital da direita para a esquerda, a partir do dígito menos significativo, ou least significant digit (LSD) radix sort.
+
+O algoritmo aplica a ordenação por contagem repetidas vezes: primeiro para ordenar pelo último dígito, depois pelo penúltimo, e assim por diante até o primeiro. Como a ordenação por contagem é estável, o vetor acaba em ordem lexicográfica. É essencial começar pelo último dígito.
+
+No exemplo de Feofiloff, tirado do livro de Sedgewick e Wayne, dez placas de automóvel de sete caracteres, como CDA7891 e FAJ4021, ficam em ordem depois de sete passadas, uma por posição.
+
+# Implementação em C
+O código abaixo é o da função ordenacaoDigital de Feofiloff. O parâmetro W é o comprimento comum das strings e o parâmetro R, menor que 256, é o tamanho do universo de dígitos. O código usa malloc e free, portanto precisa de stdlib.h, e usa for (int ...).
+[code]
+typedef unsigned char byte;
+
+// Rearranja em ordem lexicográfica um vetor v[0..n-1]
+// de strings. Cada v[i] é uma string v[i][0..W-1]
+// cujos elementos pertencem ao conjunto 0..R-1.
+
+void
+ordenacaoDigital (byte **v, int n, int W, int R)
+{
+   int *fp;
+   byte **aux;
+   fp = malloc ((R+1) * sizeof (int));
+   aux = malloc (n * sizeof (byte *));
+
+   for (int d = W-1; d >= 0; --d) {
+      int r;
+      for (r = 0; r <= R; ++r)
+         fp[r] = 0;
+      for (int i = 0; i < n; ++i) {
+         r = v[i][d];
+         fp[r+1] += 1;
+      }
+      for (r = 1; r <= R; ++r)
+         fp[r] += fp[r-1];
+      for (int i = 0; i < n; ++i) {
+         r = v[i][d];
+         aux[fp[r]] = v[i];
+         fp[r]++;
+      }
+      for (int i = 0; i < n; ++i)
+         v[i] = aux[i];
+   }
+
+   free (fp);
+   free (aux);
+}
+
+[/code]
+
+# Complexidade
+A função ordenacaoDigital consome W(n+R) unidades de tempo. Se R é pequeno (da ordem de n na pior hipótese), o consumo de tempo é proporcional a Wn, ou seja, ao número total de dígitos na entrada.
+
+Cormen et al. mostram, no Lema 8.3, que a ordenação digital ordena n números de d dígitos em Theta(d(n + k)) se a ordenação estável usada em cada passada consome Theta(n + k).
+
+# Histórico
+A ordenação digital a partir do dígito menos significativo é uma técnica folclórica, muito usada pelos operadores de máquinas mecânicas de ordenação de cartões perfurados (Hollerith). A primeira referência publicada que se conhece é de L. J. Comrie, de 1929, que descreve equipamentos de cartões perfurados (Cormen et al., p. 211).
+
+A versão para computador, que combina a ordenação digital com a ordenação por contagem, é atribuída a H. H. Seward, em 1954.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Ordenação digital", https://www.ime.usp.br/~pf/algoritmos/aulas/radix.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 8.3, pp. 197-199 e 211
+[ref] L. J. Comrie, artigo sobre as máquinas tabuladoras Hollerith e Powers, Transactions of the Office Machinery Users' Association, Londres, 1929-30, pp. 25-37

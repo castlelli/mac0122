@@ -1,0 +1,75 @@
+Tecnica: Programação dinâmica
+Algoritmo: Dijkstra (caminhos mínimos)
+Autores: Edsger W. Dijkstra
+Data: 1956
+Conceitos: grafo, caminho mínimo, peso, fila de prioridade
+Problema: Dado um grafo com pesos não negativos nas arestas e um vértice s, encontrar um caminho de peso mínimo de s a cada vértice.
+---
+# Ideia do algoritmo
+O algoritmo de Dijkstra faz crescer, a partir do vértice s, uma subárvore radicada T do grafo até que ela englobe todos os vértices ao alcance de s. A franja de T é o conjunto dos arcos que têm ponta inicial em T e ponta final fora de T. Cada iteração começa com T e com o vetor dist[] das distâncias de s em T; no início, s é o único vértice de T e dist[s] vale 0. (A página de Feofiloff chama de custo o que aqui chamamos de peso, e trata de custos positivos.)
+
+O processo iterativo é este: enquanto a franja de T não estiver vazia, escolha na franja um arco x-y que minimize dist[x] mais o custo de x-y, acrescente x-y e o vértice y a T, e faça dist[y] igual a dist[x] mais o custo de x-y. Informalmente, y é o vértice fora de T que está mais perto de s. No fim, T é uma árvore de caminhos baratos: todo caminho em T que começa em s tem custo mínimo no grafo.
+
+Na primeira implementação, cada iteração examina os vértices ainda não maduros, um por um, à procura de um que minimize dist[]. Na segunda, mostrada abaixo, esses vértices ficam em uma fila priorizada de mínimo, com prioridade dada por dist[], e o vetor pa[] guarda os pais da árvore.
+
+Aqui o algoritmo é classificado como programação dinâmica, segundo o professor da disciplina; Cormen et al. o classificam como guloso (seção 24.3).
+
+# Implementação em C
+O código é a função GRAPHcptD2() de Feofiloff, a segunda implementação, copiada como está (ele a diz inspirada no programa 21.1 de Sedgewick). Ela está em C99 (bool, declarações dentro do for e comentário com //) e supõe o grafo em listas de adjacência (os tipos Graph, vertex e link), a constante INT_MAX e as funções da fila priorizada PQinit(), PQinsert(), PQdelmin(), PQdec(), PQempty() e PQfree(), que a página não define.
+[code]
+/* Recebe um grafo G com custos positivos nos arcos
+   e um vértice s.
+   Calcula e armazena em pa[] o vetor de pais
+   de uma CPT de G com raiz s
+   (supondo que todos os vértices de G
+   estão ao alcance de s).
+   As distâncias a partir de s são armazenadas
+   no vetor dist[].
+
+   (A função implementa o algoritmo de Dijkstra.
+   O código foi inspirado no
+   Programa 21.1 de Sedgewick.) */
+
+void GRAPHcptD2( Graph G, vertex s,
+                 vertex *pa, int *dist)
+{
+   bool mature[1000];
+   for (vertex v = 0; v < G->V; ++v)
+      pa[v] = -1, mature[v] = false, dist[v] = INT_MAX;
+   pa[s] = s, dist[s] = 0;
+   PQinit( G->V);
+   for (vertex v = 0; v < G->V; ++v)
+      PQinsert( v, dist);
+
+   while (!PQempty( )) {
+      vertex y = PQdelmin( dist);
+      if (dist[y] == INT_MAX) break;
+      // atualização de dist[] e pa[]:
+      for (link a = G->adj[y]; a != NULL; a = a->next) {
+         if (mature[a->w]) continue;
+         if (dist[y] + a->c < dist[a->w]) {
+            dist[a->w] = dist[y] + a->c;
+            PQdec( a->w, dist);
+            pa[a->w] = y;
+         }
+      }
+      mature[y] = true;
+   }
+   PQfree( );
+}
+[/code]
+
+# Complexidade
+Sejam V vértices e A arcos. A primeira implementação examina cada arco uma única vez e consome tempo proporcional a V2 + A, ou seja, V2 no pior caso, que é linear para grafos densos.
+
+A GRAPHcptD2(), com a fila priorizada implementada em um heap, executa cada operação da fila em tempo limitado por log V e consome tempo proporcional a (V + A) log V no pior caso, ou a A log V se A é pelo menos V - 1. Feofiloff a chama de linearítmica. Para grafos esparsos ela é assintoticamente mais rápida que a primeira implementação; para grafos densos a relação se inverte.
+
+# Histórico
+Dijkstra concebeu o algoritmo em 1956 (data dada pelo professor da disciplina), e o publicou em 1959, na revista Numerische Mathematik. Em seu relato autobiográfico (EWD1166), Dijkstra diz que o algoritmo foi projetado para demonstrar o computador ARMAC na inauguração oficial da máquina, em 1956, e que não teve pressa de publicá-lo.
+
+Segundo Cormen et al. (p. 682), o algoritmo de Dijkstra apareceu em 1959, mas o artigo não mencionava fila de prioridade. O mesmo artigo contém também o algoritmo de árvore espalhada mínima conhecido como de Prim.
+
+[ref] Paulo Feofiloff, Algoritmos para Grafos em C via Sedgewick, "Algoritmo de Dijkstra", https://www.ime.usp.br/~pf/algoritmos_para_grafos/aulas/dijkstra.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 24.3, p. 659, e notas do capítulo 24, p. 682
+[ref] Edsger W. Dijkstra, "A note on two problems in connexion with graphs", Numerische Mathematik 1(1):269-271, 1959
+[ref] Edsger W. Dijkstra, "From my life", EWD1166, https://www.cs.utexas.edu/~EWD/transcriptions/EWD11xx/EWD1166.html

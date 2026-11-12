@@ -1,0 +1,63 @@
+Tecnica:
+Algoritmo: Busca em largura (BFS)
+Autores: Edward F. Moore
+Data: 1959
+Conceitos: grafo, fila, distância
+Problema: Dado um grafo e um vértice s, visitar todos os vértices alcançáveis a partir de s em ordem de distância a s.
+---
+# Ideia do algoritmo
+A busca em largura começa por um vértice s escolhido pelo usuário. O algoritmo visita s, depois visita todos os vizinhos de s, depois todos os vizinhos dos vizinhos, e assim por diante. Feofiloff observa que essa estratégia está intimamente relacionada com os conceitos de distância e caminho mínimo.
+
+Para fazer isso o algoritmo numera os vértices, em sequência, na ordem em que são descobertos (visitados pela primeira vez) e usa uma fila de vértices. No começo da primeira iteração a fila contém apenas s, com número 0. Enquanto a fila não estiver vazia, retira-se um vértice v da fila; para cada vizinho w de v ainda não numerado, numera-se w e coloca-se w na fila.
+
+No começo de cada iteração valem duas propriedades: todo vértice que está na fila já foi numerado; e se um vértice já foi numerado mas algum de seus vizinhos ainda não, então ele está na fila. Cada arco é percorrido no máximo uma vez, e a fila nunca precisa de mais do que V posições, pois cada vértice entra nela no máximo uma vez.
+
+Os arcos que levam a um vértice ainda não numerado formam uma árvore radicada em s, a árvore de busca em largura, que pode ser guardada em um vetor de pais pa[]. A busca visita só os vértices ao alcance de s; a busca em profundidade, ao contrário, visita todos os vértices do grafo.
+
+# Implementação em C
+O código é a função GRAPHbfs() da página de Feofiloff, copiada como está (ele a diz inspirada no programa 18.9 de Sedgewick). Ela está em C99 (declarações dentro do for), e supõe o grafo em listas de adjacência (os tipos Graph, vertex e link) e as funções de fila QUEUEinit(), QUEUEput(), QUEUEget(), QUEUEempty() e QUEUEfree(), que a página deixa como exercício.
+[code]
+static int num[1000];
+
+/* A função GRAPHbfs() implementa o algoritmo de busca em largura.
+   Ela visita todos os vértices do grafo G
+   que estão ao alcance do
+   vértice s e
+   registra num vetor num[]
+   a ordem em que os vértices são descobertos.
+   Esta versão da função supõe que o grafo G
+   é representado por listas de adjacência.
+   (Código inspirado no programa 18.9 de Sedgewick.) */
+
+void GRAPHbfs( Graph G, vertex s)
+{
+   int cnt = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      num[v] = -1;
+   QUEUEinit( G->V);
+   num[s] = cnt++;
+   QUEUEput( s);
+
+   while (!QUEUEempty( )) {
+      vertex v = QUEUEget( );
+      for (link a = G->adj[v]; a != NULL; a = a->next)
+         if (num[a->w] == -1) {
+            num[a->w] = cnt++;
+            QUEUEput( a->w);
+         }
+   }
+   QUEUEfree( );
+}
+[/code]
+
+# Complexidade
+Com o grafo em listas de adjacência, o consumo de tempo é proporcional a V + A no pior caso: cada vértice entra e sai da fila no máximo uma vez, de modo que cada arco é percorrido no máximo uma vez, e o resto do código consome tempo proporcional a V. Feofiloff diz que GRAPHbfs() é linear, pois o tempo é proporcional ao tamanho do grafo.
+
+Com o grafo em matriz de adjacências, o consumo é proporcional a V2 no pior caso, que é linear apenas para grafos densos.
+
+# Histórico
+A busca em largura foi descoberta por Edward F. Moore, no contexto de encontrar caminhos em labirintos, e publicada em 1959 nos anais de um simpósio sobre a teoria de circuitos de chaveamento. Lee a descobriu de forma independente, no contexto do roteamento de fios em placas de circuito (Cormen et al., p. 623).
+
+[ref] Paulo Feofiloff, Algoritmos para Grafos em C via Sedgewick, "Busca em largura (BFS)", https://www.ime.usp.br/~pf/algoritmos_para_grafos/aulas/bfs.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, notas do capítulo 22, p. 623
+[ref] E. F. Moore, "The Shortest Path Through a Maze", Proceedings of the International Symposium on the Theory of Switching, parte II, Harvard University Press, 1959, p. 285-292

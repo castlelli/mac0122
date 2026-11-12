@@ -1,0 +1,54 @@
+Tecnica: Divisão e conquista
+Algoritmo: Torres de Hanói
+Autores: Édouard Lucas (sob o pseudônimo N. Claus de Siam)
+Data: 1883
+Conceitos: recursão, indução, complexidade exponencial
+Problema: Mover n discos de um pino para outro, um disco por vez, usando um pino auxiliar e sem nunca pôr um disco maior sobre um menor.
+---
+# Ideia do algoritmo
+Para mover n discos do pino A para o pino C, usando B como auxiliar, divide-se o problema em três partes: move-se a torre dos n-1 discos menores de A para B, move-se o maior disco de A para C, e move-se a torre de n-1 discos de B para C. Com um único disco, basta movê-lo.
+
+A divisão funciona porque o maior disco nunca fica sobre outro: enquanto ele se move, os n-1 discos menores estão todos no pino auxiliar. Cada uma das duas torres menores é movida pelo mesmo procedimento, o que dá um algoritmo recursivo e justifica, por indução em n, que ele resolve o problema.
+
+# Implementação em C
+O código vem do arquivo aula_04_hanoi.c do professor Leônidas, sem o programa principal, que mede o tempo para n de 1 a 19. A função hanoi recebe n e os pinos de origem, destino e auxiliar, nessa ordem; mover_disco só conta os movimentos na variável global totalm.
+[code]
+// Aula 04 (2026/08/05)
+
+// Complexidade de algoritmo
+// Modelo: divisao e conquista
+// Movimentar de modo otimo n discos de A para C
+
+#include <stdio.h>
+#include <time.h> // clock_t, clock()
+
+#define DEPURACAO 0
+
+int totalm; // global para contar movimentos
+
+int mover_disco (int n, int origem, int destino) {
+  if (DEPURACAO) printf("%d (%5d): %d -> %d\n", n, totalm, origem, destino); //D
+  totalm++;
+  }
+
+// Mover n discos de A (origem) para C (destino), usando B como auxiliar
+int hanoi (int n, int A, int C, int B) {
+  if (n==1) mover_disco(1, A, C);
+  else {
+    hanoi(n-1, A, B, C);
+    mover_disco(n, A, C);
+    hanoi(n-1, B, C, A);
+    }
+  }
+[/code]
+As funções mover_disco e hanoi são declaradas int mas não devolvem valor, e a variável tempoh do programa principal não é usada.
+
+# Complexidade
+O número de movimentos T(n) satisfaz T(1) = 1 e T(n) = 2T(n-1) + 1, o que dá 2^n - 1 movimentos (Sedgewick, propriedade 5.2, p. 201). Portanto o tempo é exponencial em n, e o programa do professor mostra a tabela de movimentos e tempos para n de 1 a 19. Sedgewick calcula que, com um movimento por segundo, a torre de 40 discos da lenda levaria pelo menos 348 séculos (p. 201).
+
+# Histórico
+O quebra-cabeça foi publicado em 1883 por Édouard Lucas sob o pseudônimo N. Claus (de Siam), anagrama de Lucas d'Amiens, com o título La Tour d'Hanoï, véritable casse-tête annamite. A solução recursiva e a contagem 2^n - 1 são clássicas e foram expostas por Lucas em seus escritos posteriores. Não verificamos qual impressão trouxe primeiro a solução recursiva.
+
+[ref] Leônidas de Oliveira Brandão, MAC0122 (2026), arquivo aula_04_hanoi.c, e-Disciplinas USP
+[ref] Robert Sedgewick, Algorithms in C, 3ª ed., partes 1–4, Addison-Wesley, 1998, seção 5.2, programa 5.7 e propriedade 5.2, p. 199-201
+[ref] N. Claus (de Siam) [pseudônimo de Édouard Lucas], La Tour d'Hanoï, véritable casse-tête annamite, Paris, 1883

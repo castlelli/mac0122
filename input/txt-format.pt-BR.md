@@ -4,7 +4,7 @@ Cada TXT vira uma página do site. O programa lê o arquivo, separa as
 informações e monta a página e os índices (Técnica, Algoritmo, Autores, Data,
 Conceitos, Problema).
 
-O jeito mais simples de começar é **copiar o `input/template.txt` e trocar o
+O jeito mais simples de começar é **copiar o `docs/template.txt` e trocar o
 conteúdo**.
 
 ---
@@ -112,7 +112,7 @@ int find(int parent[], int vertex)
 
 ## Checklist antes de entregar
 
-- [ ] Comecei de uma cópia do `input/template.txt`.
+- [ ] Comecei de uma cópia do `docs/template.txt`.
 - [ ] As 6 chaves estão escritas igual à tabela (`Tecnica` sem acento).
 - [ ] Cada chave aparece uma vez.
 - [ ] A data está como `AAAA` ou `dd/MM/AAAA`.

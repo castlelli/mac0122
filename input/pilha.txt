@@ -1,0 +1,48 @@
+Tecnica:
+Algoritmo: Pilha
+Autores: Alan M. Turing
+Data: 1946
+Conceitos: pilha, vetor, lista ligada
+Problema: Guardar elementos de modo que o último a entrar seja o primeiro a sair.
+---
+# Ideia do algoritmo
+Uma pilha é uma estrutura sujeita a uma regra: sempre que há uma remoção, o elemento removido é o que está na estrutura há menos tempo. O primeiro objeto inserido é o último a ser removido. Essa política é conhecida pela sigla LIFO (last-in-first-out).
+
+Num vetor pilha[0..N-1], a pilha ocupa pilha[0..t-1]. O índice t é a primeira posição vaga e t-1 é o índice do topo. A pilha está vazia se t vale 0 e cheia se t vale N. Empilhar y é fazer pilha[t++] = y, e desempilhar é fazer x = pilha[--t]. Só se deve desempilhar uma pilha não vazia e só se deve empilhar numa pilha que não está cheia, para evitar transbordamento.
+
+A pilha também pode morar numa lista ligada. Feofiloff usa uma célula-cabeça e põe o topo na segunda célula. Entre as aplicações da página estão a verificação de parênteses e colchetes bem-formados, a conversão de notação infixa para pós-fixa e a pilha de execução de um programa, que administra as invocações de funções.
+
+# Implementação em C
+O código vem da página de Feofiloff sobre pilhas: a pilha em um vetor de caracteres, com as variáveis globais pilha e t e as funções de criação, inserção, remoção e teste de pilha vazia.
+[code]
+#define N 100
+char pilha[N];
+int t;
+
+void criapilha (void) {
+   t = 0;
+}
+
+void empilha (char y) {
+   pilha[t++] = y;
+}
+
+char desempilha (void) {
+   return pilha[--t];
+}
+
+int pilhavazia (void) {
+   return t <= 0;
+}
+[/code]
+
+# Complexidade
+Cormen et al. afirmam que cada uma das operações da pilha (inserir, remover e testar se está vazia) consome tempo O(1) (p. 233).
+
+# Histórico
+Turing descreveu a pilha, com o nome "reversion storage", para ligar sub-rotinas no relatório do ACE de 1946, com "bury" e "unbury" no papel de push e pop. É a primeira publicação conhecida do mecanismo de pilha, mas o relatório era interno ao National Physical Laboratory e só foi impresso depois (Knuth, vol. 1, p. 459). A estrutura é anterior ao nome. Cormen et al. observam que a origem de pilhas e filas em computação não é clara (p. 252).
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Pilhas", https://www.ime.usp.br/~pf/algoritmos/aulas/pilha.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 10.1, p. 232-233 e notas, p. 252
+[ref] Donald E. Knuth, The Art of Computer Programming, vol. 1, 3ª ed., Addison-Wesley, 1997, seção 2.6, p. 459
+[ref] A. M. Turing, "Proposed electronic calculator" (relatório do ACE), National Physical Laboratory, 1946; publicado em B. E. Carpenter, R. W. Doran (eds.), A. M. Turing's ACE Report of 1946 and Other Papers, MIT Press, 1986

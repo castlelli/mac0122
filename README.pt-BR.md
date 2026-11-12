@@ -10,18 +10,64 @@ destacado (*syntax highlighting*).
 
 ## Como executar
 
-Na raiz do repositório, com os TXTs como argumentos:
+Na raiz do repositório, com os TXTs como argumentos. Cada bloco compila
+o `ep1`, gera o site em `output/` e abre a página inicial no navegador
+padrão.
+
+### macOS
 
 ```
 gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
 ./ep1 input/*.txt
+open output/index.html
 ```
+
+### Linux
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
+./ep1 input/*.txt
+xdg-open output/index.html
+```
+
+### Windows (PowerShell)
+
+Precisa do `gcc` do MinGW-w64 (por exemplo, do MSYS2) no `PATH`. Os
+terminais do Windows não expandem `*`, então o `Get-ChildItem` monta as
+listas de arquivos.
+
+```powershell
+gcc -std=c89 -Wall -Wextra -pedantic -Werror (Get-ChildItem src\*.c).FullName -o ep1.exe
+.\ep1.exe (Get-ChildItem input\*.txt).FullName
+start output\index.html
+```
+
+### Windows (cmd)
+
+Precisa do `gcc` no `PATH`, como acima. O cmd não transforma `*` em uma
+lista de arquivos para o `gcc`, então os fontes são nomeados um a um;
+acrescente a esta linha os arquivos novos de `src/`. O laço `for` junta
+todos os TXTs para que o `ep1` rode uma vez só com todos eles, já que os
+índices abrangem todas as páginas. Digitada no prompt, a variável do laço
+é `%f`; em um arquivo `.bat`, escreva `%%f`.
+
+```bat
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src\bst.c src\c_highlighter.c src\c_keywords.c src\graph.c src\html.c src\indexes.c src\main.c src\page.c src\parser.c src\sorted_list.c src\text_utils.c -o ep1.exe
+cmd /v:on /c "set FILES=& (for %f in (input\*.txt) do @set FILES=!FILES! %f) & ep1.exe !FILES!"
+start output\index.html
+```
+
+### Observações
 
 O site é escrito em `output/`, que precisa existir e não vai para o
 repositório. `template.txt` mostra o formato e nunca vira página, esteja
 onde estiver. O programa informa um TXT que não segue o formato (não abre,
 não tem a linha `---` ou tem um `Data` inválido) ou cujo nome de página já
 está em uso, e então termina com status 1 antes de escrever qualquer página.
+O site é estático e não usa JavaScript, então abre direto do disco, desde
+que os arquivos continuem juntos em `output/`. Para servi-lo, em qualquer
+sistema, rode `python3 -m http.server 8000 --directory output` (`python`
+no Windows) e abra http://localhost:8000.
 
 ## Design visual
 
@@ -54,7 +100,9 @@ flowchart TD
     txt[/"Arquivos TXT<br/>input/"/] -- "passada 1: só o cabeçalho" --> parser["Parser"]
     parser --> headers["Structs de cabeçalho<br/>(uma por TXT)"]
     headers --> indexes["Índices<br/>(BST de chaves)"]
-    indexes --> index_pages[/"index.html e<br/>páginas de índice"/]
+    indexes --> index_pages[/"páginas de índice<br/>e sobre.html"/]
+    indexes --> graph["Grafo<br/>(páginas e chaves)"]
+    graph --> graph_pages[/"index.html e<br/>grafos locais"/]
     headers -. "nome do TXT" .-> txt
     txt -- "passada 2: corpo, um TXT por vez" --> body["Corpo<br/>(seções, texto, código)"]
     body -- "bloco de código C" --> highlighter["Colorizador"]
@@ -68,8 +116,11 @@ flowchart TD
    seu TXT.
 2. **Índices.** As structs de cabeçalho montam os seis índices. Cada
    índice aponta para structs de cabeçalho; nunca as copia.
-3. **Páginas de índice.** `index.html` e as páginas de índice (uma por
-   índice e ordenação) são geradas a partir dos índices.
+3. **Páginas de índice.** As páginas de índice (uma por índice e
+   ordenação) são geradas a partir dos índices, junto com `sobre.html`.
+   O grafo de páginas e chaves é montado a partir dos índices,
+   posicionado e escrito em `index.html` (a página inicial) e nas páginas
+   de grafo local (veja [Visualização em grafo](#visualização-em-grafo)).
 4. **Passada 2.** Para cada struct de cabeçalho, o processador reabre o
    seu TXT, pula o cabeçalho e lê o corpo. Os blocos de código passam
    pelo colorizador. A página de conteúdo é gerada a partir da struct
@@ -455,8 +506,54 @@ Aceitos para manter a máquina pequena:
   adiante nessa linha mantém o estilo da diretiva.
 - As chaves em ramos de `#if` contam todas para `brace_depth`.
 
-## Trabalhos futuros
+## Visualização em grafo
 
-- Visualização do site como grafo: páginas e chaves como nós, ligadas
-  quando uma página cita uma chave. O modelo de dados acima já contém
-  esse grafo; falta apenas desenhá-lo. Não faz parte da fase 1.
+A página inicial (aba "Início") desenha o grafo bipartido do modelo de
+dados como SVG embutido, sem JavaScript, ocupando toda a largura da
+janela. O site tem três abas: Início, Algoritmos (as páginas de índice,
+com um controle "Ordenar por" que escolhe o índice, então escolher
+Autores agrupa e ordena as páginas por autor) e Sobre. O `graph.c` monta e posiciona o grafo; o
+`html.c` o escreve.
+
+- **Nós e arestas.** Toda página e toda chave de cinco índices; uma
+  aresta liga uma página a cada chave que ela cita. As chaves de
+  algoritmo ficam de fora: uma chave de algoritmo nomeia a própria
+  página, então desenharia cada página duas vezes. Os ids dos nós põem as
+  páginas primeiro, na ordem dos nomes dos TXTs, e depois as chaves de
+  cada índice em ordem, então nunca dependem da ordem dos argumentos.
+- **Vista global (`index.html`).** Um layout dirigido por forças
+  (Fruchterman–Reingold): as páginas começam num círculo interno e as
+  chaves num externo; depois todo par se repele e toda aresta atrai, por
+  um número fixo de passos, enquanto o movimento permitido esfria até
+  zero. Os nós de data ficam fora das forças e são postos ao lado das
+  suas páginas no fim, pois começam ocultos e raramente ligam duas
+  páginas. Os nós só se repelem dentro do seu grupo (parte conexa, sem
+  contar as datas); depois os grupos são arrumados em linhas, do maior
+  para o menor, então uma página que não divide nenhuma chave fica ao
+  lado das outras, e não longe. Caixas de seleção antes do desenho
+  ocultam cada tipo de nó pelo CSS (`:checked`).
+- **Zoom.** Botões de opção antes do desenho, nas páginas global e
+  locais: "Ajustar" cabe na largura da página, e 100%, 150% e 200%
+  definem a largura do desenho a partir do seu tamanho, com regras de
+  cada desenho escritas junto das regras de destaque. A moldura rola nas
+  duas direções quando ampliada.
+- **Vistas locais (`graph_local.html`, `local_*.html`).** Uma página por
+  nó: o nó no centro, os vizinhos num primeiro anel e os vizinhos deles
+  num segundo anel, cada anel com espaçamento igual na ordem dos ids. O
+  `graph_local.html` lista todas, por tipo; cada página de conteúdo liga
+  a sua como "Ver no grafo". As páginas locais se chamam
+  `local_page_<página>.html` e `local_<índice>_<n>.html`, em que `n` é a
+  posição da chave na ordem das chaves; nomes `local_` são reservados.
+- **Interação sem JavaScript.** Cada nó é um link SVG para a página real
+  (uma página de conteúdo, ou a seção da chave na sua página de índice),
+  com um `<title>` como dica e nome acessível. Passar o cursor ou o foco
+  sobre um nó destaca as suas arestas e vizinhos por uma regra `:has()`
+  gerada por nó.
+- **A mesma saída em toda execução.** O layout usa raiz quadrada, seno e
+  cosseno próprios em vez de `<math.h>` (então a compilação não precisa
+  de `-lm` e nenhuma biblioteca matemática muda uma coordenada), um
+  começo fixo e um número fixo de passos, e as coordenadas são
+  arredondadas para inteiros.
+- **Memória.** O grafo inteiro guarda só ids e ponteiros emprestados dos
+  cabeçalhos e índices. Os grafos locais são montados, escritos e
+  liberados um por vez.

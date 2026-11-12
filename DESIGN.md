@@ -96,7 +96,7 @@ decoration that does not help a reader find or read something.
 
 - **Ink** (`#16191d`): all running text and headings.
 - **Secondary ink** (`#545b64`): the institute line, nav items, labels
-  ("Ordenar por:", "Chaves:"), the fact table's field names, page meta, the
+  ("Ordenar por", "Ordenar dentro do grupo:", "Chaves:"), the fact table's field names, page meta, the
   footer. About 6.9:1 on white.
 - **Hairline** (`#d4d9df`): 1px rules between rows, around the nav and the key
   list, above the footer.
@@ -108,7 +108,13 @@ decoration that does not help a reader find or read something.
 - **The White Page Rule.** The page and code backgrounds are white, and the
   page declares `color-scheme: only light`, because the highlighter's colors
   were chosen for white. Dark modes must not repaint it.
-- **The One Accent Rule.** Navy is the only hue in the site's own CSS. The C
+- **The Graph Palette Exception.** On the graph pages only, node types
+  get their own hues, always paired with a shape so colour is never the
+  only cue: pages navy circles, Técnica `#a6611a` squares, Autores
+  `#7b3294` triangles, Data `#6b6b6b` plus signs, Conceitos `#1a7f6e`
+  diamonds, Problema `#b2182b` hexagons. Edges are `#b9c0c9`; a hovered
+  node's edges turn navy. These hues appear nowhere else.
+- **The One Accent Rule.** Outside the graph, navy is the only hue in the site's own CSS. The C
   code colors (and the code block's grey border and line numbers) belong to
   the highlighter's CSS, which `style.css` includes first; they are not part
   of this palette and are not retuned here.
@@ -133,19 +139,25 @@ only. Nothing is downloaded; the site works offline.
 
 - One centred container, 66rem wide with 1.5rem gutters (1rem under 40rem).
 - Every page: skip link, masthead, nav bar, `main`, footer.
+- Graph drawings (home and local graph pages) span the whole window: `main`
+  gets the class `largo`, a container whose children keep the 66rem column's
+  left edge through `--margem`, while the drawing's frame cancels that margin
+  and loses its side borders.
 - Footer: on the left, "MAC0122 · IME-USP" and "Construído por Alunos da
   Escola Politécnica da Universidade de São Paulo"; on the right, a "GitHub"
   link to the repository. On phones the link wraps below the credits.
-- Index pages: title, "Ordenar por:" line, "Chaves:" anchor list between two
+- Index pages: the title "Algoritmos", the "Ordenar por" control, the
+  "Ordenar dentro do grupo:" line, the "Chaves:" anchor list between two
   hairlines, then one `h2` and table per key.
 - Column widths are fixed per role (algorithm 22%, technique 20%, date 7.5rem,
   problem the rest) so tables line up down the page.
 - Under 40rem, index tables stack: each row becomes a block with the algorithm
   in semibold and the other fields below it, each labelled from its cell's
   `data-label`; empty fields are hidden. The page never scrolls sideways.
-- Under 40rem: smaller masthead and `h1`, single-column index list on the home
-  page, tighter nav rows.
-- Print: nav, skip link, sort and key lists hidden; links printed as text.
+- Under 40rem: smaller masthead and `h1`, tighter nav rows, 1rem graph
+  margins.
+- Print: nav, skip link, order control, sort and key lists hidden; links
+  printed as text.
 
 ## Elevation & Depth
 
@@ -161,10 +173,24 @@ highlighter's 4px radius.
 
 ### Navigation
 
-A row of Início and the six indexes between two hairlines. The current item is
-navy, semibold, with a 3px navy underline, and carries `aria-current`: `page`
-when the page is exactly that link's target, `true` when it is another sort
-order of the same index. Content pages mark no item.
+Three tabs between two hairlines: Início (`index.html`, the course objectives
+and the global graph), Algoritmos (the algorithm index in its default order)
+and Sobre (`sobre.html`: what the site is, how the group worked, the use of AI
+and the authors). The current item is navy,
+semibold, with a 3px navy underline, and carries `aria-current`: `page` when
+the page is exactly that link's target, `true` when it is another page of the
+tab (another index or sort order under Algoritmos; the chooser and local graph
+pages under Início). Content pages mark no item.
+
+### Order control (`.ordem`)
+
+"Ordenar por" in secondary ink, then a segmented row of the six indexes
+(Algoritmo, Técnica, Autores, Data, Conceitos, Problema): square cells with
+hairline borders that share their edges, ink text; hover turns the border and
+text navy; the current index is filled navy with white semibold text. Each
+option opens its index in the default order, so it both groups and orders.
+Below it, "Ordenar dentro do grupo:" keeps the text-style sort options for the
+order of the pages inside each key.
 
 ### Fact table (`.ficha`)
 
@@ -183,6 +209,42 @@ borders. The first column is always the algorithm, linked to its page.
 The keys of an index page as a wrapped run of anchor links. Long keys (problem
 sentences) are cut with an ellipsis at 24ch in this list only; the heading below
 shows them whole.
+
+### Author list (`.equipe`)
+
+The authors of the About page: one row per person, with a hairline above
+each row and below the last. The name is semibold ink, the LinkedIn and
+Portfólio links sit beside it in navy, and the role is secondary ink on its
+own line (`.meta` and `.descricao`, shared with the index pages).
+
+### Graph pages
+
+- The global graph lives on the home page under an `h2` "Grafo", after
+  the course objectives. "Vista:" switches between Global (`index.html`)
+  and Local, styled like the sort options.
+- Global: a one-line hint, then one checkbox per node type, drawn as a
+  square (navy and filled when on) followed by the type's symbol and
+  name, so the filters are also the legend. Data starts off. The drawing
+  sits in a frame as wide as the window, with hairlines above and below,
+  at most 80vh tall, that scrolls when it overflows; on phones it keeps a
+  44rem minimum width.
+- Zoom, on global and local pages, on its own line under the filters:
+  "Zoom:" in the secondary colour, then Ajustar, 100%, 150%, 200% as
+  text options. The chosen one is ink, semibold, with a navy underline;
+  the others are secondary and turn navy on hover. Ajustar, the default,
+  fits the content width; the percentages are of the drawing's own size,
+  where key labels are 14px. Hidden in print.
+- Page labels are always written; key labels appear on hover or focus.
+  Key labels are 14px and page labels 18px, with a white halo, cut at 32 characters (the tooltip
+  keeps the whole text). Node size grows with the number of links.
+- Hover or focus fades every other node to 30% and every other edge to
+  15%, keeping the node and its neighbours sharp.
+- Local: the centre node's name as an `h2`, its type and a link to the
+  real page, a legend of the types present, then the ring drawing, as
+  wide as the window, with every label written, pointing away from the
+  centre.
+- Chooser: one `h2` per type and a wrapped list of links; problems are
+  one per line.
 
 ### Keys and sort options
 

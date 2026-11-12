@@ -1,0 +1,76 @@
+Tecnica: Método guloso
+Algoritmo: Prim (árvore espalhada mínima)
+Autores: Robert C. Prim, Vojtěch Jarník
+Data: 1957
+Conceitos: grafo, árvore espalhada mínima, peso, fila de prioridade
+Problema: Dado um grafo não dirigido e conexo com pesos nas arestas, encontrar uma árvore espalhada de peso total mínimo.
+---
+# Ideia do algoritmo
+O algoritmo de Prim cultiva uma subárvore T do grafo até que ela se torne geradora. A franja de T é o conjunto das arestas que têm uma ponta em T e a outra fora de T. Cada iteração começa com uma subárvore T, que no início da primeira iteração tem um único vértice, e escolhe uma aresta de custo mínimo na franja, digamos x-y com x em T, acrescentando a aresta e o vértice y a T. O processo termina quando a franja fica vazia. (A página de Feofiloff chama de custo o que aqui chamamos de peso.)
+
+O algoritmo é guloso: em cada iteração abocanha a aresta mais barata da franja, sem se preocupar com o efeito global dessa escolha. Sua correção decorre do critério de minimalidade baseado em cortes.
+
+A implementação ingênua recalcula a franja a cada iteração. Uma implementação mais eficiente trabalha com a fronteira de T, os vértices fora de T que são vizinhos de vértices de T: o preço de um vértice w da fronteira é o custo da aresta mais barata da franja que incide em w, e o gancho de w é a ponta dessa aresta que está em T. O vetor de pais pa[] guarda os pais dos vértices de T e os ganchos dos vértices da fronteira, e o vetor preco[] guarda os preços.
+
+A segunda implementação eficiente mantém os vértices que estão fora de T em uma fila priorizada de mínimo, com prioridade dada pelo preço, para não precisar procurar o vértice mais barato a cada iteração.
+
+# Implementação em C
+O código é a função UGRAPHmstP2() de Feofiloff, a segunda implementação eficiente, copiada como está (ele a diz inspirada no programa 21.1 de Sedgewick). Ela calcula a árvore como um vetor de pais pa[] com raiz 0. Está em C99 (bool, declarações dentro do for e comentário com //) e supõe o grafo em listas de adjacência (os tipos Graph, vertex e link), a constante INFINITY maior que o custo de qualquer aresta e as funções da fila priorizada PQinit(), PQinsert(), PQdelmin(), PQdec(), PQempty() e PQfree(), que a página não define.
+[code]
+#define UGraph Graph
+
+/* Recebe um grafo não-dirigido conexo G
+   com custos arbitrários nas arestas
+   e calcula uma MST de G.
+   A função trata a MST como uma árvore radicada com
+   raiz 0
+   e armazena a árvore no vetor de pais pa[].
+   (A função implementa o algoritmo de Prim.
+   O grafo G e os custos são representados por
+   listas de adjacência.
+   O código abaixo foi inspirado no Programa 21.1
+   de Sedgewick.) */
+
+void UGRAPHmstP2( UGraph G, vertex *pa)
+{
+   bool tree[1000];
+   int preco[1000];
+   // inicialização:
+   for (vertex v = 1; v < G->V; ++v)
+      pa[v] = -1, tree[v] = false, preco[v] = INFINITY;
+   pa[0] = 0, tree[0] = true;
+   for (link a = G->adj[0]; a != NULL; a = a->next)
+      pa[a->w] = 0, preco[a->w] = a->c;
+
+   PQinit( G->V);
+   for (vertex v = 1; v < G->V; ++v)
+      PQinsert( v, preco);
+
+   while (!PQempty( )) {
+      vertex y = PQdelmin( preco);
+      if (preco[y] == INFINITY) break;
+      tree[y] = true;
+      // atualização dos preços e ganchos:
+      for (link a = G->adj[y]; a != NULL; a = a->next)
+         if (!tree[a->w] && a->c < preco[a->w]) {
+            preco[a->w] = a->c;
+            PQdec( a->w, preco);
+            pa[a->w] = y;
+         }
+   }
+   PQfree( );
+}
+[/code]
+
+# Complexidade
+Sejam V vértices e E arestas. A implementação ingênua consome tempo proporcional a V E no pior caso. A primeira implementação eficiente, que procura o vértice mais barato da fronteira percorrendo todos os vértices, consome tempo proporcional a V2 + E, ou seja, V2, que é linear para grafos densos.
+
+A UGRAPHmstP2(), com a fila priorizada implementada em um heap, consome tempo proporcional a (V + E) log V no pior caso; como o grafo é conexo, isso é proporcional a E log V, e Feofiloff a chama de linearítmica. Para grafos esparsos ela é assintoticamente mais rápida que a primeira implementação eficiente.
+
+# Histórico
+O método foi descrito por Vojtěch Jarník em 1930, redescoberto por Robert C. Prim em 1957 e por Edsger W. Dijkstra em 1959. Segundo Cormen et al. (p. 642), o algoritmo conhecido como de Prim foi de fato inventado por Prim, mas também foi inventado antes por V. Jarník em 1930. Feofiloff diz que o algoritmo foi publicado por Prim em 1957 e por Dijkstra pouco depois.
+
+[ref] Paulo Feofiloff, Algoritmos para Grafos em C via Sedgewick, "Algoritmo de Prim", https://www.ime.usp.br/~pf/algoritmos_para_grafos/aulas/prim.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, notas do capítulo 23, p. 642
+[ref] Vojtěch Jarník, "O jistém problému minimálním (Z dopisu panu O. Borůvkovi)", Práce Moravské přírodovědecké společnosti 6(4):57-63, Brno, 1930
+[ref] Robert C. Prim, "Shortest connection networks and some generalizations", Bell System Technical Journal 36(6):1389-1401, 1957

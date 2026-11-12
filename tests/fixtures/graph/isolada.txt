@@ -1,0 +1,9 @@
+Tecnica: Ordenação por distribuição
+Algoritmo: Radix Sort
+Autores:
+Data:
+Conceitos: dígitos, ordenação estável
+Problema: Ordenar números pelos seus dígitos.
+---
+# Ideia
+Página que não divide nenhuma chave com as outras.

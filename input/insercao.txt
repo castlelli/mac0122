@@ -1,0 +1,46 @@
+Tecnica: Método guloso
+Algoritmo: Ordenação por inserção (Insertion sort)
+Autores: John Mauchly
+Data: 1946
+Conceitos: vetor, ordenação, comparação, inserção, estabilidade
+Problema: Dado um vetor de n números, rearranjar seus elementos em ordem crescente.
+---
+# Ideia do algoritmo
+O algoritmo é frequentemente usado para colocar em ordem um baralho de cartas. O vetor fica dividido em uma parte já ordenada, à esquerda, e uma parte ainda não examinada, à direita. A cada iteração, o primeiro elemento da parte não examinada é inserido na posição certa da parte ordenada, deslocando para a direita os elementos maiores que ele.
+
+Para entender o funcionamento, basta observar que no início de cada repetição do for externo o vetor v[0..n-1] é uma permutação do vetor original e v[0..j-1] está em ordem crescente. Essas condições são verdadeiras no início da primeira iteração, quando j vale 1; no início da última, j vale n e portanto v[0..n-1] está em ordem.
+
+Wirth observa que o método é estável, isto é, não altera a posição relativa de elementos de mesmo valor.
+
+# Implementação em C
+O código abaixo é o de Paulo Feofiloff, copiado sem alterações.
+[code]
+// Esta função rearranja o vetor v[0..n-1]
+// em ordem crescente.
+
+void
+insertionsort (int n, int v[])
+{
+   for (int j = 1; j < n; ++j) {
+      int x = v[j];
+      int i;
+      for (i = j-1; i >= 0 && v[i] > x; --i)
+         v[i+1] = v[i];
+      v[i+1] = x;
+   }
+}
+[/code]
+
+# Complexidade
+No pior caso, a comparação v[i] > x é executada n(n-1)/2 vezes, um pouco menos que a metade de n². O consumo de tempo cresce, no pior caso, como o quadrado do tamanho do vetor: se um vetor de tamanho N consome T segundos, um vetor de tamanho 2N consumirá 4T segundos.
+
+Graças à sua simplicidade, o algoritmo é útil para vetores pequenos. No melhor caso, por exemplo se o vetor já está quase ordenado, o número de comparações não passa de n e o consumo de tempo é proporcional a n. Wirth dá o número médio de comparações, Cmed = (n² - n)/4.
+
+# Histórico
+A ordenação por inserção direta foi mencionada por John Mauchly em 1946, nas Moore School Lectures, na primeira discussão publicada sobre ordenação em computador. Não se afirma aqui que Mauchly a tenha inventado.
+
+Wirth descreve o método como o usado por jogadores de cartas.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Ordenação: algoritmos elementares", https://www.ime.usp.br/~pf/algoritmos/aulas/ordena.html
+[ref] N. Wirth, Algorithms and Data Structures, versão Oberon, 2004, seção 2.2.1, p. 53–55
+[ref] J. W. Mauchly, "Sorting and Collating" (conferência 22, 1946), in G. W. Patterson (ed.), Theory and Techniques for the Design of Electronic Digital Computers (Moore School Lectures), vol. 3, University of Pennsylvania, 1946/1948

@@ -1,0 +1,74 @@
+Tecnica: Divisão e conquista
+Algoritmo: Heapsort
+Autores: J. W. J. Williams
+Data: 1964
+Conceitos: vetor, ordenação, heap, árvore binária
+Problema: Dado um vetor de n números, rearranjar seus elementos em ordem crescente.
+---
+# Ideia do algoritmo
+O Heapsort trata o vetor v[1..n] como uma árvore binária em que o pai de v[f] é v[f/2]. Um heap (max-heap) é um vetor em que o valor de cada pai é maior ou igual ao de seus filhos, de modo que v[1] é o maior elemento.
+
+O algoritmo tem duas fases. A primeira transforma o vetor em heap, função constroiHeap, que inclui os elementos no heap um a um. A segunda retira elementos do heap em ordem decrescente: a cada passo troca v[1], o maior elemento, com v[m], o último elemento do heap, diminui o heap em uma posição e chama a função peneira para restabelecer a propriedade do heap.
+
+Os vetores nesta página são indexados a partir de 1, como na página de Feofiloff.
+
+# Implementação em C
+O código abaixo é o de Feofiloff: a macro troca, as funções constroiHeap e peneira (na versão que faz menos movimentações de elementos) e a função heapsort, que rearranja v[1..n] em ordem crescente. O código usa for (int ...) e, como no original, a macro troca está definida com um espaço antes de (A, B).
+[code]
+#define troca (A, B) {int t = A; A = B; B = t;}
+
+// Rearranja um vetor v[1..m] de modo a
+// transformá-lo em heap.
+
+static void
+constroiHeap (int m, int v[])
+{
+   for (int k = 1; k < m; ++k) {
+      // v[1..k] é um heap
+      int f = k+1;
+      while (f > 1 && v[f/2] < v[f]) {  // 5
+         troca (v[f/2], v[f]);          // 6
+         f /= 2;                        // 7
+      }
+   }
+}
+
+static void
+peneira (int m, int v[])
+{
+   int p = 1, f = 2, x = v[1];
+   while (f <= m) {
+      if (f < m && v[f] < v[f+1]) ++f;
+      if (x >= v[f]) break;
+      v[p] = v[f];
+      p = f, f = 2*p;
+   }
+   v[p] = x;
+}
+
+// Rearranja os elementos do vetor v[1..n]
+// de modo que fiquem em ordem crescente.
+
+void
+heapsort (int n, int v[])
+{
+   constroiHeap (n, v);
+   for (int m = n; m >= 2; --m) {
+      troca (v[1], v[m]);
+      peneira (m-1, v);
+   }
+}
+[/code]
+Esse espaço é um defeito do original: com ele, troca é uma macro sem parâmetros e o código não compila como está; a definição correta é #define troca(A, B) {int t = A; A = B; B = t;}.
+
+# Complexidade
+O consumo de tempo do Heapsort é proporcional a n log n no pior caso. A função constroiHeap faz no máximo n lg(n) comparações e a função peneira é chamada cerca de n vezes, cada chamada com no máximo 2 lg(n) comparações; o número total de comparações não passa de 3 n lg(n). A constante de proporcionalidade é maior que a do Mergesort e a do Quicksort.
+
+Diferentemente dos algoritmos mais simples, o Heapsort é linearítmico mesmo no pior caso. Cormen et al. também mostram que ele ordena no próprio vetor (in place).
+
+# Histórico
+O algoritmo Heapsort foi descoberto por J. W. J. Williams e publicado em 1964, como o Algoritmo 232 da Communications of the ACM. Segundo Cormen et al., a construção do heap em tempo linear (BUILD-MAX-HEAP) foi sugerida por Floyd.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Heapsort", https://www.ime.usp.br/~pf/algoritmos/aulas/hpsrt.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, cap. 6, pp. 159-161 e 168
+[ref] J. W. J. Williams, "Algorithm 232: Heapsort", Communications of the ACM 7(6):347-348, 1964

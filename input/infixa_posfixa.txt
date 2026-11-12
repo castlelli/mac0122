@@ -1,0 +1,91 @@
+Tecnica:
+Algoritmo: Conversão de expressão infixa para pós-fixa
+Autores: Klaus Samelson, Friedrich L. Bauer
+Data: 1960
+Conceitos: pilha, expressão aritmética, notação pós-fixa
+Problema: Dada uma expressão aritmética em notação infixa, escrevê-la em notação pós-fixa.
+---
+# Ideia do algoritmo
+Na notação infixa usual, o operador fica entre os operandos e a ordem de execução depende de parênteses e de regras de precedência (a multiplicação antes da soma, por exemplo). Na notação pós-fixa, ou polonesa, o operador vem depois dos operandos: a expressão (A+B*C) se escreve ABC*+ e (A*(B+C)/D-E) se escreve ABC+*D/E-. Os operandos aparecem na mesma ordem nas duas notações, e a notação pós-fixa dispensa parênteses e regras de precedência.
+
+O algoritmo lê a expressão infixa caractere a caractere e usa uma pilha de operadores. Variáveis e constantes passam direto para a saída. Todo parêntese esquerdo vai para a pilha. Ao encontrar um parêntese direito, o algoritmo desempilha tudo, escrevendo na saída, até desempilhar o parêntese esquerdo correspondente. Ao encontrar + ou -, desempilha tudo até chegar a um parêntese esquerdo, que fica na pilha. Ao encontrar * ou /, desempilha até chegar a um parêntese esquerdo, a um + ou a um -. Depois de desempilhar, o operador lido é empilhado.
+
+Por exemplo, para (A*(B*C+D)) o algoritmo produz ABC*D+*. Na versão de Feofiloff, a expressão é válida, usa só letras de um caractere, parênteses e as quatro operações binárias, e vem embrulhada em um par de parênteses; assim a pilha nunca esvazia durante a leitura.
+
+# Implementação em C
+O código abaixo é de Paulo Feofiloff (página "pilha"); as funções criapilha, empilha e desempilha, que aparecem em outro ponto da mesma página, foram reunidas aqui com as variáveis globais pilha e t.
+[code]
+#define N 100
+char pilha[N];
+int t;
+
+void criapilha (void) {
+   t = 0;
+}
+
+void empilha (char y) {
+   pilha[t++] = y;
+}
+
+char desempilha (void) {
+   return pilha[--t];
+}
+
+// Esta função recebe uma expressão infixa inf
+// e devolve a correspondente expressão posfixa.
+
+char *infixaParaPosfixa (char *inf) {
+   int n = strlen (inf);
+   char *posf;
+   posf = malloc ((n+1) * sizeof (char));
+   criapilha ();
+   empilha (inf[0]);       // empilha '('
+
+   int j = 0;
+   for (int i = 1; inf[i] != '\0'; ++i) {
+      switch (inf[i]) {
+         char x;
+         case '(': empilha (inf[i]);
+                   break;
+         case ')': x = desempilha ();
+                   while (x != '(') {
+                      posf[j++] = x;
+                      x = desempilha ();
+                   }
+                   break;
+         case '+':
+         case '-': x = desempilha ();
+                   while (x != '(') {
+                      posf[j++] = x;
+                      x = desempilha ();
+                   }
+                   empilha (x);
+                   empilha (inf[i])
+                   break;
+         case '*':
+         case '/': x = desempilha ();
+                   while (x != '(' && x != '+' && x != '-') {
+                      posf[j++] = x;
+                      x = desempilha ();
+                   }
+                   empilha (x);
+                   empilha (inf[i]);
+                   break;
+         default:  posf[j++] = inf[i];
+      }
+   }
+   posf[j] = '\0';
+   return posf;
+}
+[/code]
+Observe que, no caso de + e -, falta um ponto e vírgula depois de empilha (inf[i]); o código copiado da página não compila até que esse erro seja corrigido.
+
+# Complexidade
+A função faz uma só passada pela expressão e cada símbolo é empilhado e desempilhado no máximo uma vez; assim o número de operações é proporcional ao número n de símbolos da expressão, como afirmam Horowitz e Sahni para o seu procedimento POSTFIX. A pilha pode chegar a ter tamanho proporcional a n no pior caso, o que é a pergunta do exercício 3 da página de Feofiloff.
+
+# Histórico
+Klaus Samelson e Friedrich L. Bauer publicaram a tradução de fórmulas com uma pilha em "Sequential formula translation", Communications of the ACM 3(2):76-83, 1960. Uma versão em alemão saiu em 1959 na revista Elektronische Rechenanlagen. É a primeira publicação conhecida da tradução de fórmulas com pilha. A notação polonesa vem de Jan Łukasiewicz.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Pilhas", https://www.ime.usp.br/~pf/algoritmos/aulas/pilha.html
+[ref] Ellis Horowitz, Sartaj Sahni, Fundamentals of Data Structures, Computer Science Press, 1976, seção 3.3
+[ref] K. Samelson, F. L. Bauer, "Sequential formula translation", Communications of the ACM 3(2):76-83, 1960 (DOI 10.1145/366959.366968)

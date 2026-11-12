@@ -1,0 +1,43 @@
+Tecnica: Divisão e conquista
+Algoritmo: Busca binária
+Autores: John Mauchly
+Data: 1946
+Conceitos: vetor, busca, vetor ordenado, invariante
+Problema: Dado um vetor crescente de n números e um número x, encontrar a posição de x no vetor ou dizer que x não está nele.
+---
+# Ideia do algoritmo
+Compara x com o elemento do meio do vetor. Como o vetor é crescente, essa comparação elimina metade dos candidatos: se o elemento do meio é menor que x, x só pode estar à direita; caso contrário, está nele ou à esquerda. Repete o processo na metade que sobrou. É a ideia de procurar um nome numa lista telefônica antiga.
+
+O algoritmo foi construído a partir do invariante v[e] < x <= v[d], que vale no início de cada repetição do laço, imaginando v[-1] = -infinito e v[n] = +infinito. Quando o laço termina, e == d-1 e o invariante diz que v[d-1] < x <= v[d].
+
+A função devolve d, um índice entre 0 e n tal que v[d-1] < x <= v[d]. Para saber se x está no vetor, quem chama testa se d < n e v[d] == x; se não, x não está no vetor.
+
+# Implementação em C
+O código vem da página de Feofiloff sobre busca em vetor ordenado. As variáveis e, m e d lembram esquerda, meio e direita.
+[code]
+// Esta função recebe um inteiro x
+// e um vetor crescente v[0..n-1]
+// e devolve um índice j em 0..n
+// tal que v[j-1] < x <= v[j].
+
+int
+buscaBinaria (int x, int n, int v[]) {
+   int e = -1, d = n; // atenção!
+   while (e < d-1) {
+      int m = (e + d)/2;
+      if (v[m] < x) e = m;
+      else d = m;
+   }
+   return d;
+}
+[/code]
+
+# Complexidade
+No início da primeira iteração d - e vale aproximadamente n, no início da segunda aproximadamente n/2, e assim por diante; o laço pára quando n/2^k fica menor que 1. O número de iterações, e de comparações de x com elementos do vetor, é aproximadamente lg n, tanto no pior caso quanto no melhor, e o consumo de tempo é proporcional a lg n. Para n = 1048576 são cerca de 20 comparações. A busca sequencial faria até n.
+
+# Histórico
+A primeira descrição publicada é de John Mauchly, nas Moore School Lectures de 1946 ("Sorting and Collating"). Uma versão correta para qualquer tamanho de vetor só apareceu em 1960-1962 (D. H. Lehmer, 1960; H. Bottenbruch, 1962).
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Busca em vetor ordenado", https://www.ime.usp.br/~pf/algoritmos/aulas/bubi.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, exercício 2.3-5, p. 39
+[ref] J. W. Mauchly, "Sorting and Collating", palestra 22, 25 de julho de 1946, em G. W. Patterson (ed.), Theory and Techniques for the Design of Electronic Digital Computers (The Moore School Lectures), vol. 3, Moore School of Electrical Engineering, University of Pennsylvania, 1946; reimpresso por M. Campbell-Kelly e M. R. Williams (eds.), MIT Press / Tomash, 1985

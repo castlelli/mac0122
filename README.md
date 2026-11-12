@@ -9,18 +9,62 @@ static HTML site, with every C code block syntax-highlighted.
 
 ## Running
 
-From the repository root, with the TXTs given as arguments:
+From the repository root, with the TXTs given as arguments. Each block
+builds `ep1`, generates the site in `output/` and opens the home page in
+the default browser.
+
+### macOS
 
 ```
 gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
 ./ep1 input/*.txt
+open output/index.html
 ```
+
+### Linux
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
+./ep1 input/*.txt
+xdg-open output/index.html
+```
+
+### Windows (PowerShell)
+
+Needs `gcc` from MinGW-w64 (for example, MSYS2) on the `PATH`. Windows
+shells do not expand `*`, so `Get-ChildItem` builds the file lists.
+
+```powershell
+gcc -std=c89 -Wall -Wextra -pedantic -Werror (Get-ChildItem src\*.c).FullName -o ep1.exe
+.\ep1.exe (Get-ChildItem input\*.txt).FullName
+start output\index.html
+```
+
+### Windows (cmd)
+
+Needs `gcc` on the `PATH`, as above. cmd cannot turn `*` into a file
+list for `gcc`, so the sources are named one by one; add new files in
+`src/` to this line. The `for` loop collects every TXT so that `ep1`
+runs once with all of them, since the indexes span every page. Typed at
+the prompt, the loop variable is `%f`; in a `.bat` file, write `%%f`.
+
+```bat
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src\bst.c src\c_highlighter.c src\c_keywords.c src\graph.c src\html.c src\indexes.c src\main.c src\page.c src\parser.c src\sorted_list.c src\text_utils.c -o ep1.exe
+cmd /v:on /c "set FILES=& (for %f in (input\*.txt) do @set FILES=!FILES! %f) & ep1.exe !FILES!"
+start output\index.html
+```
+
+### Notes
 
 The site is written to `output/`, which must exist and is not committed.
 `template.txt` shows the format and is never a page, wherever it is. The
 program reports a TXT that does not fit the format (it cannot be opened,
 has no `---` line, or has an invalid `Data`) or whose page name is taken,
 and then stops with status 1 before writing any page.
+The site is static and uses no JavaScript, so it opens straight from
+disk, as long as the files stay together in `output/`. To serve it
+instead, on any system, run `python3 -m http.server 8000 --directory output`
+(`python` on Windows) and open http://localhost:8000.
 
 ## Visual design
 
@@ -52,7 +96,9 @@ flowchart TD
     txt[/"TXT files<br/>input/"/] -- "pass 1: header only" --> parser["Parser"]
     parser --> headers["Header structs<br/>(one per TXT)"]
     headers --> indexes["Indexes<br/>(BST of keys)"]
-    indexes --> index_pages[/"index.html and<br/>index pages"/]
+    indexes --> index_pages[/"index pages<br/>and sobre.html"/]
+    indexes --> graph["Graph<br/>(pages and keys)"]
+    graph --> graph_pages[/"index.html and<br/>local graph pages"/]
     headers -. "TXT file name" .-> txt
     txt -- "pass 2: body, one TXT at a time" --> body["Body<br/>(sections, text, code)"]
     body -- "C code block" --> highlighter["Highlighter"]
@@ -65,8 +111,11 @@ flowchart TD
    one header struct per file. Each struct keeps the name of its TXT.
 2. **Indexes.** The header structs build the six indexes. Each index
    points to header structs; it never copies them.
-3. **Index pages.** `index.html` and the index pages (one per index
-   and sort order) are written from the indexes.
+3. **Index pages.** The index pages (one per index and sort order) are
+   written from the indexes, with `sobre.html`. The graph of pages and
+   keys is built from the indexes, laid out, and written as `index.html`
+   (the home page) and the local graph pages (see
+   [Graph view](#graph-view)).
 4. **Pass 2.** For each header struct, the processor re-opens its TXT,
    skips the header, and reads the body. Code blocks go through the
    highlighter. The content page is written from the header struct (top
@@ -441,8 +490,50 @@ Accepted to keep the machine small:
   directive's style.
 - Braces in `#if` branches all count towards `brace_depth`.
 
-## Future work
+## Graph view
 
-- Graph view of the site: pages and keys as nodes, linked when a page
-  lists a key. The data model above already holds this graph; only
-  drawing it is missing. Not part of phase 1.
+The home page (the "Início" tab) draws the bipartite graph of the data
+model as inline SVG, with no JavaScript, across the whole window width.
+The site has three tabs: Início, Algoritmos (the index pages, with an
+"Ordenar por" control that picks the index, so choosing Autores groups
+and orders the pages by author) and Sobre. `graph.c` builds and lays out the graph;
+`html.c` writes it.
+
+- **Nodes and edges.** Every page, and every key of five indexes; an edge
+  joins a page to each key it lists. Algorithm keys are left out: an
+  algorithm key names its own page, so it would draw every page twice.
+  Node ids put pages first, in TXT file-name order, then each index's
+  keys in key order, so ids never depend on the order of the arguments.
+- **Global view (`index.html`).** A force-directed layout
+  (Fruchterman–Reingold): pages start on an inner circle and keys on an
+  outer one, then every pair repels and every edge pulls for a fixed
+  number of steps while the allowed movement cools to zero. Date nodes
+  stay out of the forces and are placed beside their pages at the end,
+  since they start hidden and seldom join two pages. Nodes repel only
+  within their cluster (connected part, ignoring dates); the clusters
+  are then packed in rows, largest first, so a page that shares no key
+  sits beside the rest instead of far away. Checkboxes before the
+  drawing hide each node type through CSS (`:checked`).
+- **Zoom.** Radio buttons before the drawing, on the global and local
+  pages: "Ajustar" fits the page width, and 100%, 150% and 200% set the
+  drawing's width from its size, with per-drawing rules written next to
+  the hover rules. The frame scrolls in both directions when zoomed.
+- **Local views (`graph_local.html`, `local_*.html`).** One page per
+  node: the node in the centre, its neighbours on a first ring, and
+  their neighbours on a second ring, each ring evenly spaced in id
+  order. `graph_local.html` lists them all, by type; each content page
+  links its own as "Ver no grafo". Local pages are named
+  `local_page_<page>.html` and `local_<index>_<n>.html`, where `n` is
+  the key's position in key order; `local_` names are reserved.
+- **Interaction without JavaScript.** Each node is an SVG link to the
+  real page (a content page, or the key's section on its index page),
+  with a `<title>` as tooltip and accessible name. Hovering or focusing a
+  node highlights its edges and neighbours through one generated
+  `:has()` rule per node.
+- **Same output on every run.** The layout uses its own square root,
+  sine and cosine instead of `<math.h>` (so the build needs no `-lm` and
+  no math library can change a coordinate), a fixed start and a fixed
+  number of steps, and coordinates are rounded to integers.
+- **Memory.** The whole graph holds only ids and borrowed pointers into
+  the headers and indexes. Local graphs are built, written and freed one
+  at a time.

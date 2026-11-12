@@ -1,0 +1,65 @@
+Tecnica: Método guloso
+Algoritmo: Ordenação por contagem (Counting sort)
+Autores: Harold H. Seward
+Data: 1954
+Conceitos: vetor, ordenação, frequência, estabilidade
+Problema: Dado um vetor de n números, rearranjar seus elementos em ordem crescente.
+---
+# Ideia do algoritmo
+A ordenação por contagem rearranja em ordem crescente um vetor v[0..n-1] cujos elementos são números inteiros no intervalo 0..R-1, sendo R um número pequeno. Ela não compara elementos entre si: usa a contagem dos elementos do vetor.
+
+O algoritmo calcula, para cada valor r, a frequência dos predecessores de r, isto é, quantos elementos do vetor são menores que r. Esse número fp[r] é o índice onde deve começar a carreira de elementos iguais a r no vetor ordenado.
+
+Em seguida, a tabela fp é usada para copiar cada elemento de v[0..n-1] para a posição correta de um vetor auxiliar aux[0..n-1], incrementando fp[r] a cada cópia, e aux é copiado de volta para v. Como os elementos são percorridos da esquerda para a direita, elementos iguais mantêm a ordem relativa: o algoritmo é estável.
+
+# Implementação em C
+O código abaixo é o da função countingsort de Feofiloff. Ele usa malloc e free, portanto precisa de stdlib.h, e usa for (int ...).
+[code]
+// Rearranja v[0..n-1] em ordem crescente
+// supondo que os elementos do vetor
+// pertencem ao universo 0..R-1.
+
+void
+countingsort (int *v, int n, int R)
+{
+   int r;
+   int *fp, *aux;
+   fp = malloc ((R+1) * sizeof (int));
+   aux = malloc (n * sizeof (int));
+
+   for (r = 0; r <= R; ++r)
+      fp[r] = 0;
+   for (int i = 0; i < n; ++i) {
+      r = v[i];
+      fp[r+1] += 1;
+   }
+   // agora fp[r] é a frequência de r-1
+   for (r = 1; r <= R; ++r)
+      fp[r] += fp[r-1];
+   // agora fp[r] é a freq dos predecessores
+   // de r; logo, a carreira de elementos
+   // iguais a r deve começar no índice fp[r]
+   for (int i = 0; i < n; ++i) {
+      r = v[i];
+      aux[fp[r]] = v[i];
+      fp[r]++;  // *
+   }
+   // aux[0..n-1] está em ordem crescente
+   for (int i = 0; i < n; ++i)
+      v[i] = aux[i];
+
+   free (fp);
+   free (aux);
+[/code]
+
+# Complexidade
+A função countingsort consome n + R unidades de tempo. Se R é pequeno (no máximo um múltiplo de n), isso é melhor que o consumo de tempo n log n de algoritmos como o Mergesort, o Quicksort e o Heapsort. Cormen et al. dão o mesmo limite, Theta(k + n), que é Theta(n) quando k = O(n).
+
+A estabilidade é a base do uso da ordenação por contagem na ordenação digital.
+
+# Histórico
+Segundo Cormen et al. (p. 211), Knuth atribui a H. H. Seward a invenção da ordenação por contagem, em 1954, e também a ideia de combiná-la com a ordenação digital. Seward a descreveu em sua dissertação de mestrado no MIT, de 1954.
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Ordenação digital", https://www.ime.usp.br/~pf/algoritmos/aulas/radix.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 8.2, pp. 194-196 e 211
+[ref] H. H. Seward, Information Sorting in the Application of Electronic Digital Computers to Business Operations, dissertação de mestrado, Relatório R-232, MIT Digital Computer Laboratory, 1954

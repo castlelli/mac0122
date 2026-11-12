@@ -1,0 +1,76 @@
+Tecnica:
+Algoritmo: Algoritmo de Euclides (máximo divisor comum)
+Autores: Euclides
+Data:
+Conceitos: divisor, recursão, invariante
+Problema: Dados dois inteiros não negativos a e b, não ambos nulos, encontrar o maior inteiro que divide os dois.
+---
+# Ideia do algoritmo
+O máximo divisor comum de m e n é o mesmo que o de n e do resto da divisão de m por n. Se o resto é zero, n divide m e o resultado é o próprio n; caso contrário, o problema se reduz ao par (n, m % n).
+
+A cada passo o par fica menor e o segundo número, o resto, é sempre menor que o divisor anterior. Como os restos são inteiros não negativos e decrescem, a sequência chega a zero e o algoritmo termina.
+
+A correção vem do teorema do professor: todo divisor comum de n e do resto r também divide m = q*n + r, e todo divisor comum de m e n divide r = m - q*n. Assim os dois pares têm os mesmos divisores comuns. No arquivo, a prova de que o divisor encontrado é o maior fica como exercício, por contradição.
+
+# Implementação em C
+O código vem do arquivo aula_06_mdc_euclides.c do professor Leônidas, sem o programa principal, que lê m e n da linha de comando; mdc é a versão iterativa e mdc_rec a recursiva.
+[code]
+// MAC122 - 206
+// Aula 06
+// Algoritmo de Euclides para Maximo Divisor Comum (MDC)
+
+// https://en.wikipedia.org/wiki/Euclidean_algorithm
+// "The Euclidean algorithm is one of the oldest algorithms in common use [24].
+//  It appears in Euclid's Elements (c. 300 BC), specifically in Book 7 (Propositions 1–2) and Book 10 (Propositions 2–3)"
+
+// Teorema: m e n naturais, entao MDC(m,n) = { m%n==0, n; m%n!=0, MDC(n, m%n) }
+// Prova:   Supor m>=n
+//          Sejam (q,r)       tq  m = q*n+r <=> r = m-qn (1)
+//          Pegando o MDC de n e m%n: k
+//          Sejam (k, q1, q2) tq  k = mdc(n, m%n) = med(n,r),
+//                                n = q1 k  (2)
+//                                r = q2 k  (3)
+//          Usando (3) e (1),     q2 k = r = m - qn <=> m = q2 k + qn
+//          Usando (2) na ultima, m = q2 k + qn = q2 k + q q1 k = (q2 + q q1) k, e (q2 + q q1) e' natural,
+//          logo k tambem e' divisor de m.
+//          Assim, k e'divisor de n, de m%n (r) e tambem de m.
+//          Falta provar que k e' o menor. Fazer por contradicao.
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#define DEPURACAO 1
+
+// Algoritmo eficiente para MDC (relatado por Euclides ha' mais de 2.300 anos)
+int mdc (int m, int n) {
+  int aux, conta=0;
+  if (DEPURACAO) printf("[I] mdc(%4d, %4d)\n", m, n);
+  while (n != 0) {
+    if (DEPURACAO) printf(" [I] (%4d, %4d)\n", m, n);
+    aux = n;
+    n = m % n;
+    m = aux;
+    if (conta++ == 10) break;
+    }
+  return m;
+  }
+
+// Versao recursiva - Algoritmo eficiente para MDC (relatado por Euclides ha' mais de 2.300 anos)
+int mdc_rec (int m, int n) {
+  int aux, conta=0;
+  if (DEPURACAO) printf("[R] mdc(%4d, %4d)\n", m, n);
+  if (n == 0) return m;
+  return mdc_rec(n, m%n);
+  }
+[/code]
+Na versão iterativa, a linha "if (conta++ == 10) break;" interrompe o laço após 11 repetições, o que é inofensivo para entradas pequenas mas incorreto em geral. Em mdc_rec, as variáveis aux e conta não são usadas.
+
+# Complexidade
+O código do professor chama o algoritmo de eficiente, sem dar fórmula. Cormen et al. (p. 936) provam, pelo teorema de Lamé, que o número de chamadas recursivas é O(lg b); o pior caso ocorre quando a e b são números de Fibonacci consecutivos.
+
+# Histórico
+O algoritmo aparece nos Elementos de Euclides (cerca de 300 a.C.), livro VII, proposições 1 e 2. Cormen et al. (p. 983) notam que a descrição de Euclides pode derivar de um algoritmo de Eudoxo, de cerca de 375 a.C., e que este pode ser o mais antigo algoritmo não trivial; por isso o campo Data fica vazio, já que a data é anterior à era cristã. O código do professor diz que o algoritmo foi relatado por Euclides há mais de 2.300 anos.
+
+[ref] Leônidas de Oliveira Brandão, MAC0122 (2026), arquivo aula_06_mdc_euclides.c, e-Disciplinas USP
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, seção 31.2, p. 933-937 e notas do capítulo, p. 983
+[ref] Euclides, Elementos (Stoicheia), livro VII, proposições 1 e 2, c. 300 a.C.; edição inglesa: T. L. Heath, The Thirteen Books of Euclid's Elements, 2ª ed., Cambridge University Press, 1925, vol. 2

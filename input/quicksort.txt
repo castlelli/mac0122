@@ -1,0 +1,61 @@
+Tecnica: Divisão e conquista
+Algoritmo: Quicksort
+Autores: C. A. R. Hoare
+Data: 1962
+Conceitos: vetor, ordenação, recursão, partição
+Problema: Dado um vetor de n números, rearranjar seus elementos em ordem crescente.
+---
+# Ideia do algoritmo
+Se todos os elementos pequenos do vetor estiverem na metade esquerda e todos os elementos grandes na metade direita, basta ordenar cada metade independentemente. O núcleo do Quicksort é, portanto, o problema da separação: rearranjar v[p..r] de modo que os elementos pequenos fiquem na parte esquerda e os grandes na parte direita.
+
+A separação começa pela escolha de um pivô c. Os elementos maiores que c são considerados grandes e os demais, pequenos. A função separa, atribuída a N. Lomuto, usa v[r] como pivô e rearranja o vetor, sem vetor auxiliar, de modo que v[p..j-1] <= v[j] < v[j+1..r] para algum j em p..r.
+
+O Quicksort usa a estratégia da divisão e conquista e tem a aparência de um Mergesort ao contrário: separa o vetor, o que deixa o pivô na sua posição final, e ordena recursivamente v[p..j-1] e v[j+1..r]. Quando p >= r, o vetor tem no máximo um elemento e não há nada a fazer.
+
+# Implementação em C
+O código abaixo é o de Feofiloff: a função separa (separação de Lomuto) e a função quicksort, que ordena v[p..r] em ordem crescente.
+[code]
+// Recebe vetor v[p..r] com p <= r. Rearranja
+// os elementos do vetor e devolve j em p..r
+// tal que v[p..j-1] <= v[j] < v[j+1..r].
+
+static int
+separa (int v[], int p, int r) {
+   int c = v[r]; // pivô
+   int t, j = p;
+   for (int k = p; /*A*/ k < r; ++k)
+      if (v[k] <= c) {
+         t = v[j], v[j] = v[k], v[k] = t;
+         ++j;
+      }
+   t = v[j], v[j] = v[r], v[r] = t;
+   return j;
+}
+
+// Esta função rearranja qualquer vetor
+// v[p..r] em ordem crescente.
+
+void
+quicksort (int v[], int p, int r)
+{
+   if (p < r) {                   // 1
+      int j = separa (v, p, r);   // 2
+      quicksort (v, p, j-1);      // 3
+      quicksort (v, j+1, r);      // 4
+   }
+}
+[/code]
+
+# Complexidade
+O consumo de tempo de separa é linear no tamanho r - p + 1 do vetor. O consumo do quicksort é proporcional ao número de comparações entre elementos do vetor. Se o índice j devolvido por separa estiver sempre mais ou menos a meio caminho entre p e r, o número de comparações é aproximadamente n log n; se o vetor já estiver ordenado ou quase ordenado, é aproximadamente n^2. O algoritmo é, portanto, linearítmico em média e quadrático no pior caso, e o pior caso é muito raro.
+
+Cormen et al. dão os mesmos limites: pior caso de Theta(n^2) e tempo esperado de Theta(n lg n), e observam que o Quicksort ordena no próprio vetor (in place).
+
+# Histórico
+O Quicksort foi inventado por C. A. R. Hoare. Hoare publicou o algoritmo em 1961, nos Algoritmos 63 (Partition), 64 (Quicksort) e 65 (Find) da Communications of the ACM, e o descreveu por completo em 1962, no artigo "Quicksort", da The Computer Journal. Os livros costumam citar 1962, o ano usado no cabeçalho desta página.
+
+A separação usada aqui é atribuída a N. Lomuto (Cormen et al., p. 190).
+
+[ref] Paulo Feofiloff, Projeto de Algoritmos (em C), "Quicksort", https://www.ime.usp.br/~pf/algoritmos/aulas/quick.html
+[ref] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein, Introduction to Algorithms, 3ª ed., MIT Press, 2009, cap. 7, pp. 170-190
+[ref] C. A. R. Hoare, "Quicksort", The Computer Journal 5(1):10-15, 1962
