@@ -97,8 +97,8 @@ flowchart TD
     parser --> headers["Header structs<br/>(one per TXT)"]
     headers --> indexes["Indexes<br/>(BST of keys)"]
     indexes --> index_pages[/"index pages<br/>and sobre.html"/]
-    indexes --> graph["Graph<br/>(pages and keys)"]
-    graph --> graph_pages[/"index.html and<br/>local graph pages"/]
+    indexes --> page_graph["Graph<br/>(pages and keys)"]
+    page_graph --> graph_pages[/"index.html and<br/>local graph pages"/]
     headers -. "TXT file name" .-> txt
     txt -- "pass 2: body, one TXT at a time" --> body["Body<br/>(sections, text, code)"]
     body -- "C code block" --> highlighter["Highlighter"]
