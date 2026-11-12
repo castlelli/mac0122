@@ -9,7 +9,11 @@ static HTML site, with every C code block syntax-highlighted.
 
 ## Running
 
-From the repository root, with the TXTs given as arguments:
+From the repository root, with the TXTs given as arguments. Each block
+builds `ep1`, generates the site in `output/` and opens the home page in
+the default browser.
+
+### macOS
 
 ```
 gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
@@ -17,15 +21,50 @@ gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
 open output/index.html
 ```
 
+### Linux
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
+./ep1 input/*.txt
+xdg-open output/index.html
+```
+
+### Windows (PowerShell)
+
+Needs `gcc` from MinGW-w64 (for example, MSYS2) on the `PATH`. Windows
+shells do not expand `*`, so `Get-ChildItem` builds the file lists.
+
+```powershell
+gcc -std=c89 -Wall -Wextra -pedantic -Werror (Get-ChildItem src\*.c).FullName -o ep1.exe
+.\ep1.exe (Get-ChildItem input\*.txt).FullName
+start output\index.html
+```
+
+### Windows (cmd)
+
+Needs `gcc` on the `PATH`, as above. cmd cannot turn `*` into a file
+list for `gcc`, so the sources are named one by one; add new files in
+`src/` to this line. The `for` loop collects every TXT so that `ep1`
+runs once with all of them, since the indexes span every page. Typed at
+the prompt, the loop variable is `%f`; in a `.bat` file, write `%%f`.
+
+```bat
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src\bst.c src\c_highlighter.c src\c_keywords.c src\graph.c src\html.c src\indexes.c src\main.c src\page.c src\parser.c src\sorted_list.c src\text_utils.c -o ep1.exe
+cmd /v:on /c "set FILES=& (for %f in (input\*.txt) do @set FILES=!FILES! %f) & ep1.exe !FILES!"
+start output\index.html
+```
+
+### Notes
+
 The site is written to `output/`, which must exist and is not committed.
 `template.txt` shows the format and is never a page, wherever it is. The
 program reports a TXT that does not fit the format (it cannot be opened,
 has no `---` line, or has an invalid `Data`) or whose page name is taken,
 and then stops with status 1 before writing any page.
-The last command opens the home page in the default browser on macOS. On
-Linux use `xdg-open output/index.html`; on Windows, `start output/index.html`.
-The site is static and uses no JavaScript, so it also opens straight from
-disk, as long as the files stay together in `output/`.
+The site is static and uses no JavaScript, so it opens straight from
+disk, as long as the files stay together in `output/`. To serve it
+instead, on any system, run `python3 -m http.server 8000 --directory output`
+(`python` on Windows) and open http://localhost:8000.
 
 ## Visual design
 

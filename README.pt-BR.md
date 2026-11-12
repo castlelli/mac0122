@@ -10,7 +10,11 @@ destacado (*syntax highlighting*).
 
 ## Como executar
 
-Na raiz do repositório, com os TXTs como argumentos:
+Na raiz do repositório, com os TXTs como argumentos. Cada bloco compila
+o `ep1`, gera o site em `output/` e abre a página inicial no navegador
+padrão.
+
+### macOS
 
 ```
 gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
@@ -18,15 +22,52 @@ gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
 open output/index.html
 ```
 
+### Linux
+
+```
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src/*.c -o ep1
+./ep1 input/*.txt
+xdg-open output/index.html
+```
+
+### Windows (PowerShell)
+
+Precisa do `gcc` do MinGW-w64 (por exemplo, do MSYS2) no `PATH`. Os
+terminais do Windows não expandem `*`, então o `Get-ChildItem` monta as
+listas de arquivos.
+
+```powershell
+gcc -std=c89 -Wall -Wextra -pedantic -Werror (Get-ChildItem src\*.c).FullName -o ep1.exe
+.\ep1.exe (Get-ChildItem input\*.txt).FullName
+start output\index.html
+```
+
+### Windows (cmd)
+
+Precisa do `gcc` no `PATH`, como acima. O cmd não transforma `*` em uma
+lista de arquivos para o `gcc`, então os fontes são nomeados um a um;
+acrescente a esta linha os arquivos novos de `src/`. O laço `for` junta
+todos os TXTs para que o `ep1` rode uma vez só com todos eles, já que os
+índices abrangem todas as páginas. Digitada no prompt, a variável do laço
+é `%f`; em um arquivo `.bat`, escreva `%%f`.
+
+```bat
+gcc -std=c89 -Wall -Wextra -pedantic -Werror src\bst.c src\c_highlighter.c src\c_keywords.c src\graph.c src\html.c src\indexes.c src\main.c src\page.c src\parser.c src\sorted_list.c src\text_utils.c -o ep1.exe
+cmd /v:on /c "set FILES=& (for %f in (input\*.txt) do @set FILES=!FILES! %f) & ep1.exe !FILES!"
+start output\index.html
+```
+
+### Observações
+
 O site é escrito em `output/`, que precisa existir e não vai para o
 repositório. `template.txt` mostra o formato e nunca vira página, esteja
 onde estiver. O programa informa um TXT que não segue o formato (não abre,
 não tem a linha `---` ou tem um `Data` inválido) ou cujo nome de página já
 está em uso, e então termina com status 1 antes de escrever qualquer página.
-O último comando abre a página inicial no navegador padrão, no macOS. No
-Linux, use `xdg-open output/index.html`; no Windows, `start output/index.html`.
-O site é estático e não usa JavaScript, então também abre direto do disco,
-desde que os arquivos continuem juntos em `output/`.
+O site é estático e não usa JavaScript, então abre direto do disco, desde
+que os arquivos continuem juntos em `output/`. Para servi-lo, em qualquer
+sistema, rode `python3 -m http.server 8000 --directory output` (`python`
+no Windows) e abra http://localhost:8000.
 
 ## Design visual
 
